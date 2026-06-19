@@ -5,5 +5,12 @@
     "description": "A reliable practice blade with enough edge for meadow threats.",
     "type": "weapon",
     "value": 10
+  },
+  {
+    "id": "jelly-gel",
+    "name": "Jelly Gel",
+    "description": "A springy crafting material left behind by meadow jellies.",
+    "type": "material",
+    "value": 2
   }
 ]

@@ -1,17 +1,26 @@
-import type { InventoryItem } from "../types/gameState";
+import type { InventoryState } from "../types/gameState";
 
 export interface GameEventMap {
   playerHealthChanged: { hp: number; maxHp: number };
   playerSpChanged: { sp: number; maxSp: number };
-  xpGained: { amount: number; totalXp: number };
-  levelUp: { level: number };
-  inventoryChanged: { inventory: InventoryItem[] };
+  xpGained: { amount: number; totalXp: number; nextLevelXp: number | null };
+  levelUp: {
+    level: number;
+    statPoints: number;
+    skillPoints: number;
+    hp: number;
+    maxHp: number;
+    sp: number;
+    maxSp: number;
+  };
+  inventoryChanged: { inventory: InventoryState };
   equipmentChanged: { slot: string; itemId: string | null };
   skillUsed: { skillId: string; actorId: string };
   enemyKilled: { enemyId: string };
   enemyHealthChanged: { enemyId: string; name: string; hp: number; maxHp: number };
   enemyTargetChanged: { enemyId: string | null; name: string; hp: number; maxHp: number };
-  lootDropped: { itemId: string; quantity: number };
+  lootDropped: { kind: "item" | "gold"; itemId?: string; quantity: number };
+  lootPickedUp: { kind: "item" | "gold"; itemId?: string; quantity: number };
   mapChanged: { mapId: string };
   saveCompleted: { saveSlot: number };
   dialogueOpened: { dialogueId: string };

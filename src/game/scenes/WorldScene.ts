@@ -10,6 +10,9 @@ import {
 } from "../map/tilemapPathfinding";
 import { resolveAttack, type CombatStats } from "../systems/combatFormulas";
 import { eventBus } from "../systems/eventBus";
+import { addGold, addInventoryItem } from "../systems/inventory";
+import { generateLootDrops, type LootDrop } from "../systems/lootDrops";
+import { awardXp, getLevelXpThreshold } from "../systems/progression";
 import type { DataRegistry } from "../data/dataRegistry";
 import type { ItemDefinition } from "../types/dataDefinitions";
 import type { GameState } from "../types/gameState";
@@ -28,6 +31,12 @@ const playerAttackCooldownMs = 850;
 const enemyAttackCooldownMs = 1250;
 
 type PrototypeTilemapLayer = Phaser.Tilemaps.TilemapLayer | Phaser.Tilemaps.TilemapGPULayer;
+type DroppedLootObject = {
+  id: string;
+  drop: LootDrop;
+  marker: Phaser.GameObjects.Rectangle;
+  label: Phaser.GameObjects.Text;
+};
 
 export class WorldScene extends Phaser.Scene {
   private player?: PlayerEntity;
@@ -35,9 +44,11 @@ export class WorldScene extends Phaser.Scene {
   private clickMarker?: Phaser.GameObjects.Arc;
   private collisionMap?: GridCollisionMap;
   private state?: GameState;
+  private dataRegistry?: DataRegistry;
   private playerCombatStats?: CombatStats;
   private weaponAttack = 0;
   private attackTarget?: EnemyEntity;
+  private droppedLoot: DroppedLootObject[] = [];
   private playerAttackTimerMs = playerAttackCooldownMs;
   private enemyAttackTimerMs = 0;
   private isCameraFollowingPlayer = false;
@@ -50,6 +61,7 @@ export class WorldScene extends Phaser.Scene {
     const state = this.registry.get(RegistryKeys.GameState) as GameState;
     const dataRegistry = this.registry.get(RegistryKeys.DataRegistry) as DataRegistry;
     this.state = state;
+    this.dataRegistry = dataRegistry;
     const map = dataRegistry.getMap(state.currentMapId);
     const firstMonster = map.monsterIds[0] ? dataRegistry.getMonster(map.monsterIds[0]) : null;
 
@@ -117,6 +129,15 @@ export class WorldScene extends Phaser.Scene {
     this.game.canvas.dataset.autoAttack = "idle";
     this.game.canvas.dataset.playerCombatState = "alive";
     this.game.canvas.dataset.lastCombatFormula = "";
+    this.game.canvas.dataset.lastXpGain = "";
+    this.game.canvas.dataset.lastLevelUp = "";
+    this.game.canvas.dataset.lastLootDrop = "";
+    this.game.canvas.dataset.lastLootPickup = "";
+    this.game.canvas.dataset.pendingLootCount = "0";
+    this.game.canvas.dataset.inventoryGold = String(state.inventory.gold);
+    this.game.canvas.dataset.inventoryStackCount = String(state.inventory.items.length);
+    this.game.canvas.dataset.equipmentInstanceCount = String(state.inventory.equipmentInstances.length);
+    this.game.canvas.dataset.playerXpNext = String(getLevelXpThreshold(dataRegistry.getXpTable("standard"), state.playerProfile.level + 1) ?? "");
     this.game.canvas.dataset.tilemapKey = prototypeMapKey;
     this.game.canvas.dataset.tilemapLayers = [
       tiledLayerNames.ground,
@@ -147,6 +168,10 @@ export class WorldScene extends Phaser.Scene {
 
   private handlePointerDown(pointer: Phaser.Input.Pointer): void {
     if (!this.player || pointer.button !== 0) {
+      return;
+    }
+
+    if (this.collectClickedLoot(pointer.worldX, pointer.worldY)) {
       return;
     }
 
@@ -310,7 +335,7 @@ export class WorldScene extends Phaser.Scene {
     if (!enemy.isAlive) {
       this.game.canvas.dataset.autoAttack = "stopped";
       this.game.canvas.dataset.enemySelected = "false";
-      eventBus.emit("enemyKilled", { enemyId: enemy.id });
+      this.rewardEnemyKill(enemy);
       eventBus.emit("enemyTargetChanged", {
         enemyId: null,
         name: "",
@@ -319,6 +344,103 @@ export class WorldScene extends Phaser.Scene {
       });
       this.attackTarget = undefined;
     }
+  }
+
+  private rewardEnemyKill(enemy: EnemyEntity): void {
+    const state = this.state;
+    const dataRegistry = this.dataRegistry;
+
+    if (!state || !dataRegistry) {
+      return;
+    }
+
+    const monster = dataRegistry.getMonster(enemy.id);
+    const xpResult = awardXp(state, dataRegistry.getXpTable("standard"), monster.xpReward);
+    this.game.canvas.dataset.lastXpGain = String(xpResult.amount);
+    this.game.canvas.dataset.playerXp = String(xpResult.totalXp);
+    this.game.canvas.dataset.playerXpNext = String(xpResult.nextLevelXp ?? "");
+    this.game.canvas.dataset.playerLevel = String(state.playerProfile.level);
+    this.game.canvas.dataset.playerStatPoints = String(state.playerProfile.statPoints);
+    this.game.canvas.dataset.playerSkillPoints = String(state.playerProfile.skillPoints);
+    this.game.canvas.dataset.playerHp = `${state.character.stats.hp}/${state.character.stats.maxHp}`;
+    this.game.canvas.dataset.playerSp = `${state.character.stats.sp}/${state.character.stats.maxSp}`;
+
+    if (xpResult.levelsGained.length > 0) {
+      this.game.canvas.dataset.lastLevelUp = String(xpResult.levelsGained.at(-1));
+    }
+
+    eventBus.emit("enemyKilled", { enemyId: enemy.id });
+
+    const dropTable = dataRegistry.getDropTable(monster.dropTableId);
+    const drops = generateLootDrops(dropTable, dataRegistry);
+    drops.forEach((drop, index) => this.spawnLootDrop(drop, enemy.sprite.x + index * 28, enemy.sprite.y + 18));
+  }
+
+  private spawnLootDrop(drop: LootDrop, x: number, y: number): void {
+    const id = `loot-${Date.now()}-${this.droppedLoot.length}`;
+    const markerColor = drop.kind === "gold" ? 0xfacc15 : 0x38bdf8;
+    const marker = this.add.rectangle(x, y, 22, 18, markerColor, 0.9)
+      .setStrokeStyle(2, 0xf8fafc, 0.9)
+      .setDepth(16);
+    const label = this.add.text(x, y - 24, this.getLootLabel(drop), {
+      color: "#f8fafc",
+      fontFamily: "Arial, sans-serif",
+      fontSize: "12px",
+    })
+      .setOrigin(0.5)
+      .setDepth(17);
+
+    this.droppedLoot.push({ id, drop, marker, label });
+    this.game.canvas.dataset.lastLootDrop = this.getLootDatasetValue(drop);
+    this.game.canvas.dataset.pendingLootCount = String(this.droppedLoot.length);
+    this.game.canvas.dataset.lootPosition = `${Math.round(x)},${Math.round(y)}`;
+    eventBus.emit("lootDropped", this.getLootEventPayload(drop));
+  }
+
+  private collectClickedLoot(x: number, y: number): boolean {
+    const loot = this.droppedLoot.find((entry) => entry.marker.getBounds().contains(x, y));
+
+    if (!loot || !this.state || !this.dataRegistry) {
+      return false;
+    }
+
+    if (loot.drop.kind === "gold") {
+      addGold(this.state.inventory, loot.drop.quantity);
+      this.state.playerProfile.gold = this.state.inventory.gold;
+    } else {
+      addInventoryItem(this.state.inventory, this.dataRegistry.getItem(loot.drop.itemId), loot.drop.quantity);
+    }
+
+    loot.marker.destroy();
+    loot.label.destroy();
+    this.droppedLoot = this.droppedLoot.filter((entry) => entry !== loot);
+    this.game.canvas.dataset.lastLootPickup = this.getLootDatasetValue(loot.drop);
+    this.game.canvas.dataset.pendingLootCount = String(this.droppedLoot.length);
+    this.game.canvas.dataset.inventoryGold = String(this.state.inventory.gold);
+    this.game.canvas.dataset.playerGold = String(this.state.playerProfile.gold);
+    this.game.canvas.dataset.inventoryStackCount = String(this.state.inventory.items.length);
+    this.game.canvas.dataset.equipmentInstanceCount = String(this.state.inventory.equipmentInstances.length);
+    eventBus.emit("lootPickedUp", this.getLootEventPayload(loot.drop));
+
+    return true;
+  }
+
+  private getLootLabel(drop: LootDrop): string {
+    if (drop.kind === "gold") {
+      return `${drop.quantity} gold`;
+    }
+
+    return this.dataRegistry?.getItem(drop.itemId).name ?? drop.itemId;
+  }
+
+  private getLootDatasetValue(drop: LootDrop): string {
+    return drop.kind === "gold" ? `gold:${drop.quantity}` : `${drop.itemId}:${drop.quantity}`;
+  }
+
+  private getLootEventPayload(drop: LootDrop): { kind: "item" | "gold"; itemId?: string; quantity: number } {
+    return drop.kind === "gold"
+      ? { kind: "gold", quantity: drop.quantity }
+      : { kind: "item", itemId: drop.itemId, quantity: drop.quantity };
   }
 
   private enemyAttack(enemy: EnemyEntity): void {

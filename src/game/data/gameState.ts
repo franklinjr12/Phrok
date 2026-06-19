@@ -8,6 +8,8 @@ export function createNewGameState(): GameState {
       level: 1,
       xp: 0,
       gold: 0,
+      statPoints: 0,
+      skillPoints: 0,
     },
     currentMapId: "crownfield-meadows",
     character: {
@@ -20,7 +22,11 @@ export function createNewGameState(): GameState {
         maxSp: 8,
       },
     },
-    inventory: [{ id: "training-sword", quantity: 1 }],
+    inventory: {
+      items: [{ id: "training-sword", quantity: 1 }],
+      gold: 0,
+      equipmentInstances: [],
+    },
     equipment: {
       weapon: "training-sword",
       armor: null,

@@ -3,10 +3,16 @@
     "id": "green-jelly-drops",
     "entries": [
       {
-        "itemId": "training-sword",
-        "chance": 0.05,
+        "itemId": "jelly-gel",
+        "chance": 1,
         "minQuantity": 1,
-        "maxQuantity": 1
+        "maxQuantity": 2
+      },
+      {
+        "type": "gold",
+        "chance": 1,
+        "minQuantity": 3,
+        "maxQuantity": 5
       }
     ]
   }

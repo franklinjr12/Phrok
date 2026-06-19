@@ -3,6 +3,8 @@ export interface PlayerProfile {
   level: number;
   xp: number;
   gold: number;
+  statPoints: number;
+  skillPoints: number;
 }
 
 export interface CharacterStats {
@@ -21,6 +23,17 @@ export interface CharacterData {
 export interface InventoryItem {
   id: string;
   quantity: number;
+}
+
+export interface EquipmentInstance {
+  instanceId: string;
+  itemId: string;
+}
+
+export interface InventoryState {
+  items: InventoryItem[];
+  gold: number;
+  equipmentInstances: EquipmentInstance[];
 }
 
 export interface EquipmentData {
@@ -50,7 +63,7 @@ export interface GameState {
   playerProfile: PlayerProfile;
   currentMapId: string;
   character: CharacterData;
-  inventory: InventoryItem[];
+  inventory: InventoryState;
   equipment: EquipmentData;
   quests: QuestState;
   bestiary: BestiaryState;

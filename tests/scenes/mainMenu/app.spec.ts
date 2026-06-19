@@ -61,11 +61,19 @@ test("new game flows from main menu to world with ui state", async ({ page }) =>
   await expect(canvas).toHaveAttribute("data-player-hp", "30/30");
   await expect(canvas).toHaveAttribute("data-player-sp", "8/8");
   await expect(canvas).toHaveAttribute("data-player-xp", "0");
+  await expect(canvas).toHaveAttribute("data-player-xp-next", "100");
+  await expect(canvas).toHaveAttribute("data-xp-bar", "visible");
+  await expect(canvas).toHaveAttribute("data-xp-bar-width", "0");
   await expect(canvas).toHaveAttribute("data-player-level", "1");
   await expect(canvas).toHaveAttribute("data-player-gold", "0");
+  await expect(canvas).toHaveAttribute("data-player-stat-points", "0");
+  await expect(canvas).toHaveAttribute("data-player-skill-points", "0");
   await expect(canvas).toHaveAttribute("data-player-class", "swordsman");
   await expect(canvas).toHaveAttribute("data-inventory-item", "training-sword");
   await expect(canvas).toHaveAttribute("data-inventory-item-name", "Training Sword");
+  await expect(canvas).toHaveAttribute("data-inventory-gold", "0");
+  await expect(canvas).toHaveAttribute("data-inventory-stack-count", "1");
+  await expect(canvas).toHaveAttribute("data-equipment-instance-count", "0");
   await expect(canvas).toHaveAttribute("data-skill", "power-slash");
   await expect(canvas).toHaveAttribute("data-skill-name", "Power Slash");
 });
@@ -143,4 +151,21 @@ test("world supports target selection and auto-attack combat", async ({ page }) 
   await expect(canvas).toHaveAttribute("data-enemy-hp", "0/10");
   await expect(canvas).toHaveAttribute("data-auto-attack", "stopped");
   await expect(canvas).toHaveAttribute("data-target-frame", "hidden");
+  await expect(canvas).toHaveAttribute("data-player-xp", "5");
+  await expect(canvas).toHaveAttribute("data-last-xp-gain", "5");
+  await expect(canvas).toHaveAttribute("data-player-level", "1");
+  await expect(canvas).toHaveAttribute("data-xp-bar-width", "9");
+  await expect(canvas).toHaveAttribute("data-pending-loot-count", "2");
+  await expect(canvas).toHaveAttribute("data-last-loot-drop", /gold:[3-5]/);
+
+  await canvas.click({ position: { x: 528, y: 322 } });
+  await expect(canvas).toHaveAttribute("data-pending-loot-count", "1");
+  await expect(canvas).toHaveAttribute("data-last-loot-pickup", /jelly-gel:[1-2]/);
+  await expect(canvas).toHaveAttribute("data-inventory-stack-count", "2");
+
+  await canvas.click({ position: { x: 556, y: 322 } });
+  await expect(canvas).toHaveAttribute("data-pending-loot-count", "0");
+  await expect(canvas).toHaveAttribute("data-last-loot-pickup", /gold:[3-5]/);
+  await expect.poll(async () => Number(await canvas.getAttribute("data-player-gold"))).toBeGreaterThan(0);
+  await expect.poll(async () => Number(await canvas.getAttribute("data-inventory-gold"))).toBeGreaterThan(0);
 });

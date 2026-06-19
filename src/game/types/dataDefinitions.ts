@@ -42,7 +42,8 @@ export interface MonsterDefinition {
 }
 
 export interface DropTableEntryDefinition {
-  itemId: string;
+  itemId?: string;
+  type?: "item" | "gold";
   chance: number;
   minQuantity: number;
   maxQuantity: number;
@@ -125,4 +126,3 @@ export interface DataFileMap {
 }
 
 export type DataCollectionKey = keyof DataFileMap;
-

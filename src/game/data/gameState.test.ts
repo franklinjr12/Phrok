@@ -11,6 +11,8 @@ describe("createNewGameState", () => {
       level: 1,
       xp: 0,
       gold: 0,
+      statPoints: 0,
+      skillPoints: 0,
     });
     expect(state.character.stats).toMatchObject({
       hp: 30,
@@ -19,7 +21,9 @@ describe("createNewGameState", () => {
       maxSp: 8,
     });
     expect(state.character.archetype).toBe("swordsman");
-    expect(state.inventory).toEqual([{ id: "training-sword", quantity: 1 }]);
+    expect(state.inventory.items).toEqual([{ id: "training-sword", quantity: 1 }]);
+    expect(state.inventory.gold).toBe(0);
+    expect(state.inventory.equipmentInstances).toEqual([]);
     expect(state.equipment.weapon).toBe("training-sword");
     expect(state.quests.activeQuestIds).toEqual([]);
     expect(state.bestiary.discoveredEnemyIds).toEqual([]);

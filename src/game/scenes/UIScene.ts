@@ -8,8 +8,13 @@ export class UIScene extends Phaser.Scene {
   private unsubscribeHealth?: () => void;
   private unsubscribeSp?: () => void;
   private unsubscribeXp?: () => void;
+  private unsubscribeLevelUp?: () => void;
+  private unsubscribeInventory?: () => void;
+  private unsubscribeLootDropped?: () => void;
+  private unsubscribeLootPickedUp?: () => void;
   private unsubscribeEnemyHealth?: () => void;
   private unsubscribeEnemyTarget?: () => void;
+  private xpBarFill?: Phaser.GameObjects.Rectangle;
   private targetFrame?: Phaser.GameObjects.Rectangle;
   private targetNameText?: Phaser.GameObjects.Text;
   private targetHpText?: Phaser.GameObjects.Text;
@@ -24,6 +29,8 @@ export class UIScene extends Phaser.Scene {
 
     this.game.canvas.dataset.uiScene = "running";
     this.syncPlayerStats(state, dataRegistry);
+    this.createPlayerBars(state);
+    this.syncXpBar(state, dataRegistry);
     this.createTargetFrame();
 
     this.unsubscribeHealth = eventBus.on("playerHealthChanged", ({ hp, maxHp }) => {
@@ -36,6 +43,36 @@ export class UIScene extends Phaser.Scene {
 
     this.unsubscribeXp = eventBus.on("xpGained", ({ totalXp }) => {
       this.game.canvas.dataset.playerXp = String(totalXp);
+      this.syncXpBar(state, dataRegistry);
+    });
+
+    this.unsubscribeLevelUp = eventBus.on("levelUp", ({ level, statPoints, skillPoints, hp, maxHp, sp, maxSp }) => {
+      this.game.canvas.dataset.playerLevel = String(level);
+      this.game.canvas.dataset.lastLevelUp = String(level);
+      this.game.canvas.dataset.playerStatPoints = String(statPoints);
+      this.game.canvas.dataset.playerSkillPoints = String(skillPoints);
+      this.game.canvas.dataset.playerHp = `${hp}/${maxHp}`;
+      this.game.canvas.dataset.playerSp = `${sp}/${maxSp}`;
+      this.syncXpBar(state, dataRegistry);
+    });
+
+    this.unsubscribeInventory = eventBus.on("inventoryChanged", ({ inventory }) => {
+      const firstInventoryItem = inventory.items[0] ? dataRegistry.getItem(inventory.items[0].id) : null;
+
+      this.game.canvas.dataset.inventoryItem = firstInventoryItem?.id ?? "";
+      this.game.canvas.dataset.inventoryItemName = firstInventoryItem?.name ?? "";
+      this.game.canvas.dataset.inventoryStackCount = String(inventory.items.length);
+      this.game.canvas.dataset.equipmentInstanceCount = String(inventory.equipmentInstances.length);
+      this.game.canvas.dataset.inventoryGold = String(inventory.gold);
+      this.game.canvas.dataset.playerGold = String(inventory.gold);
+    });
+
+    this.unsubscribeLootDropped = eventBus.on("lootDropped", ({ kind, itemId, quantity }) => {
+      this.game.canvas.dataset.lastLootDrop = kind === "gold" ? `gold:${quantity}` : `${itemId}:${quantity}`;
+    });
+
+    this.unsubscribeLootPickedUp = eventBus.on("lootPickedUp", ({ kind, itemId, quantity }) => {
+      this.game.canvas.dataset.lastLootPickup = kind === "gold" ? `gold:${quantity}` : `${itemId}:${quantity}`;
     });
 
     this.unsubscribeEnemyHealth = eventBus.on("enemyHealthChanged", ({ enemyId, name, hp, maxHp }) => {
@@ -57,9 +94,27 @@ export class UIScene extends Phaser.Scene {
       this.unsubscribeHealth?.();
       this.unsubscribeSp?.();
       this.unsubscribeXp?.();
+      this.unsubscribeLevelUp?.();
+      this.unsubscribeInventory?.();
+      this.unsubscribeLootDropped?.();
+      this.unsubscribeLootPickedUp?.();
       this.unsubscribeEnemyHealth?.();
       this.unsubscribeEnemyTarget?.();
     });
+  }
+
+  private createPlayerBars(state: GameState): void {
+    this.add.rectangle(20, 64, 180, 8, 0x111827, 0.8)
+      .setOrigin(0, 0.5)
+      .setScrollFactor(0)
+      .setDepth(100);
+    this.xpBarFill = this.add.rectangle(20, 64, 1, 6, 0xfacc15, 1)
+      .setOrigin(0, 0.5)
+      .setScrollFactor(0)
+      .setDepth(101);
+    this.game.canvas.dataset.xpBar = "visible";
+    this.game.canvas.dataset.xpBarWidth = "0";
+    this.xpBarFill.displayWidth = state.playerProfile.xp > 0 ? 1 : 0;
   }
 
   private createTargetFrame(): void {
@@ -109,18 +164,41 @@ export class UIScene extends Phaser.Scene {
 
   private syncPlayerStats(state: GameState, dataRegistry: DataRegistry): void {
     const playerClass = dataRegistry.getClass(state.character.archetype);
-    const firstInventoryItem = state.inventory[0] ? dataRegistry.getItem(state.inventory[0].id) : null;
+    const firstInventoryItem = state.inventory.items[0] ? dataRegistry.getItem(state.inventory.items[0].id) : null;
     const firstSkill = playerClass.startingSkillIds[0] ? dataRegistry.getSkill(playerClass.startingSkillIds[0]) : null;
 
     this.game.canvas.dataset.playerHp = `${state.character.stats.hp}/${state.character.stats.maxHp}`;
     this.game.canvas.dataset.playerSp = `${state.character.stats.sp}/${state.character.stats.maxSp}`;
     this.game.canvas.dataset.playerXp = String(state.playerProfile.xp);
+    this.game.canvas.dataset.playerXpNext = String(dataRegistry.getXpTable("standard").levels[String(state.playerProfile.level + 1)] ?? "");
     this.game.canvas.dataset.playerLevel = String(state.playerProfile.level);
     this.game.canvas.dataset.playerGold = String(state.playerProfile.gold);
+    this.game.canvas.dataset.playerStatPoints = String(state.playerProfile.statPoints);
+    this.game.canvas.dataset.playerSkillPoints = String(state.playerProfile.skillPoints);
     this.game.canvas.dataset.playerClass = playerClass.id;
     this.game.canvas.dataset.inventoryItem = firstInventoryItem?.id ?? "";
     this.game.canvas.dataset.inventoryItemName = firstInventoryItem?.name ?? "";
+    this.game.canvas.dataset.inventoryGold = String(state.inventory.gold);
+    this.game.canvas.dataset.inventoryStackCount = String(state.inventory.items.length);
+    this.game.canvas.dataset.equipmentInstanceCount = String(state.inventory.equipmentInstances.length);
     this.game.canvas.dataset.skill = firstSkill?.id ?? "";
     this.game.canvas.dataset.skillName = firstSkill?.name ?? "";
+  }
+
+  private syncXpBar(state: GameState, dataRegistry: DataRegistry): void {
+    const xpTable = dataRegistry.getXpTable("standard");
+    const currentLevelXp = xpTable.levels[String(state.playerProfile.level)] ?? 0;
+    const nextLevelXp = xpTable.levels[String(state.playerProfile.level + 1)] ?? null;
+    const progress = nextLevelXp === null
+      ? 1
+      : Phaser.Math.Clamp((state.playerProfile.xp - currentLevelXp) / (nextLevelXp - currentLevelXp), 0, 1);
+    const width = Math.round(progress * 180);
+
+    if (this.xpBarFill) {
+      this.xpBarFill.displayWidth = width;
+    }
+
+    this.game.canvas.dataset.playerXpNext = String(nextLevelXp ?? "");
+    this.game.canvas.dataset.xpBarWidth = String(width);
   }
 }

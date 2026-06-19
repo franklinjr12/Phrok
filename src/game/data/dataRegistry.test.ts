@@ -12,9 +12,20 @@ const validFiles: Record<string, unknown[]> = {
     },
   ],
   "skills.json": [{ id: "power-slash", name: "Power Slash", classId: "swordsman", power: 12 }],
-  "items.json": [{ id: "training-sword", name: "Training Sword", type: "weapon" }],
+  "items.json": [
+    { id: "training-sword", name: "Training Sword", type: "weapon" },
+    { id: "jelly-gel", name: "Jelly Gel", type: "material" },
+  ],
   "monsters.json": [{ id: "green-jelly", name: "Green Jelly", hp: 10, attack: 2, dropTableId: "green-jelly-drops" }],
-  "drop-tables.json": [{ id: "green-jelly-drops", entries: [{ itemId: "training-sword", chance: 1 }] }],
+  "drop-tables.json": [
+    {
+      id: "green-jelly-drops",
+      entries: [
+        { itemId: "jelly-gel", chance: 1 },
+        { type: "gold", chance: 1, minQuantity: 3, maxQuantity: 5 },
+      ],
+    },
+  ],
   "maps.json": [{ id: "crownfield-meadows", name: "Crownfield Meadows" }],
   "npcs.json": [{ id: "field-guide", name: "Field Guide", mapId: "crownfield-meadows" }],
   "recipes.json": [{ id: "training-sword-repair", name: "Training Sword Repair", resultItemId: "training-sword" }],
@@ -33,6 +44,13 @@ describe("loadDataRegistry", () => {
     expect(registry.getSkill("power-slash")).toMatchObject({ spCost: 0, target: "enemy" });
     expect(registry.getItem("training-sword")).toMatchObject({ value: 0 });
     expect(registry.getMonster("green-jelly").dropTableId).toBe("green-jelly-drops");
+    expect(registry.getDropTable("green-jelly-drops").entries).toContainEqual({
+      itemId: undefined,
+      type: "gold",
+      chance: 1,
+      minQuantity: 3,
+      maxQuantity: 5,
+    });
     expect(registry.getMap("crownfield-meadows").monsterIds).toEqual([]);
     expect(registry.getSupport("mira").skillIds).toEqual([]);
     expect(registry.getDifficulty("normal").enemyHpMultiplier).toBe(1);
@@ -68,4 +86,3 @@ function createFetch(files: Record<string, unknown[]>): Parameters<typeof loadDa
     };
   };
 }
-

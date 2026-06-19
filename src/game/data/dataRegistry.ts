@@ -273,12 +273,18 @@ function validateDropTable(source: Record<string, unknown>, fileName: string): D
   return {
     id,
     entries: Array.isArray(entries)
-      ? entries.filter(isRecord).map((entry) => ({
-        itemId: requireString(entry, "itemId", fileName, id),
-        chance: requireNumber(entry, "chance", fileName, id),
-        minQuantity: optionalNumber(entry, "minQuantity", 1),
-        maxQuantity: optionalNumber(entry, "maxQuantity", 1),
-      }))
+      ? entries.filter(isRecord).map((entry) => {
+        const type = optionalString(entry, "type", "item");
+        const itemId = type === "gold" ? optionalString(entry, "itemId", "") : requireString(entry, "itemId", fileName, id);
+
+        return {
+          itemId: itemId || undefined,
+          type: type === "gold" ? "gold" : "item",
+          chance: requireNumber(entry, "chance", fileName, id),
+          minQuantity: optionalNumber(entry, "minQuantity", 1),
+          maxQuantity: optionalNumber(entry, "maxQuantity", 1),
+        };
+      })
       : [],
   };
 }
