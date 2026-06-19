@@ -30,7 +30,22 @@ const validFiles: Record<string, unknown[]> = {
     },
   ],
   "maps.json": [{ id: "crownfield-meadows", name: "Crownfield Meadows" }],
-  "npcs.json": [{ id: "field-guide", name: "Field Guide", mapId: "crownfield-meadows" }],
+  "dialogues.json": [
+    {
+      id: "field-guide-greeting",
+      lines: ["Keep your boots on the road."],
+      choices: [{ id: "guide-service", label: "Ask for guidance", disabled: true }],
+    },
+  ],
+  "npcs.json": [
+    {
+      id: "field-guide",
+      name: "Field Guide",
+      mapId: "crownfield-meadows",
+      dialogueId: "field-guide-greeting",
+      serviceType: "guide",
+    },
+  ],
   "recipes.json": [{ id: "training-sword-repair", name: "Training Sword Repair", resultItemId: "training-sword" }],
   "supports.json": [{ id: "mira", name: "Mira" }],
   "quests.json": [{ id: "first-steps", name: "First Steps" }],
@@ -58,6 +73,16 @@ describe("loadDataRegistry", () => {
       maxQuantity: 5,
     });
     expect(registry.getMap("crownfield-meadows").monsterIds).toEqual([]);
+    expect(registry.getDialogue("field-guide-greeting").choices).toContainEqual({
+      id: "guide-service",
+      label: "Ask for guidance",
+      disabled: true,
+    });
+    expect(registry.getNpc("field-guide")).toMatchObject({
+      interactionRadius: 72,
+      dialogueId: "field-guide-greeting",
+      serviceType: "guide",
+    });
     expect(registry.getSupport("mira").skillIds).toEqual([]);
     expect(registry.getDifficulty("normal").enemyHpMultiplier).toBe(1);
   });

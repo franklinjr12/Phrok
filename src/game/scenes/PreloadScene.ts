@@ -4,7 +4,9 @@ import { SceneKeys } from "../constants/sceneKeys";
 import { loadDataRegistry } from "../data/dataRegistry";
 import { createNewGameState } from "../data/gameState";
 import { EnemyTextureKeys } from "../entities/EnemyEntity";
+import { NpcTextureKeys } from "../entities/NpcEntity";
 import { PlayerTextureKeys } from "../entities/PlayerEntity";
+import townServiceNpcUrl from "../../../assets/sprites/town-service-npc.png?url";
 
 const mapAssets = [
   { key: "map-crownfield-town", path: "assets/maps/crownfield-town.json" },
@@ -21,6 +23,8 @@ export class PreloadScene extends Phaser.Scene {
     for (const mapAsset of mapAssets) {
       this.load.tilemapTiledJSON(mapAsset.key, mapAsset.path);
     }
+
+    this.load.image(NpcTextureKeys.TownService, townServiceNpcUrl);
   }
 
   async create(): Promise<void> {

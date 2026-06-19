@@ -88,7 +88,9 @@ test("new game flows from main menu to world with ui state", async ({ page }) =>
   await expect(canvas).toHaveAttribute("data-tilemap-size", "25x19");
   await expect(canvas).toHaveAttribute("data-spawn-point", "240,304");
   await expect(canvas).toHaveAttribute("data-spawn-name", "PlayerSpawn");
-  await expect(canvas).toHaveAttribute("data-npc-count", "2");
+  await expect(canvas).toHaveAttribute("data-npc-count", "8");
+  await expect(canvas).toHaveAttribute("data-npc-entity-count", "8");
+  await expect(canvas).toHaveAttribute("data-npc-service-types", "inn|storage|merchant|refiner|crafter|healer|travel|hunter-board");
   await expect(canvas).toHaveAttribute("data-portal-count", "1");
   await expect(canvas).toHaveAttribute("data-safe-zone", "town");
   await expect(canvas).toHaveAttribute("data-monster-spawn-zone-count", "0");
@@ -112,6 +114,39 @@ test("new game flows from main menu to world with ui state", async ({ page }) =>
   await expect(canvas).toHaveAttribute("data-equipment-instance-count", "0");
   await expect(canvas).toHaveAttribute("data-skill", "power-slash");
   await expect(canvas).toHaveAttribute("data-skill-name", "Power Slash");
+});
+
+test("town NPCs can be clicked to open blocking placeholder service dialogue", async ({ page }) => {
+  await page.setViewportSize({ width: 800, height: 600 });
+  await page.goto("/");
+
+  const canvas = await confirmDefaultCharacter(page);
+  await expect(canvas).toHaveAttribute("data-npc-names", "Maela Hearth|Borin Lockbar|Tessa Vale|Orun Brightslag|Nima Threadwell|Sella Greenward|Joric Wayfare|Perrin Slate");
+  await expect(canvas).toHaveAttribute("data-dialogue-state", "closed");
+
+  await canvas.click({ position: { x: 304, y: 240 } });
+  await expect(canvas).toHaveAttribute("data-last-clicked-npc", "maela-hearth");
+  await expect(canvas).toHaveAttribute("data-last-clicked-npc-service-type", "inn");
+  await expect.poll(async () => await canvas.getAttribute("data-dialogue-state"), { timeout: 6000 }).toBe("open");
+  await expect(canvas).toHaveAttribute("data-dialogue-npc-name", "Maela Hearth");
+  await expect(canvas).toHaveAttribute("data-dialogue-id", "maela-hearth-greeting");
+  await expect(canvas).toHaveAttribute("data-dialogue-service-type", "inn");
+  await expect(canvas).toHaveAttribute("data-dialogue-text", "Fresh linen, warm soup, and a bed that does not ask questions. That is my promise.");
+  await expect(canvas).toHaveAttribute("data-dialogue-choice-labels", "Rest at the inn");
+  await expect(canvas).toHaveAttribute("data-dialogue-choice-disabled", "true");
+  await expect(canvas).toHaveAttribute("data-dialogue-blocking-movement", "true");
+
+  const blockedX = Number(await canvas.getAttribute("data-player-x"));
+  await canvas.click({ position: { x: 560, y: 300 } });
+  await page.waitForTimeout(150);
+  expect(Number(await canvas.getAttribute("data-player-x"))).toBeCloseTo(blockedX, 1);
+
+  await canvas.click({ position: { x: 650, y: 550 } });
+  await expect(canvas).toHaveAttribute("data-dialogue-line-index", "1");
+  await expect(canvas).toHaveAttribute("data-dialogue-text", "The inn rooms are being aired out for new arrivals.");
+  await canvas.click({ position: { x: 650, y: 550 } });
+  await expect(canvas).toHaveAttribute("data-dialogue-state", "closed");
+  await expect(canvas).toHaveAttribute("data-dialogue-blocking-movement", "false");
 });
 
 test("character creation accepts name input and class selection", async ({ page }) => {

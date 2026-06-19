@@ -74,11 +74,25 @@ export interface MapDefinition {
   npcIds: string[];
 }
 
+export interface DialogueChoiceDefinition {
+  id: string;
+  label: string;
+  disabled: boolean;
+}
+
+export interface DialogueDefinition {
+  id: string;
+  lines: string[];
+  choices: DialogueChoiceDefinition[];
+}
+
 export interface NpcDefinition {
   id: string;
   name: string;
   mapId: string;
+  interactionRadius: number;
   dialogueId: string;
+  serviceType: string;
 }
 
 export interface RecipeDefinition {
@@ -128,6 +142,7 @@ export interface DataFileMap {
   monsters: MonsterDefinition;
   dropTables: DropTableDefinition;
   maps: MapDefinition;
+  dialogues: DialogueDefinition;
   npcs: NpcDefinition;
   recipes: RecipeDefinition;
   supports: SupportDefinition;

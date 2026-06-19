@@ -1,0 +1,73 @@
+[
+  {
+    "id": "maela-hearth-greeting",
+    "lines": [
+      "Fresh linen, warm soup, and a bed that does not ask questions. That is my promise.",
+      "The inn rooms are being aired out for new arrivals."
+    ],
+    "choices": [{ "id": "open-inn", "label": "Rest at the inn", "disabled": true }]
+  },
+  {
+    "id": "borin-lockbar-greeting",
+    "lines": [
+      "If it fits in a chest, I can keep it safer than a pocket can.",
+      "Storage ledgers are still being stamped, so check back soon."
+    ],
+    "choices": [{ "id": "open-storage", "label": "Open storage", "disabled": true }]
+  },
+  {
+    "id": "tessa-vale-greeting",
+    "lines": [
+      "I trade in useful things, not shiny regrets.",
+      "The shop shelves are marked, but the till is not ready yet."
+    ],
+    "choices": [{ "id": "open-shop", "label": "Browse goods", "disabled": true }]
+  },
+  {
+    "id": "orun-brightslag-greeting",
+    "lines": [
+      "Ore sings if you heat it right. Most folks just hear clanging.",
+      "Bring me rough materials once the refining bench is set."
+    ],
+    "choices": [{ "id": "open-refinery", "label": "Refine materials", "disabled": true }]
+  },
+  {
+    "id": "nima-threadwell-greeting",
+    "lines": [
+      "A good craft starts before the first stitch or strike.",
+      "My patterns are pinned up, but commissions are not open yet."
+    ],
+    "choices": [{ "id": "open-crafting", "label": "Craft equipment", "disabled": true }]
+  },
+  {
+    "id": "sella-greenward-greeting",
+    "lines": [
+      "Hold still a moment. Even a small bruise tells a story.",
+      "Healing services will open once I finish sorting the herb jars."
+    ],
+    "choices": [{ "id": "open-healing", "label": "Request healing", "disabled": true }]
+  },
+  {
+    "id": "joric-wayfare-greeting",
+    "lines": [
+      "Roads remember every boot. Mine remember plenty.",
+      "I will mark routes once the travel board is cleared."
+    ],
+    "choices": [{ "id": "open-travel", "label": "Plan travel", "disabled": true }]
+  },
+  {
+    "id": "perrin-slate-greeting",
+    "lines": [
+      "Wanted notes, trail marks, claw counts. The board keeps all of it.",
+      "Hunter requests are posted here once the clerk stamps them."
+    ],
+    "choices": [{ "id": "open-hunter-board", "label": "View hunter board", "disabled": true }]
+  },
+  {
+    "id": "meadow-keeper-greeting",
+    "lines": [
+      "Stay near the road if the grass starts moving against the wind."
+    ],
+    "choices": [{ "id": "ask-meadow", "label": "Ask about the meadow", "disabled": true }]
+  }
+]

@@ -3,6 +3,7 @@ import type {
   DataCollectionKey,
   DataFileMap,
   DifficultyDefinition,
+  DialogueDefinition,
   DropTableDefinition,
   ItemDefinition,
   MapDefinition,
@@ -78,6 +79,10 @@ export class DataRegistry {
 
   getMap(id: string): MapDefinition {
     return this.getById("maps", id);
+  }
+
+  getDialogue(id: string): DialogueDefinition {
+    return this.getById("dialogues", id);
   }
 
   getNpc(id: string): NpcDefinition {
@@ -182,6 +187,7 @@ function createEmptyCollections(): DataCollections {
     monsters: new Map(),
     dropTables: new Map(),
     maps: new Map(),
+    dialogues: new Map(),
     npcs: new Map(),
     recipes: new Map(),
     supports: new Map(),
@@ -199,6 +205,7 @@ const dataFiles = [
   { key: "monsters", fileName: "monsters.json", validate: validateMonster },
   { key: "dropTables", fileName: "drop-tables.json", validate: validateDropTable },
   { key: "maps", fileName: "maps.json", validate: validateMap },
+  { key: "dialogues", fileName: "dialogues.json", validate: validateDialogue },
   { key: "npcs", fileName: "npcs.json", validate: validateNpc },
   { key: "recipes", fileName: "recipes.json", validate: validateRecipe },
   { key: "supports", fileName: "supports.json", validate: validateSupport },
@@ -319,6 +326,26 @@ function validateMap(source: Record<string, unknown>, fileName: string): MapDefi
   };
 }
 
+function validateDialogue(source: Record<string, unknown>, fileName: string): DialogueDefinition {
+  const id = readId(source, fileName);
+  const lines = source.lines;
+  const choices = source.choices;
+
+  return {
+    id,
+    lines: Array.isArray(lines)
+      ? lines.filter((line): line is string => typeof line === "string" && line.length > 0)
+      : [optionalString(source, "text", "")].filter((line) => line.length > 0),
+    choices: Array.isArray(choices)
+      ? choices.filter(isRecord).map((choice) => ({
+        id: optionalString(choice, "id", "choice"),
+        label: requireString(choice, "label", fileName, id),
+        disabled: Boolean(choice.disabled),
+      }))
+      : [],
+  };
+}
+
 function validateNpc(source: Record<string, unknown>, fileName: string): NpcDefinition {
   const id = readId(source, fileName);
 
@@ -326,7 +353,9 @@ function validateNpc(source: Record<string, unknown>, fileName: string): NpcDefi
     id,
     name: requireString(source, "name", fileName, id),
     mapId: requireString(source, "mapId", fileName, id),
+    interactionRadius: optionalNumber(source, "interactionRadius", 72),
     dialogueId: optionalString(source, "dialogueId", ""),
+    serviceType: optionalString(source, "serviceType", "talk"),
   };
 }
 

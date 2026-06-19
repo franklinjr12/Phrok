@@ -1,20 +1,74 @@
 [
   {
-    "id": "field-guide",
-    "name": "Field Guide",
+    "id": "maela-hearth",
+    "name": "Maela Hearth",
     "mapId": "crownfield-town",
-    "dialogueId": "field-guide-greeting"
+    "interactionRadius": 72,
+    "dialogueId": "maela-hearth-greeting",
+    "serviceType": "inn"
   },
   {
-    "id": "town-smith",
-    "name": "Town Smith",
+    "id": "borin-lockbar",
+    "name": "Borin Lockbar",
     "mapId": "crownfield-town",
-    "dialogueId": "town-smith-greeting"
+    "interactionRadius": 72,
+    "dialogueId": "borin-lockbar-greeting",
+    "serviceType": "storage"
+  },
+  {
+    "id": "tessa-vale",
+    "name": "Tessa Vale",
+    "mapId": "crownfield-town",
+    "interactionRadius": 72,
+    "dialogueId": "tessa-vale-greeting",
+    "serviceType": "merchant"
+  },
+  {
+    "id": "orun-brightslag",
+    "name": "Orun Brightslag",
+    "mapId": "crownfield-town",
+    "interactionRadius": 72,
+    "dialogueId": "orun-brightslag-greeting",
+    "serviceType": "refiner"
+  },
+  {
+    "id": "nima-threadwell",
+    "name": "Nima Threadwell",
+    "mapId": "crownfield-town",
+    "interactionRadius": 72,
+    "dialogueId": "nima-threadwell-greeting",
+    "serviceType": "crafter"
+  },
+  {
+    "id": "sella-greenward",
+    "name": "Sella Greenward",
+    "mapId": "crownfield-town",
+    "interactionRadius": 72,
+    "dialogueId": "sella-greenward-greeting",
+    "serviceType": "healer"
+  },
+  {
+    "id": "joric-wayfare",
+    "name": "Joric Wayfare",
+    "mapId": "crownfield-town",
+    "interactionRadius": 72,
+    "dialogueId": "joric-wayfare-greeting",
+    "serviceType": "travel"
+  },
+  {
+    "id": "perrin-slate",
+    "name": "Perrin Slate",
+    "mapId": "crownfield-town",
+    "interactionRadius": 72,
+    "dialogueId": "perrin-slate-greeting",
+    "serviceType": "hunter-board"
   },
   {
     "id": "meadow-keeper",
     "name": "Meadow Keeper",
     "mapId": "crownfield-meadows",
-    "dialogueId": "meadow-keeper-greeting"
+    "interactionRadius": 72,
+    "dialogueId": "meadow-keeper-greeting",
+    "serviceType": "guide"
   }
 ]

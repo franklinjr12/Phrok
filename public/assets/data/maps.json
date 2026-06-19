@@ -4,7 +4,16 @@
     "name": "Crownfield",
     "description": "A sheltered starter town with market stalls, trainers, and a road to the meadows.",
     "monsterIds": [],
-    "npcIds": ["field-guide", "town-smith"]
+    "npcIds": [
+      "maela-hearth",
+      "borin-lockbar",
+      "tessa-vale",
+      "orun-brightslag",
+      "nima-threadwell",
+      "sella-greenward",
+      "joric-wayfare",
+      "perrin-slate"
+    ]
   },
   {
     "id": "crownfield-meadows",

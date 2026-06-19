@@ -1501,15 +1501,9 @@
         {
           "height": 32,
           "id": 3,
-          "name": "Field Guide",
+          "name": "Maela Hearth",
           "point": true,
-          "properties": [
-            {
-              "name": "npcId",
-              "type": "string",
-              "value": "field-guide"
-            }
-          ],
+          "properties": [{ "name": "npcId", "type": "string", "value": "maela-hearth" }],
           "rotation": 0,
           "type": "npc",
           "visible": true,
@@ -1520,21 +1514,93 @@
         {
           "height": 32,
           "id": 4,
-          "name": "Town Smith",
+          "name": "Borin Lockbar",
           "point": true,
-          "properties": [
-            {
-              "name": "npcId",
-              "type": "string",
-              "value": "town-smith"
-            }
-          ],
+          "properties": [{ "name": "npcId", "type": "string", "value": "borin-lockbar" }],
+          "rotation": 0,
+          "type": "npc",
+          "visible": true,
+          "width": 32,
+          "x": 400,
+          "y": 240
+        },
+        {
+          "height": 32,
+          "id": 6,
+          "name": "Tessa Vale",
+          "point": true,
+          "properties": [{ "name": "npcId", "type": "string", "value": "tessa-vale" }],
           "rotation": 0,
           "type": "npc",
           "visible": true,
           "width": 32,
           "x": 496,
           "y": 336
+        },
+        {
+          "height": 32,
+          "id": 7,
+          "name": "Orun Brightslag",
+          "point": true,
+          "properties": [{ "name": "npcId", "type": "string", "value": "orun-brightslag" }],
+          "rotation": 0,
+          "type": "npc",
+          "visible": true,
+          "width": 32,
+          "x": 592,
+          "y": 336
+        },
+        {
+          "height": 32,
+          "id": 8,
+          "name": "Nima Threadwell",
+          "point": true,
+          "properties": [{ "name": "npcId", "type": "string", "value": "nima-threadwell" }],
+          "rotation": 0,
+          "type": "npc",
+          "visible": true,
+          "width": 32,
+          "x": 240,
+          "y": 432
+        },
+        {
+          "height": 32,
+          "id": 9,
+          "name": "Sella Greenward",
+          "point": true,
+          "properties": [{ "name": "npcId", "type": "string", "value": "sella-greenward" }],
+          "rotation": 0,
+          "type": "npc",
+          "visible": true,
+          "width": 32,
+          "x": 336,
+          "y": 432
+        },
+        {
+          "height": 32,
+          "id": 10,
+          "name": "Joric Wayfare",
+          "point": true,
+          "properties": [{ "name": "npcId", "type": "string", "value": "joric-wayfare" }],
+          "rotation": 0,
+          "type": "npc",
+          "visible": true,
+          "width": 32,
+          "x": 640,
+          "y": 240
+        },
+        {
+          "height": 32,
+          "id": 11,
+          "name": "Perrin Slate",
+          "point": true,
+          "properties": [{ "name": "npcId", "type": "string", "value": "perrin-slate" }],
+          "rotation": 0,
+          "type": "npc",
+          "visible": true,
+          "width": 32,
+          "x": 560,
+          "y": 464
         },
         {
           "height": 96,
@@ -1568,7 +1634,7 @@
     }
   ],
   "nextlayerid": 5,
-  "nextobjectid": 6,
+  "nextobjectid": 12,
   "orientation": "orthogonal",
   "renderorder": "right-down",
   "tiledversion": "1.11.2",

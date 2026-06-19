@@ -2,6 +2,7 @@ import Phaser from "phaser";
 import { RegistryKeys } from "../constants/registryKeys";
 import { SceneKeys } from "../constants/sceneKeys";
 import { EnemyEntity } from "../entities/EnemyEntity";
+import { NpcEntity } from "../entities/NpcEntity";
 import { PlayerEntity } from "../entities/PlayerEntity";
 import {
   findPath,
@@ -15,6 +16,7 @@ import { generateLootDrops, type LootDrop } from "../systems/lootDrops";
 import { awardXp, getLevelXpThreshold } from "../systems/progression";
 import { autosaveSlot, writeAutosave } from "../systems/autosave";
 import type { DataRegistry } from "../data/dataRegistry";
+import type { DialogueSceneData } from "./DialogueScene";
 import type { ItemDefinition } from "../types/dataDefinitions";
 import type { GameState } from "../types/gameState";
 
@@ -66,10 +68,14 @@ export class WorldScene extends Phaser.Scene {
   private attackTarget?: EnemyEntity;
   private droppedLoot: DroppedLootObject[] = [];
   private portals: PortalObject[] = [];
+  private npcs: NpcEntity[] = [];
+  private pendingNpcInteraction?: NpcEntity;
+  private unsubscribeDialogueClosed?: () => void;
   private playerAttackTimerMs = playerAttackCooldownMs;
   private enemyAttackTimerMs = 0;
   private isCameraFollowingPlayer = false;
   private isTransitioning = false;
+  private isDialogueOpen = false;
   private spawnName = "PlayerSpawn";
   private lastAutosaveMap = "";
   private lastAutosaveSlot = "";
@@ -91,6 +97,11 @@ export class WorldScene extends Phaser.Scene {
     const dataRegistry = this.registry.get(RegistryKeys.DataRegistry) as DataRegistry;
     this.state = state;
     this.dataRegistry = dataRegistry;
+    this.droppedLoot = [];
+    this.portals = [];
+    this.npcs = [];
+    this.pendingNpcInteraction = undefined;
+    this.isDialogueOpen = false;
     const map = dataRegistry.getMap(state.currentMapId);
     const firstMonster = map.monsterIds[0] ? dataRegistry.getMonster(map.monsterIds[0]) : null;
     const tilemapKey = mapKeysById[state.currentMapId] ?? mapKeysById["crownfield-town"];
@@ -145,6 +156,15 @@ export class WorldScene extends Phaser.Scene {
     this.cameras.main.centerOn(this.player.sprite.x, this.player.sprite.y);
 
     this.input.on("pointerdown", this.handlePointerDown, this);
+    this.unsubscribeDialogueClosed = eventBus.on("dialogueClosed", () => {
+      this.isDialogueOpen = false;
+      this.pendingNpcInteraction = undefined;
+      this.game.canvas.dataset.dialogueBlockingMovement = "false";
+    });
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+      this.unsubscribeDialogueClosed?.();
+      this.input.off("pointerdown", this.handlePointerDown, this);
+    });
 
     this.game.canvas.dataset.scene = "world";
     this.game.canvas.dataset.currentMap = state.currentMapId;
@@ -182,6 +202,12 @@ export class WorldScene extends Phaser.Scene {
     this.game.canvas.dataset.spawnPoint = `${spawnPoint.x},${spawnPoint.y}`;
     this.game.canvas.dataset.spawnName = this.spawnName;
     this.game.canvas.dataset.npcCount = String(map.npcIds.length);
+    this.game.canvas.dataset.npcEntityCount = String(this.npcs.length);
+    this.game.canvas.dataset.npcNames = this.npcs.map((npc) => npc.name).join("|");
+    this.game.canvas.dataset.npcServiceTypes = this.npcs.map((npc) => npc.serviceType).join("|");
+    this.game.canvas.dataset.dialogueState = "closed";
+    this.game.canvas.dataset.dialogueBlockingMovement = "false";
+    this.game.canvas.dataset.pendingNpcInteraction = "";
     this.game.canvas.dataset.portalCount = String(this.portals.length);
     this.game.canvas.dataset.safeZone = firstMonster ? "field-entrance" : "town";
     this.game.canvas.dataset.gatheringSpotCount = String(this.countObjectsByType(tilemap, "gathering"));
@@ -204,6 +230,7 @@ export class WorldScene extends Phaser.Scene {
 
   update(_time: number, delta: number): void {
     this.player?.update(delta);
+    this.updateNpcInteraction();
     this.updateCombat(delta);
     this.updateMapTransitions();
     this.syncPlayerDataset();
@@ -211,7 +238,7 @@ export class WorldScene extends Phaser.Scene {
   }
 
   private handlePointerDown(pointer: Phaser.Input.Pointer): void {
-    if (!this.player || pointer.button !== 0) {
+    if (!this.player || pointer.button !== 0 || this.isDialogueOpen) {
       return;
     }
 
@@ -219,7 +246,15 @@ export class WorldScene extends Phaser.Scene {
       return;
     }
 
+    const clickedNpc = this.npcs.find((npc) => npc.containsPoint(pointer.worldX, pointer.worldY));
+
+    if (clickedNpc) {
+      this.interactWithNpc(clickedNpc);
+      return;
+    }
+
     if (this.enemy?.isAlive && this.enemy.sprite.getBounds().contains(pointer.worldX, pointer.worldY)) {
+      this.pendingNpcInteraction = undefined;
       this.selectEnemy(this.enemy);
       this.moveIntoAttackRange(this.enemy);
       return;
@@ -248,6 +283,8 @@ export class WorldScene extends Phaser.Scene {
     }
 
     this.player.setPath(path);
+    this.pendingNpcInteraction = undefined;
+    this.game.canvas.dataset.pendingNpcInteraction = "";
     this.clearTarget();
     this.showClickMarker(destination.x, destination.y);
     this.game.canvas.dataset.lastMovementClickValid = "true";
@@ -310,12 +347,97 @@ export class WorldScene extends Phaser.Scene {
     });
   }
 
+  private interactWithNpc(npc: NpcEntity): void {
+    this.clearTarget();
+    this.pendingNpcInteraction = npc;
+    this.game.canvas.dataset.pendingNpcInteraction = npc.id;
+    this.game.canvas.dataset.lastClickedNpc = npc.id;
+    this.game.canvas.dataset.lastClickedNpcName = npc.name;
+    this.game.canvas.dataset.lastClickedNpcServiceType = npc.serviceType;
+
+    if (this.isPlayerInNpcRange(npc)) {
+      this.openNpcDialogue(npc);
+      return;
+    }
+
+    this.moveIntoNpcRange(npc);
+  }
+
+  private updateNpcInteraction(): void {
+    const npc = this.pendingNpcInteraction;
+
+    if (!npc || this.isDialogueOpen) {
+      return;
+    }
+
+    if (this.isPlayerInNpcRange(npc)) {
+      this.openNpcDialogue(npc);
+    }
+  }
+
+  private isPlayerInNpcRange(npc: NpcEntity): boolean {
+    if (!this.player) {
+      return false;
+    }
+
+    return Phaser.Math.Distance.Between(
+      this.player.sprite.x,
+      this.player.sprite.y,
+      npc.position.x,
+      npc.position.y,
+    ) <= npc.interactionRadius;
+  }
+
+  private moveIntoNpcRange(npc: NpcEntity): void {
+    if (!this.player || !this.collisionMap) {
+      return;
+    }
+
+    const path = findPath(this.collisionMap, this.player.position, npc.position);
+
+    if (path.length === 0) {
+      this.game.canvas.dataset.lastMovementClickValid = "false";
+      return;
+    }
+
+    this.player.setPath(path);
+    this.showClickMarker(npc.position.x, npc.position.y);
+    this.game.canvas.dataset.lastMovementClickValid = "true";
+    this.game.canvas.dataset.lastPathLength = String(path.length);
+  }
+
+  private openNpcDialogue(npc: NpcEntity): void {
+    const dataRegistry = this.dataRegistry;
+
+    if (!dataRegistry || !npc.dialogueId) {
+      return;
+    }
+
+    const dialogue = dataRegistry.getDialogue(npc.dialogueId);
+    const sceneData: DialogueSceneData = {
+      npcId: npc.id,
+      npcName: npc.name,
+      dialogueId: dialogue.id,
+      serviceType: npc.serviceType,
+      lines: dialogue.lines,
+      choices: dialogue.choices,
+    };
+
+    this.pendingNpcInteraction = undefined;
+    this.player?.clearDestination();
+    this.isDialogueOpen = true;
+    this.game.canvas.dataset.pendingNpcInteraction = "";
+    this.game.canvas.dataset.dialogueBlockingMovement = "true";
+    this.scene.launch(SceneKeys.Dialogue, sceneData);
+    this.scene.bringToTop(SceneKeys.Dialogue);
+  }
+
   private updateCombat(deltaMs: number): void {
     const state = this.state;
     const player = this.player;
     const enemy = this.attackTarget;
 
-    if (!state || !player || !enemy || !enemy.isAlive || state.character.stats.hp <= 0) {
+    if (!state || !player || !enemy || !enemy.isAlive || state.character.stats.hp <= 0 || this.isDialogueOpen) {
       return;
     }
 
@@ -690,7 +812,7 @@ export class WorldScene extends Phaser.Scene {
 
     for (const object of objectLayer?.objects ?? []) {
       if (object.type === "npc") {
-        this.createNpcMarker(object);
+        this.createNpcEntity(object);
       } else if (object.type === "portal") {
         this.createPortalMarker(object);
       } else if (object.type === "gathering" || object.type === "treasure") {
@@ -699,20 +821,16 @@ export class WorldScene extends Phaser.Scene {
     }
   }
 
-  private createNpcMarker(object: Phaser.Types.Tilemaps.TiledObject): void {
+  private createNpcEntity(object: Phaser.Types.Tilemaps.TiledObject): void {
     const x = object.x ?? 0;
     const y = object.y ?? 0;
     const npcId = this.getObjectStringProperty(object, "npcId");
-    const npcName = npcId && this.dataRegistry ? this.dataRegistry.getNpc(npcId).name : object.name;
 
-    this.add.rectangle(x, y, 30, 38, 0xf59e0b, 0.92)
-      .setStrokeStyle(2, 0xfffbeb, 0.9)
-      .setDepth(18);
-    this.add.text(x, y - 32, npcName, {
-      color: "#f8fafc",
-      fontFamily: "Arial, sans-serif",
-      fontSize: "12px",
-    }).setOrigin(0.5).setDepth(19);
+    if (!npcId || !this.dataRegistry) {
+      return;
+    }
+
+    this.npcs.push(new NpcEntity(this, this.dataRegistry.getNpc(npcId), { x, y }));
   }
 
   private createPortalMarker(object: Phaser.Types.Tilemaps.TiledObject): void {
