@@ -469,13 +469,63 @@ function validateQuest(source: Record<string, unknown>, fileName: string): Quest
 
 function validateStatusEffect(source: Record<string, unknown>, fileName: string): StatusEffectDefinition {
   const id = readId(source, fileName);
+  const type = optionalString(source, "type", "debuff");
+  const stackBehavior = optionalString(source, "stackBehavior", "refresh");
+  const controlEffect = optionalString(source, "controlEffect", "");
+  const damageOverTime = isRecord(source.damageOverTime)
+    ? {
+      amount: optionalNumber(source.damageOverTime, "amount", 0),
+      damageType: normalizeDamageType(optionalString(source.damageOverTime, "damageType", "true")),
+    }
+    : undefined;
+  const dispelRules = isRecord(source.dispelRules) ? source.dispelRules : {};
 
   return {
     id,
     name: requireString(source, "name", fileName, id),
     description: optionalString(source, "description", ""),
-    durationTurns: optionalNumber(source, "durationTurns", 1),
+    type: normalizeStatusType(type),
+    duration: optionalNumber(source, "duration", optionalNumber(source, "durationTurns", 1) * 1000),
+    tickInterval: optionalNumber(source, "tickInterval", 1000),
+    stackBehavior: normalizeStackBehavior(stackBehavior),
+    maxStacks: Math.max(1, optionalNumber(source, "maxStacks", 1)),
+    statModifiers: normalizeSkillModifier(source.statModifiers),
+    damageOverTime: damageOverTime && damageOverTime.amount > 0 ? damageOverTime : undefined,
+    controlEffect: normalizeControlEffect(controlEffect),
+    visualIcon: optionalString(source, "visualIcon", optionalString(source, "icon", id)),
+    dispelRules: {
+      dispellable: typeof dispelRules.dispellable === "boolean" ? dispelRules.dispellable : true,
+      categories: optionalStringArray(dispelRules, "categories"),
+    },
   };
+}
+
+function normalizeStatusType(value: string): StatusEffectDefinition["type"] {
+  return value === "damage"
+    || value === "debuff"
+    || value === "control"
+    || value === "buff"
+    || value === "mark"
+    ? value
+    : "debuff";
+}
+
+function normalizeStackBehavior(value: string): StatusEffectDefinition["stackBehavior"] {
+  return value === "stack" || value === "replace" || value === "ignore" ? value : "refresh";
+}
+
+function normalizeControlEffect(value: string): StatusEffectDefinition["controlEffect"] | undefined {
+  return value === "freeze"
+    || value === "stun"
+    || value === "silence"
+    || value === "blind"
+    || value === "slow"
+    ? value
+    : undefined;
+}
+
+function normalizeDamageType(value: string): NonNullable<StatusEffectDefinition["damageOverTime"]>["damageType"] {
+  return value === "physical" || value === "magic" ? value : "true";
 }
 
 function validateXpTable(source: Record<string, unknown>, fileName: string): XpTableDefinition {

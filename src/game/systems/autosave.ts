@@ -168,15 +168,33 @@ function normalizeCharacter(rawCharacter: unknown, fallback: GameState["characte
       ? source.statBuffs.filter(isRecord).map((modifier) => ({
         id: stringValue(modifier.id, "buff"),
         sourceSkillId: typeof modifier.sourceSkillId === "string" ? modifier.sourceSkillId : undefined,
+        sourceStatusEffectId: typeof modifier.sourceStatusEffectId === "string" ? modifier.sourceStatusEffectId : undefined,
         expiresAt: typeof modifier.expiresAt === "number" && Number.isFinite(modifier.expiresAt) ? modifier.expiresAt : undefined,
         baseStats: normalizePartialBaseStats(modifier.baseStats),
         derivedStats: normalizeNumberRecord(modifier.derivedStats),
       }))
       : [...fallback.statBuffs],
+    statusEffects: normalizeStatusEffects(source.statusEffects, fallback.statusEffects),
     skillIds: stringArray(source.skillIds, fallback.skillIds),
     skills: normalizeSkillState(source.skills, fallback.skills, stringArray(source.skillIds, fallback.skillIds)),
     hotbar: normalizeHotbar(source.hotbar, fallback.hotbar, stringArray(source.skillIds, fallback.skillIds)),
   };
+}
+
+function normalizeStatusEffects(rawStatusEffects: unknown, fallback: GameState["character"]["statusEffects"]): GameState["character"]["statusEffects"] {
+  const source = Array.isArray(rawStatusEffects) ? rawStatusEffects : fallback;
+
+  return source
+    .filter(isRecord)
+    .map((effect) => ({
+      id: stringValue(effect.id, ""),
+      sourceId: stringValue(effect.sourceId, "unknown"),
+      stacks: Math.max(1, numberValue(effect.stacks, 1)),
+      appliedAt: numberValue(effect.appliedAt, 0),
+      expiresAt: numberValue(effect.expiresAt, 0),
+      nextTickAt: numberValue(effect.nextTickAt, 0),
+    }))
+    .filter((effect) => effect.id.length > 0 && effect.expiresAt > 0);
 }
 
 function normalizeSkillState(rawSkillState: unknown, fallback: GameState["character"]["skills"], skillIds: string[]): GameState["character"]["skills"] {

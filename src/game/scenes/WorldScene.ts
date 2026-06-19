@@ -17,6 +17,13 @@ import { awardXp, getLevelXpThreshold } from "../systems/progression";
 import { autosaveSlot, writeAutosave, writeSaveSlot } from "../systems/autosave";
 import { getEquipmentStats } from "../systems/equipment";
 import { applyPassiveSkills, expireSkillBuffs, useHotbarSlot as useHotbarSlotAction, type SkillExecutionTarget } from "../systems/skills";
+import {
+  applyStatusEffect,
+  emitStatusEffectsChanged,
+  getStatusSummary,
+  hasControlEffect,
+  updateStatusEffects,
+} from "../systems/statusEffects";
 import { calculateDerivedStats, getSpentStatPoints, resetAllocatedStats } from "../systems/stats";
 import type { DataRegistry } from "../data/dataRegistry";
 import type { DialogueSceneData } from "./DialogueScene";
@@ -274,10 +281,12 @@ export class WorldScene extends Phaser.Scene {
   update(_time: number, delta: number): void {
     if (this.state) {
       expireSkillBuffs(this.state);
+      this.updatePlayerStatusEffects();
     }
     this.player?.update(delta);
     this.updateNpcInteraction();
     this.updateCombat(delta);
+    this.updateEnemyStatusEffects();
     this.updateMapTransitions();
     this.syncPlayerDataset();
     this.syncEnemyDataset();
@@ -518,7 +527,9 @@ export class WorldScene extends Phaser.Scene {
 
     if (enemy.isAlive && distanceToTarget <= enemyAttackRange && this.enemyAttackTimerMs >= enemyAttackCooldownMs) {
       this.enemyAttackTimerMs = 0;
-      this.enemyAttack(enemy);
+      if (!this.hasEnemyControl(enemy, "stun") && !this.hasEnemyControl(enemy, "freeze")) {
+        this.enemyAttack(enemy);
+      }
     }
 
     if (enemy.isAlive && this.playerAttackTimerMs >= playerAttackCooldownMs) {
@@ -575,6 +586,7 @@ export class WorldScene extends Phaser.Scene {
       (id) => this.dataRegistry!.getSkill(id),
       (id) => this.dataRegistry!.getItem(id),
       target,
+      (id) => this.dataRegistry!.getStatusEffect(id),
     );
 
     if (!result) {
@@ -637,9 +649,93 @@ export class WorldScene extends Phaser.Scene {
       hp: enemy.hp,
       applyDamage: (damage: number) => enemy.takeDamage(damage),
       applyStatusEffect: (effectId: string) => {
+        applyStatusEffect(enemy.statusEffects, this.dataRegistry!.getStatusEffect(effectId), this.state!.character.id);
+        emitStatusEffectsChanged("enemy", enemy.id, enemy.statusEffects);
         this.game.canvas.dataset.lastSkillStatusEffect = `${enemy.id}:${effectId}`;
+        this.syncEnemyDataset();
       },
     };
+  }
+
+  private updatePlayerStatusEffects(): void {
+    if (!this.state || !this.dataRegistry || this.state.character.statusEffects.length === 0) {
+      return;
+    }
+
+    const result = updateStatusEffects(
+      this.state.character.statusEffects,
+      (id) => this.dataRegistry!.getStatusEffect(id),
+    );
+
+    if (result.damage > 0) {
+      this.state.character.stats.hp = Math.max(0, this.state.character.stats.hp - result.damage);
+      eventBus.emit("playerHealthChanged", {
+        hp: this.state.character.stats.hp,
+        maxHp: this.state.character.stats.maxHp,
+      });
+    }
+
+    if (result.damage > 0 || result.expiredIds.length > 0 || result.tickedIds.length > 0) {
+      emitStatusEffectsChanged("player", this.state.character.id, this.state.character.statusEffects);
+      this.game.canvas.dataset.playerStatusEffects = getStatusSummary(
+        this.state.character.statusEffects,
+        (id) => this.dataRegistry!.getStatusEffect(id),
+      );
+      this.game.canvas.dataset.lastStatusTick = `player:${result.damage}:${result.tickedIds.join(",")}:${result.expiredIds.join(",")}`;
+      this.playerCombatStats = this.createPlayerCombatStats(this.state, this.dataRegistry);
+    }
+  }
+
+  private updateEnemyStatusEffects(): void {
+    if (!this.enemy || !this.dataRegistry || this.enemy.statusEffects.length === 0) {
+      return;
+    }
+
+    const result = updateStatusEffects(
+      this.enemy.statusEffects,
+      (id) => this.dataRegistry!.getStatusEffect(id),
+    );
+
+    if (result.damage > 0) {
+      this.enemy.takeDamage(result.damage);
+      eventBus.emit("enemyHealthChanged", {
+        enemyId: this.enemy.id,
+        name: this.enemy.name,
+        hp: this.enemy.hp,
+        maxHp: this.enemy.maxHp,
+      });
+    }
+
+    if (result.damage > 0 || result.expiredIds.length > 0 || result.tickedIds.length > 0) {
+      emitStatusEffectsChanged("enemy", this.enemy.id, this.enemy.statusEffects);
+      this.syncEnemyDataset();
+      this.game.canvas.dataset.lastStatusTick = `enemy:${result.damage}:${result.tickedIds.join(",")}:${result.expiredIds.join(",")}`;
+    }
+
+    if (!this.enemy.isAlive && this.attackTarget === this.enemy) {
+      const defeated = this.enemy;
+      this.game.canvas.dataset.autoAttack = "stopped";
+      this.game.canvas.dataset.enemySelected = "false";
+      this.rewardEnemyKill(defeated);
+      eventBus.emit("enemyTargetChanged", {
+        enemyId: null,
+        name: "",
+        hp: 0,
+        maxHp: 0,
+      });
+      this.attackTarget = undefined;
+    }
+  }
+
+  private hasEnemyControl(
+    enemy: EnemyEntity,
+    controlEffect: "freeze" | "stun" | "silence" | "blind" | "slow",
+  ): boolean {
+    return Boolean(this.dataRegistry && hasControlEffect(
+      enemy.statusEffects,
+      (id) => this.dataRegistry!.getStatusEffect(id),
+      controlEffect,
+    ));
   }
 
   private rewardEnemyKill(enemy: EnemyEntity): void {
@@ -801,6 +897,9 @@ export class WorldScene extends Phaser.Scene {
       : "";
     this.game.canvas.dataset.playerPathRemaining = String(this.player.path.length);
     this.game.canvas.dataset.cameraFollowingPlayer = String(this.isCameraFollowingPlayer);
+    this.game.canvas.dataset.playerStatusEffects = this.dataRegistry && this.state
+      ? getStatusSummary(this.state.character.statusEffects, (id) => this.dataRegistry!.getStatusEffect(id))
+      : "";
   }
 
   private syncEnemyDataset(): void {
@@ -812,6 +911,9 @@ export class WorldScene extends Phaser.Scene {
     this.game.canvas.dataset.enemyCombatState = this.enemy.behaviorMode;
     this.game.canvas.dataset.enemySelected = String(this.enemy.targetingState.selected);
     this.game.canvas.dataset.enemyAlive = String(this.enemy.isAlive);
+    this.game.canvas.dataset.enemyStatusEffects = this.dataRegistry
+      ? getStatusSummary(this.enemy.statusEffects, (id) => this.dataRegistry!.getStatusEffect(id))
+      : "";
   }
 
   private syncCombatFormulaDataset(damage: number, hit: boolean, critical: boolean): void {
@@ -875,6 +977,7 @@ export class WorldScene extends Phaser.Scene {
       state,
       dataRegistry.getClass(state.character.archetype),
       (id) => dataRegistry.getItem(id),
+      (id) => dataRegistry.getStatusEffect(id),
     );
 
     return {

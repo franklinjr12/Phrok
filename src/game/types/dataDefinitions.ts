@@ -146,7 +146,25 @@ export interface StatusEffectDefinition {
   id: string;
   name: string;
   description: string;
-  durationTurns: number;
+  type: "damage" | "debuff" | "control" | "buff" | "mark";
+  duration: number;
+  tickInterval: number;
+  stackBehavior: "refresh" | "stack" | "replace" | "ignore";
+  maxStacks: number;
+  statModifiers: {
+    baseStats?: Record<string, number>;
+    derivedStats?: Record<string, number>;
+  };
+  damageOverTime?: {
+    amount: number;
+    damageType: "physical" | "magic" | "true";
+  };
+  controlEffect?: "freeze" | "stun" | "silence" | "blind" | "slow";
+  visualIcon: string;
+  dispelRules: {
+    dispellable: boolean;
+    categories: string[];
+  };
 }
 
 export interface XpTableDefinition {

@@ -39,6 +39,7 @@ export function createNewGameState(): GameState {
       },
       allocatedStats: createEmptyBaseStats(),
       statBuffs: [],
+      statusEffects: [],
       skillIds: ["power-slash"],
       skills: createInitialSkillState(["power-slash"]),
       hotbar: createInitialHotbar(["power-slash"]),
@@ -83,6 +84,7 @@ export function createCharacterGameState(name: string, playerClass: ClassDefinit
   state.character.baseStats = createClassBaseStats(playerClass);
   state.character.allocatedStats = createEmptyBaseStats();
   state.character.statBuffs = [];
+  state.character.statusEffects = [];
   state.character.stats = {
     hp: playerClass.baseStats.hp,
     maxHp: playerClass.baseStats.hp,

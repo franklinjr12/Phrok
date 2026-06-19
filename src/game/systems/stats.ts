@@ -1,6 +1,7 @@
 import { getEquipmentStats } from "./equipment";
 import { eventBus } from "./eventBus";
-import type { ClassDefinition, ItemDefinition } from "../types/dataDefinitions";
+import { getStatusStatModifiers } from "./statusEffects";
+import type { ClassDefinition, ItemDefinition, StatusEffectDefinition } from "../types/dataDefinitions";
 import type { BaseStatKey, BaseStats, DerivedStats, GameState, StatModifier } from "../types/gameState";
 
 export const baseStatKeys: BaseStatKey[] = ["str", "agi", "vit", "int", "dex", "luk"];
@@ -44,14 +45,17 @@ export function createClassBaseStats(playerClass: ClassDefinition): BaseStats {
   return stats;
 }
 
-export function getTotalBaseStats(state: GameState): BaseStats {
+export function getTotalBaseStats(
+  state: GameState,
+  getStatusEffect?: (id: string) => StatusEffectDefinition,
+): BaseStats {
   const totals = createEmptyBaseStats();
 
   for (const key of baseStatKeys) {
     totals[key] = state.character.baseStats[key] + state.character.allocatedStats[key];
   }
 
-  for (const modifier of state.character.statBuffs) {
+  for (const modifier of getAllStatModifiers(state, getStatusEffect)) {
     for (const key of baseStatKeys) {
       totals[key] += modifier.baseStats?.[key] ?? 0;
     }
@@ -143,8 +147,10 @@ export function calculateDerivedStats(
   state: GameState,
   playerClass: ClassDefinition,
   getItem: (id: string) => ItemDefinition,
+  getStatusEffect?: (id: string) => StatusEffectDefinition,
 ): DerivedStats {
-  const stats = getTotalBaseStats(state);
+  const modifiers = getAllStatModifiers(state, getStatusEffect);
+  const stats = getTotalBaseStats(state, getStatusEffect);
   const gear = getEquipmentStats(state.equipment, getItem);
   const levelBonus = Math.max(0, state.playerProfile.level - 1);
   const derived: DerivedStats = {
@@ -164,7 +170,7 @@ export function calculateDerivedStats(
     weightLimit: Math.round(60 + stats.str * 8 + stats.vit * 4),
   };
 
-  return applyDerivedModifiers(derived, state.character.statBuffs);
+  return applyDerivedModifiers(derived, modifiers);
 }
 
 export function syncCharacterVitalsToDerivedStats(
@@ -193,4 +199,15 @@ function applyDerivedModifiers(derived: DerivedStats, modifiers: StatModifier[])
   }
 
   return next;
+}
+
+function getAllStatModifiers(
+  state: GameState,
+  getStatusEffect?: (id: string) => StatusEffectDefinition,
+): StatModifier[] {
+  const statusModifiers = getStatusEffect
+    ? getStatusStatModifiers(state.character.statusEffects, getStatusEffect)
+    : [];
+
+  return [...state.character.statBuffs, ...statusModifiers];
 }

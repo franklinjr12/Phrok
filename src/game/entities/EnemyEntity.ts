@@ -1,5 +1,6 @@
 import Phaser from "phaser";
 import type { MonsterDefinition } from "../types/dataDefinitions";
+import type { ActiveStatusEffect } from "../types/gameState";
 
 export const EnemyTextureKeys = {
   GreenJellyPlaceholder: "enemy-green-jelly-placeholder",
@@ -24,6 +25,7 @@ export class EnemyEntity {
   readonly sprite: Phaser.Physics.Arcade.Sprite;
 
   hp: number;
+  statusEffects: ActiveStatusEffect[] = [];
   behaviorMode: EnemyBehaviorMode = "idle";
   targetingState: EnemyTargetingState = {
     selected: false,

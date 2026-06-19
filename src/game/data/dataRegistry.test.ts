@@ -49,7 +49,20 @@ const validFiles: Record<string, unknown[]> = {
   "recipes.json": [{ id: "training-sword-repair", name: "Training Sword Repair", resultItemId: "training-sword" }],
   "supports.json": [{ id: "mira", name: "Mira" }],
   "quests.json": [{ id: "first-steps", name: "First Steps" }],
-  "status-effects.json": [{ id: "guarded", name: "Guarded" }],
+  "status-effects.json": [
+    {
+      id: "guarded",
+      name: "Guarded",
+      type: "buff",
+      duration: 5000,
+      tickInterval: 1000,
+      stackBehavior: "refresh",
+      maxStacks: 1,
+      statModifiers: { derivedStats: { defense: 5 } },
+      visualIcon: "icon-status-guarded",
+      dispelRules: { dispellable: true, categories: ["boon"] },
+    },
+  ],
   "xp-tables.json": [{ id: "standard", levels: { "1": 0, "2": 100 } }],
   "difficulties.json": [{ id: "normal", name: "Normal" }],
 };
@@ -96,6 +109,15 @@ describe("loadDataRegistry", () => {
       serviceType: "guide",
     });
     expect(registry.getSupport("mira").skillIds).toEqual([]);
+    expect(registry.getStatusEffect("guarded")).toMatchObject({
+      type: "buff",
+      duration: 5000,
+      tickInterval: 1000,
+      stackBehavior: "refresh",
+      statModifiers: { derivedStats: { defense: 5 } },
+      visualIcon: "icon-status-guarded",
+      dispelRules: { dispellable: true, categories: ["boon"] },
+    });
     expect(registry.getDifficulty("normal").enemyHpMultiplier).toBe(1);
   });
 

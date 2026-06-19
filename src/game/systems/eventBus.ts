@@ -1,4 +1,4 @@
-import type { BaseStatKey, DerivedStats, HotbarSlotState, InventoryState } from "../types/gameState";
+import type { ActiveStatusEffect, BaseStatKey, DerivedStats, HotbarSlotState, InventoryState } from "../types/gameState";
 
 export interface GameEventMap {
   playerHealthChanged: { hp: number; maxHp: number };
@@ -24,6 +24,11 @@ export interface GameEventMap {
   hotbarChanged: { hotbar: HotbarSlotState[] };
   hotbarUsed: { slot: number; type: "skill" | "item"; id: string; success: boolean };
   hotbarActionRequested: { slot: number };
+  statusEffectsChanged: {
+    targetKind: "player" | "enemy";
+    targetId: string;
+    statuses: ActiveStatusEffect[];
+  };
   enemyKilled: { enemyId: string };
   enemyHealthChanged: { enemyId: string; name: string; hp: number; maxHp: number };
   enemyTargetChanged: { enemyId: string | null; name: string; hp: number; maxHp: number };

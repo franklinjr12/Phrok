@@ -1,6 +1,7 @@
 import { eventBus } from "./eventBus";
 import { removeInventoryItem } from "./inventory";
-import type { SkillDefinition, ItemDefinition } from "../types/dataDefinitions";
+import { applyStatusEffect, emitStatusEffectsChanged } from "./statusEffects";
+import type { SkillDefinition, ItemDefinition, StatusEffectDefinition } from "../types/dataDefinitions";
 import type { BaseStatKey, GameState, HotbarSlotState, StatModifier } from "../types/gameState";
 
 export const hotbarSlotCount = 8;
@@ -23,6 +24,7 @@ export type SkillExecutionTarget =
   }
   | {
     kind: "self";
+    applyStatusEffect?: (effectId: string) => void;
   };
 
 export interface SkillExecutionResult {
@@ -128,6 +130,7 @@ export function useHotbarSlot(
   getSkill: (id: string) => SkillDefinition,
   getItem: (id: string) => ItemDefinition,
   target?: SkillExecutionTarget,
+  getStatusEffect?: (id: string) => StatusEffectDefinition,
 ): SkillExecutionResult | null {
   const action = getHotbarAction(state, slot);
 
@@ -151,7 +154,7 @@ export function useHotbarSlot(
     return null;
   }
 
-  const result = executeSkill(state, getSkill(action.id), target);
+  const result = executeSkill(state, getSkill(action.id), target, Date.now(), getStatusEffect);
   eventBus.emit("hotbarUsed", { slot, type: action.type, id: action.id, success: result.success });
 
   return result;
@@ -162,6 +165,7 @@ export function executeSkill(
   skill: SkillDefinition,
   target?: SkillExecutionTarget,
   now = Date.now(),
+  getStatusEffect?: (id: string) => StatusEffectDefinition,
 ): SkillExecutionResult {
   const learnedLevel = getLearnedSkillLevel(state, skill.id);
   const cooldownReadyAt = state.character.skills.cooldowns[skill.id] ?? 0;
@@ -191,6 +195,7 @@ export function executeSkill(
 
   if (skill.targetingMode === "self") {
     applySelfBuff(state, skill, now);
+    applySelfStatusEffects(state, skill, target, now, getStatusEffect);
     spendSkillCost(state, skill, now);
     return succeeded(skill.id, 0, ["player"]);
   }
@@ -232,6 +237,23 @@ export function executeSkill(
   spendSkillCost(state, skill, now);
 
   return succeeded(skill.id, damage, affected.map((enemy) => enemy.id));
+}
+
+function applySelfStatusEffects(
+  state: GameState,
+  skill: SkillDefinition,
+  target: SkillExecutionTarget | undefined,
+  now: number,
+  getStatusEffect?: (id: string) => StatusEffectDefinition,
+): void {
+  for (const effectId of skill.statusEffects) {
+    if (target?.kind === "self" && target.applyStatusEffect) {
+      target.applyStatusEffect(effectId);
+    } else if (getStatusEffect) {
+      applyStatusEffect(state.character.statusEffects, getStatusEffect(effectId), skill.id, now);
+      emitStatusEffectsChanged("player", state.character.id, state.character.statusEffects);
+    }
+  }
 }
 
 export function applyPassiveSkills(state: GameState, skills: SkillDefinition[]): void {

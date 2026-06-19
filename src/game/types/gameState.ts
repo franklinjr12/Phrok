@@ -38,9 +38,19 @@ export interface DerivedStats {
 export interface StatModifier {
   id: string;
   sourceSkillId?: string;
+  sourceStatusEffectId?: string;
   expiresAt?: number;
   baseStats?: Partial<BaseStats>;
   derivedStats?: Partial<DerivedStats>;
+}
+
+export interface ActiveStatusEffect {
+  id: string;
+  sourceId: string;
+  stacks: number;
+  appliedAt: number;
+  expiresAt: number;
+  nextTickAt: number;
 }
 
 export interface LearnedSkillState {
@@ -69,6 +79,7 @@ export interface CharacterData {
   baseStats: BaseStats;
   allocatedStats: BaseStats;
   statBuffs: StatModifier[];
+  statusEffects: ActiveStatusEffect[];
   skillIds: string[];
   skills: SkillState;
   hotbar: HotbarSlotState[];
