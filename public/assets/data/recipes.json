@@ -1,0 +1,8 @@
+[
+  {
+    "id": "training-sword-repair",
+    "name": "Training Sword Repair",
+    "ingredientItemIds": ["training-sword"],
+    "resultItemId": "training-sword"
+  }
+]

@@ -1,0 +1,9 @@
+[
+  {
+    "id": "training-sword",
+    "name": "Training Sword",
+    "description": "A reliable practice blade with enough edge for meadow threats.",
+    "type": "weapon",
+    "value": 10
+  }
+]

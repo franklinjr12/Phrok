@@ -1,0 +1,8 @@
+[
+  {
+    "id": "mira",
+    "name": "Mira",
+    "description": "A support companion who keeps new adventurers steady.",
+    "skillIds": ["power-slash"]
+  }
+]

@@ -1,0 +1,8 @@
+[
+  {
+    "id": "guarded",
+    "name": "Guarded",
+    "description": "Incoming damage is reduced for a short time.",
+    "durationTurns": 1
+  }
+]

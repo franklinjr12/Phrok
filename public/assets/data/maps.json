@@ -1,0 +1,9 @@
+[
+  {
+    "id": "crownfield-meadows",
+    "name": "Crownfield Meadows",
+    "description": "A quiet starter meadow outside the first town.",
+    "monsterIds": ["green-jelly"],
+    "npcIds": ["meadow-keeper"]
+  }
+]

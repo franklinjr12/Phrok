@@ -1,0 +1,11 @@
+[
+  {
+    "id": "power-slash",
+    "name": "Power Slash",
+    "description": "A focused sword strike for early combat practice.",
+    "classId": "swordsman",
+    "spCost": 2,
+    "power": 12,
+    "target": "enemy"
+  }
+]

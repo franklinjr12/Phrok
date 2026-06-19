@@ -47,12 +47,20 @@ test("new game flows from main menu to world with ui state", async ({ page }) =>
 
   await canvas.click({ position: { x: 400, y: 300 } });
   await expect(canvas).toHaveAttribute("data-scene", "world");
-  await expect(canvas).toHaveAttribute("data-current-map", "prologue-field");
-  await expect(canvas).toHaveAttribute("data-character-archetype", "wanderer");
+  await expect(canvas).toHaveAttribute("data-current-map", "crownfield-meadows");
+  await expect(canvas).toHaveAttribute("data-current-map-name", "Crownfield Meadows");
+  await expect(canvas).toHaveAttribute("data-character-archetype", "swordsman");
+  await expect(canvas).toHaveAttribute("data-spawned-monster", "green-jelly");
+  await expect(canvas).toHaveAttribute("data-spawned-monster-name", "Green Jelly");
   await expect(canvas).toHaveAttribute("data-ui-scene", "running");
-  await expect(canvas).toHaveAttribute("data-player-hp", "24/24");
-  await expect(canvas).toHaveAttribute("data-player-sp", "10/10");
+  await expect(canvas).toHaveAttribute("data-player-hp", "30/30");
+  await expect(canvas).toHaveAttribute("data-player-sp", "8/8");
   await expect(canvas).toHaveAttribute("data-player-xp", "0");
   await expect(canvas).toHaveAttribute("data-player-level", "1");
   await expect(canvas).toHaveAttribute("data-player-gold", "0");
+  await expect(canvas).toHaveAttribute("data-player-class", "swordsman");
+  await expect(canvas).toHaveAttribute("data-inventory-item", "training-sword");
+  await expect(canvas).toHaveAttribute("data-inventory-item-name", "Training Sword");
+  await expect(canvas).toHaveAttribute("data-skill", "power-slash");
+  await expect(canvas).toHaveAttribute("data-skill-name", "Power Slash");
 });

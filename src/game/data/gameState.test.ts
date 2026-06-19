@@ -6,20 +6,21 @@ describe("createNewGameState", () => {
     const state = createNewGameState();
 
     expect(state.currentSaveSlot).toBeNull();
-    expect(state.currentMapId).toBe("prologue-field");
+    expect(state.currentMapId).toBe("crownfield-meadows");
     expect(state.playerProfile).toMatchObject({
       level: 1,
       xp: 0,
       gold: 0,
     });
     expect(state.character.stats).toMatchObject({
-      hp: 24,
-      maxHp: 24,
-      sp: 10,
-      maxSp: 10,
+      hp: 30,
+      maxHp: 30,
+      sp: 8,
+      maxSp: 8,
     });
-    expect(state.inventory).toEqual([]);
-    expect(state.equipment.weapon).toBeNull();
+    expect(state.character.archetype).toBe("swordsman");
+    expect(state.inventory).toEqual([{ id: "training-sword", quantity: 1 }]);
+    expect(state.equipment.weapon).toBe("training-sword");
     expect(state.quests.activeQuestIds).toEqual([]);
     expect(state.bestiary.discoveredEnemyIds).toEqual([]);
     expect(state.worldFlags).toEqual({});

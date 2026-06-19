@@ -1,0 +1,15 @@
+[
+  {
+    "id": "swordsman",
+    "name": "Swordsman",
+    "description": "A steady frontline fighter trained with simple blades.",
+    "baseStats": {
+      "hp": 30,
+      "sp": 8,
+      "attack": 6,
+      "defense": 4
+    },
+    "startingSkillIds": ["power-slash"],
+    "startingItemIds": ["training-sword"]
+  }
+]

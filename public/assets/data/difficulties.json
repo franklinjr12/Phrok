@@ -1,0 +1,8 @@
+[
+  {
+    "id": "normal",
+    "name": "Normal",
+    "enemyHpMultiplier": 1,
+    "enemyDamageMultiplier": 1
+  }
+]

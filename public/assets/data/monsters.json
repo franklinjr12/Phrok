@@ -1,0 +1,12 @@
+[
+  {
+    "id": "green-jelly",
+    "name": "Green Jelly",
+    "level": 1,
+    "hp": 10,
+    "attack": 2,
+    "defense": 1,
+    "xpReward": 5,
+    "dropTableId": "green-jelly-drops"
+  }
+]

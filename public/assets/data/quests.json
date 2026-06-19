@@ -1,0 +1,8 @@
+[
+  {
+    "id": "first-steps",
+    "name": "First Steps",
+    "description": "Learn the basics in Crownfield Meadows.",
+    "rewardItemIds": ["training-sword"]
+  }
+]
