@@ -31,4 +31,4 @@ This repository does not yet have commit history to derive a local convention fr
 
 ## Agent-Specific Instructions
 
-Do not edit generated build or test report directories. For Unity projects only: do not try to build C# code, because Unity performs that build itself. This repository is currently a web Phaser project, so use the npm scripts above for verification.
+For any sprites that do not exist yet at implementation that that you need use the skill "generate single sprite"

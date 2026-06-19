@@ -1,0 +1,4 @@
+interface:
+  display_name: "Generate Single Sprite"
+  short_description: "Create one Prok-style game sprite"
+  default_prompt: "Use $generate-single-sprite to create a single game sprite for assets/sprites."
