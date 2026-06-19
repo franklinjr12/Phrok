@@ -37,11 +37,19 @@ export interface InventoryState {
   equipmentInstances: EquipmentInstance[];
 }
 
-export interface EquipmentData {
-  weapon: string | null;
-  armor: string | null;
-  accessory: string | null;
-}
+export type EquipmentSlot =
+  | "weapon"
+  | "offhand"
+  | "head"
+  | "body"
+  | "cloak"
+  | "boots"
+  | "accessory1"
+  | "accessory2"
+  | "sigil"
+  | "supportCharm";
+
+export type EquipmentData = Record<EquipmentSlot, string | null>;
 
 export interface QuestState {
   activeQuestIds: string[];

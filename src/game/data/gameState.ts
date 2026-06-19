@@ -1,5 +1,6 @@
 import type { GameState } from "../types/gameState";
 import type { ClassDefinition } from "../types/dataDefinitions";
+import { createEmptyEquipment } from "../systems/equipment";
 
 export function createNewGameState(): GameState {
   return {
@@ -30,9 +31,8 @@ export function createNewGameState(): GameState {
       equipmentInstances: [],
     },
     equipment: {
+      ...createEmptyEquipment(),
       weapon: "training-sword",
-      armor: null,
-      accessory: null,
     },
     quests: {
       activeQuestIds: [],

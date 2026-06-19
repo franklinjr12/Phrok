@@ -15,9 +15,9 @@ import { addGold, addInventoryItem } from "../systems/inventory";
 import { generateLootDrops, type LootDrop } from "../systems/lootDrops";
 import { awardXp, getLevelXpThreshold } from "../systems/progression";
 import { autosaveSlot, writeAutosave } from "../systems/autosave";
+import { getEquipmentStats } from "../systems/equipment";
 import type { DataRegistry } from "../data/dataRegistry";
 import type { DialogueSceneData } from "./DialogueScene";
-import type { ItemDefinition } from "../types/dataDefinitions";
 import type { GameState } from "../types/gameState";
 
 const mapKeysById: Record<string, string> = {
@@ -71,6 +71,7 @@ export class WorldScene extends Phaser.Scene {
   private npcs: NpcEntity[] = [];
   private pendingNpcInteraction?: NpcEntity;
   private unsubscribeDialogueClosed?: () => void;
+  private unsubscribeEquipmentChanged?: () => void;
   private playerAttackTimerMs = playerAttackCooldownMs;
   private enemyAttackTimerMs = 0;
   private isCameraFollowingPlayer = false;
@@ -161,8 +162,12 @@ export class WorldScene extends Phaser.Scene {
       this.pendingNpcInteraction = undefined;
       this.game.canvas.dataset.dialogueBlockingMovement = "false";
     });
+    this.unsubscribeEquipmentChanged = eventBus.on("equipmentChanged", () => {
+      this.weaponAttack = this.getEquippedWeaponAttack(state, dataRegistry);
+    });
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
       this.unsubscribeDialogueClosed?.();
+      this.unsubscribeEquipmentChanged?.();
       this.input.off("pointerdown", this.handlePointerDown, this);
     });
 
@@ -238,7 +243,12 @@ export class WorldScene extends Phaser.Scene {
   }
 
   private handlePointerDown(pointer: Phaser.Input.Pointer): void {
-    if (!this.player || pointer.button !== 0 || this.isDialogueOpen) {
+    if (
+      !this.player
+      || pointer.button !== 0
+      || this.isDialogueOpen
+      || this.game.canvas.dataset.gameplayInputBlocked === "true"
+    ) {
       return;
     }
 
@@ -743,15 +753,7 @@ export class WorldScene extends Phaser.Scene {
   }
 
   private getEquippedWeaponAttack(state: GameState, dataRegistry: DataRegistry): number {
-    const weapon = state.equipment.weapon
-      ? dataRegistry.getItem(state.equipment.weapon)
-      : null;
-
-    return weapon ? this.getWeaponAttack(weapon) : 0;
-  }
-
-  private getWeaponAttack(weapon: ItemDefinition): number {
-    return weapon.type === "weapon" ? Math.max(1, Math.floor(weapon.value / 5)) : 0;
+    return getEquipmentStats(state.equipment, (id) => dataRegistry.getItem(id)).attack;
   }
 
   private createCollisionMap(

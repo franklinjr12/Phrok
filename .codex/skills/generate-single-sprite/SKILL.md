@@ -29,7 +29,7 @@ Use this workflow to create one sprite file at a time for this repository.
    - `assets/phrok_style_reference.png` from this skill folder as a reference image which is the reference artstyle of the game.
    - A concise image generation prompt for the requested sprite.
    - Specify that character sprites should face right for standardization.
-   - If it is not a tileset or something that needs a background, specify that the background should always be transparent.
+   - If it is not a tileset or something that needs a background, specify that the background must always be transparent.
 4. Save the raw imagegen output as a temporary file outside `assets/sprites/`, such as in the repository root, `tmp/`, or another scratch location.
 5. Run `scripts/standardize_sprite.py` from this skill folder before palette reduction. This script detects useful sprite pixels, crops away excess transparent or uniform background, proportionally resizes the sprite into the GDD target canvas, and keeps only a small transparent margin. Choose the `--asset-type` preset that matches the sprite:
 

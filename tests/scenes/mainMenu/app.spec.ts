@@ -104,16 +104,80 @@ test("new game flows from main menu to world with ui state", async ({ page }) =>
   await expect(canvas).toHaveAttribute("data-xp-bar-width", "0");
   await expect(canvas).toHaveAttribute("data-player-level", "1");
   await expect(canvas).toHaveAttribute("data-player-gold", "0");
+  await expect(canvas).toHaveAttribute("data-hud-visible", "true");
+  await expect(canvas).toHaveAttribute("data-hotbar-visible", "true");
+  await expect(canvas).toHaveAttribute("data-hotbar-slots", "1|2|3|4|5|6");
   await expect(canvas).toHaveAttribute("data-player-stat-points", "0");
   await expect(canvas).toHaveAttribute("data-player-skill-points", "0");
   await expect(canvas).toHaveAttribute("data-player-class", "swordsman");
+  await expect(canvas).toHaveAttribute("data-player-attack-stat", "8");
   await expect(canvas).toHaveAttribute("data-inventory-item", "training-sword");
   await expect(canvas).toHaveAttribute("data-inventory-item-name", "Training Sword");
   await expect(canvas).toHaveAttribute("data-inventory-gold", "0");
   await expect(canvas).toHaveAttribute("data-inventory-stack-count", "1");
   await expect(canvas).toHaveAttribute("data-equipment-instance-count", "0");
+  await expect(canvas).toHaveAttribute("data-equipment-weapon", "training-sword");
+  await expect(canvas).toHaveAttribute(
+    "data-equipment-slots",
+    "weapon:training-sword|offhand:empty|head:empty|body:empty|cloak:empty|boots:empty|accessory1:empty|accessory2:empty|sigil:empty|supportCharm:empty",
+  );
   await expect(canvas).toHaveAttribute("data-skill", "power-slash");
   await expect(canvas).toHaveAttribute("data-skill-name", "Power Slash");
+});
+
+test("world ui hotkeys show inventory, equipment, comparison, and block gameplay clicks", async ({ page }) => {
+  await page.setViewportSize({ width: 800, height: 600 });
+  await page.goto("/");
+
+  const canvas = await confirmDefaultCharacter(page);
+  const startX = Number(await canvas.getAttribute("data-player-x"));
+
+  await page.keyboard.press("KeyI");
+  await expect(canvas).toHaveAttribute("data-ui-panel", "inventory");
+  await expect(canvas).toHaveAttribute("data-gameplay-input-blocked", "true");
+  await expect(canvas).toHaveAttribute("data-inventory-panel", "visible");
+  await expect(canvas).toHaveAttribute("data-inventory-item-count", "1");
+  await expect(canvas).toHaveAttribute("data-selected-inventory-item", "training-sword");
+  await expect(canvas).toHaveAttribute("data-selected-inventory-item-name", "Training Sword");
+  await expect(canvas).toHaveAttribute("data-selected-inventory-item-quantity", "1");
+  await expect(canvas).toHaveAttribute("data-selected-inventory-item-source", "stack");
+  await expect(canvas).toHaveAttribute("data-selected-inventory-item-rarity", "Uncommon");
+  await expect(canvas).toHaveAttribute("data-selected-inventory-item-description", /practice blade/);
+  await expect(canvas).toHaveAttribute("data-inventory-buttons", "Equip|Drop|Close");
+
+  await canvas.hover({ position: { x: 140, y: 196 } });
+  await expect(canvas).toHaveAttribute("data-item-comparison", "visible");
+  await expect(canvas).toHaveAttribute("data-item-comparison-text", /current=Training Sword\|new=Training Sword/);
+  await expect(canvas).toHaveAttribute("data-item-comparison-text", /requirements=None\|effects=None/);
+
+  await canvas.click({ position: { x: 560, y: 300 } });
+  await page.waitForTimeout(150);
+  expect(Number(await canvas.getAttribute("data-player-x"))).toBeCloseTo(startX, 1);
+
+  await page.keyboard.press("Escape");
+  await expect(canvas).toHaveAttribute("data-ui-panel", "closed");
+  await expect(canvas).toHaveAttribute("data-gameplay-input-blocked", "false");
+
+  await page.keyboard.press("KeyC");
+  await expect(canvas).toHaveAttribute("data-ui-panel", "equipment");
+  await expect(canvas).toHaveAttribute("data-equipment-panel", "visible");
+  await expect(canvas).toHaveAttribute(
+    "data-equipment-slots-visible",
+    "weapon|offhand|head|body|cloak|boots|accessory1|accessory2|sigil|supportCharm",
+  );
+  await expect(canvas).toHaveAttribute("data-player-attack-stat", "8");
+
+  await canvas.click({ position: { x: 140, y: 466 } });
+  await expect(canvas).toHaveAttribute("data-last-equipment-action", "remove:weapon");
+  await expect(canvas).toHaveAttribute("data-equipment-weapon", "");
+  await expect(canvas).toHaveAttribute("data-player-attack-stat", "6");
+
+  await page.keyboard.press("KeyI");
+  await expect(canvas).toHaveAttribute("data-ui-panel", "inventory");
+  await canvas.click({ position: { x: 540, y: 446 } });
+  await expect(canvas).toHaveAttribute("data-last-inventory-action", "equip:training-sword");
+  await expect(canvas).toHaveAttribute("data-equipment-weapon", "training-sword");
+  await expect(canvas).toHaveAttribute("data-player-attack-stat", "8");
 });
 
 test("town NPCs can be clicked to open blocking placeholder service dialogue", async ({ page }) => {

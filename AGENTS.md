@@ -19,7 +19,7 @@ Use TypeScript modules and keep imports explicit. Follow the existing style: two
 
 ## Testing Guidelines
 
-Use Vitest for game logic and backend-style tests once those modules exist. Use Playwright for end-to-end and frontend tests. Because this is a game, Playwright tests should simulate user input directly, such as pressing keys, moving the mouse to a position, and clicking the canvas. Place browser tests in `tests/` using the `*.spec.ts` suffix. Every feature or significant code change must include a test: logic changes should be covered by Vitest, and visual or interaction changes should be covered by Playwright. Run `npm test` before submitting changes. For UI-heavy changes, use `npm run test:ui` or inspect the generated Playwright report after failures.
+Use Vitest for game logic and backend-style tests once those modules exist. Use Playwright for end-to-end and frontend tests and visual tests. Because this is a game, Playwright tests should simulate user input directly, such as pressing keys, moving the mouse to a position, and clicking the canvas. Place browser tests in `tests/` using the `*.spec.ts` suffix, for visual changes example sprites etc use playwright screenshot feature and analyse the image if its according to your changes. Every feature or significant code change must include a test: logic changes should be covered by Vitest, and visual or interaction changes should be covered by Playwright. Run `npm test` before submitting changes. For UI-heavy changes, use `npm run test:ui` or inspect the generated Playwright report after failures.
 
 ## Project Notes & Planning
 
