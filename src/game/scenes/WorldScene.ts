@@ -1,14 +1,17 @@
 import Phaser from "phaser";
 import { RegistryKeys } from "../constants/registryKeys";
 import { SceneKeys } from "../constants/sceneKeys";
+import { EnemyEntity } from "../entities/EnemyEntity";
 import { PlayerEntity } from "../entities/PlayerEntity";
 import {
   findPath,
   isWorldPointWalkable,
   type GridCollisionMap,
 } from "../map/tilemapPathfinding";
+import { resolveAttack, type CombatStats } from "../systems/combatFormulas";
 import { eventBus } from "../systems/eventBus";
 import type { DataRegistry } from "../data/dataRegistry";
+import type { ItemDefinition } from "../types/dataDefinitions";
 import type { GameState } from "../types/gameState";
 
 const prototypeMapKey = "map-crownfield-meadows";
@@ -19,13 +22,24 @@ const tiledLayerNames = {
   collision: "Collision",
   objects: "Objects",
 } as const;
+const playerAttackRange = 62;
+const enemyAttackRange = 70;
+const playerAttackCooldownMs = 850;
+const enemyAttackCooldownMs = 1250;
 
 type PrototypeTilemapLayer = Phaser.Tilemaps.TilemapLayer | Phaser.Tilemaps.TilemapGPULayer;
 
 export class WorldScene extends Phaser.Scene {
   private player?: PlayerEntity;
+  private enemy?: EnemyEntity;
   private clickMarker?: Phaser.GameObjects.Arc;
   private collisionMap?: GridCollisionMap;
+  private state?: GameState;
+  private playerCombatStats?: CombatStats;
+  private weaponAttack = 0;
+  private attackTarget?: EnemyEntity;
+  private playerAttackTimerMs = playerAttackCooldownMs;
+  private enemyAttackTimerMs = 0;
   private isCameraFollowingPlayer = false;
 
   constructor() {
@@ -35,6 +49,7 @@ export class WorldScene extends Phaser.Scene {
   create(): void {
     const state = this.registry.get(RegistryKeys.GameState) as GameState;
     const dataRegistry = this.registry.get(RegistryKeys.DataRegistry) as DataRegistry;
+    this.state = state;
     const map = dataRegistry.getMap(state.currentMapId);
     const firstMonster = map.monsterIds[0] ? dataRegistry.getMonster(map.monsterIds[0]) : null;
 
@@ -67,8 +82,17 @@ export class WorldScene extends Phaser.Scene {
     }).setOrigin(0.5);
 
     this.player = new PlayerEntity(this, state.character, spawnPoint);
+    this.playerCombatStats = this.createPlayerCombatStats(state, dataRegistry);
+    this.weaponAttack = this.getEquippedWeaponAttack(state, dataRegistry);
     if (collisionLayer) {
       this.physics.add.collider(this.player.sprite, collisionLayer);
+    }
+
+    if (firstMonster) {
+      this.enemy = new EnemyEntity(this, firstMonster, this.getEnemySpawnPoint(spawnPoint, tilemap));
+      if (collisionLayer) {
+        this.physics.add.collider(this.enemy.sprite, collisionLayer);
+      }
     }
 
     this.cameras.main.startFollow(this.player.sprite, true, 0.12, 0.12);
@@ -83,6 +107,16 @@ export class WorldScene extends Phaser.Scene {
     this.game.canvas.dataset.characterArchetype = state.character.archetype;
     this.game.canvas.dataset.spawnedMonster = firstMonster?.id ?? "";
     this.game.canvas.dataset.spawnedMonsterName = firstMonster?.name ?? "";
+    this.game.canvas.dataset.enemySelected = "false";
+    this.game.canvas.dataset.enemyCombatState = this.enemy?.behaviorMode ?? "";
+    this.game.canvas.dataset.enemyHp = this.enemy ? `${this.enemy.hp}/${this.enemy.maxHp}` : "";
+    this.game.canvas.dataset.enemyPosition = this.enemy
+      ? `${this.enemy.sprite.x},${this.enemy.sprite.y}`
+      : "";
+    this.game.canvas.dataset.targetFrame = "hidden";
+    this.game.canvas.dataset.autoAttack = "idle";
+    this.game.canvas.dataset.playerCombatState = "alive";
+    this.game.canvas.dataset.lastCombatFormula = "";
     this.game.canvas.dataset.tilemapKey = prototypeMapKey;
     this.game.canvas.dataset.tilemapLayers = [
       tiledLayerNames.ground,
@@ -98,6 +132,7 @@ export class WorldScene extends Phaser.Scene {
     this.game.canvas.dataset.wasdMovement = "disabled";
     this.game.canvas.dataset.movementMarker = "hidden";
     this.syncPlayerDataset();
+    this.syncEnemyDataset();
 
     this.scene.launch(SceneKeys.UI);
     eventBus.emit("mapChanged", { mapId: state.currentMapId });
@@ -105,11 +140,19 @@ export class WorldScene extends Phaser.Scene {
 
   update(_time: number, delta: number): void {
     this.player?.update(delta);
+    this.updateCombat(delta);
     this.syncPlayerDataset();
+    this.syncEnemyDataset();
   }
 
   private handlePointerDown(pointer: Phaser.Input.Pointer): void {
     if (!this.player || pointer.button !== 0) {
+      return;
+    }
+
+    if (this.enemy?.isAlive && this.enemy.sprite.getBounds().contains(pointer.worldX, pointer.worldY)) {
+      this.selectEnemy(this.enemy);
+      this.moveIntoAttackRange(this.enemy);
       return;
     }
 
@@ -136,6 +179,7 @@ export class WorldScene extends Phaser.Scene {
     }
 
     this.player.setPath(path);
+    this.clearTarget();
     this.showClickMarker(destination.x, destination.y);
     this.game.canvas.dataset.lastMovementClickValid = "true";
     this.game.canvas.dataset.lastPathLength = String(path.length);
@@ -167,6 +211,159 @@ export class WorldScene extends Phaser.Scene {
     });
   }
 
+  private selectEnemy(enemy: EnemyEntity): void {
+    this.attackTarget = enemy;
+    enemy.setSelected(true, this.player?.character.id ?? null);
+    enemy.behaviorMode = "chasing";
+    this.playerAttackTimerMs = playerAttackCooldownMs;
+    this.enemyAttackTimerMs = enemyAttackCooldownMs;
+    this.game.canvas.dataset.enemySelected = "true";
+    this.game.canvas.dataset.autoAttack = "moving-to-range";
+    eventBus.emit("enemyTargetChanged", {
+      enemyId: enemy.id,
+      name: enemy.name,
+      hp: enemy.hp,
+      maxHp: enemy.maxHp,
+    });
+  }
+
+  private clearTarget(): void {
+    this.attackTarget?.setSelected(false, null);
+    this.attackTarget = undefined;
+    this.playerAttackTimerMs = playerAttackCooldownMs;
+    this.game.canvas.dataset.enemySelected = "false";
+    this.game.canvas.dataset.autoAttack = "idle";
+    eventBus.emit("enemyTargetChanged", {
+      enemyId: null,
+      name: "",
+      hp: 0,
+      maxHp: 0,
+    });
+  }
+
+  private updateCombat(deltaMs: number): void {
+    const state = this.state;
+    const player = this.player;
+    const enemy = this.attackTarget;
+
+    if (!state || !player || !enemy || !enemy.isAlive || state.character.stats.hp <= 0) {
+      return;
+    }
+
+    const distanceToTarget = Phaser.Math.Distance.Between(
+      player.sprite.x,
+      player.sprite.y,
+      enemy.sprite.x,
+      enemy.sprite.y,
+    );
+
+    if (distanceToTarget > playerAttackRange) {
+      enemy.behaviorMode = "chasing";
+      this.game.canvas.dataset.autoAttack = "moving-to-range";
+
+      if (!player.destination && player.path.length === 0) {
+        this.moveIntoAttackRange(enemy);
+      }
+
+      return;
+    }
+
+    player.clearDestination();
+    enemy.behaviorMode = "attacking";
+    this.game.canvas.dataset.autoAttack = "attacking";
+    this.playerAttackTimerMs += deltaMs;
+    this.enemyAttackTimerMs += deltaMs;
+
+    if (enemy.isAlive && distanceToTarget <= enemyAttackRange && this.enemyAttackTimerMs >= enemyAttackCooldownMs) {
+      this.enemyAttackTimerMs = 0;
+      this.enemyAttack(enemy);
+    }
+
+    if (enemy.isAlive && this.playerAttackTimerMs >= playerAttackCooldownMs) {
+      this.playerAttackTimerMs = 0;
+      this.playerAttack(enemy);
+    }
+  }
+
+  private playerAttack(enemy: EnemyEntity): void {
+    if (!this.playerCombatStats) {
+      return;
+    }
+
+    const result = resolveAttack({
+      attacker: this.playerCombatStats,
+      defender: this.createEnemyCombatStats(enemy),
+      attackKind: "physical",
+      weaponAttack: this.weaponAttack,
+      debug: import.meta.env.DEV,
+    });
+
+    enemy.takeDamage(result.finalDamage);
+    this.syncCombatFormulaDataset(result.finalDamage, result.hit, result.critical);
+    eventBus.emit("enemyHealthChanged", {
+      enemyId: enemy.id,
+      name: enemy.name,
+      hp: enemy.hp,
+      maxHp: enemy.maxHp,
+    });
+
+    if (!enemy.isAlive) {
+      this.game.canvas.dataset.autoAttack = "stopped";
+      this.game.canvas.dataset.enemySelected = "false";
+      eventBus.emit("enemyKilled", { enemyId: enemy.id });
+      eventBus.emit("enemyTargetChanged", {
+        enemyId: null,
+        name: "",
+        hp: 0,
+        maxHp: 0,
+      });
+      this.attackTarget = undefined;
+    }
+  }
+
+  private enemyAttack(enemy: EnemyEntity): void {
+    const state = this.state;
+
+    if (!state || !this.playerCombatStats) {
+      return;
+    }
+
+    const result = resolveAttack({
+      attacker: this.createEnemyCombatStats(enemy),
+      defender: this.playerCombatStats,
+      attackKind: "physical",
+      weaponAttack: 0,
+      debug: import.meta.env.DEV,
+    });
+
+    state.character.stats.hp = Math.max(0, state.character.stats.hp - result.finalDamage);
+    eventBus.emit("playerHealthChanged", {
+      hp: state.character.stats.hp,
+      maxHp: state.character.stats.maxHp,
+    });
+
+    if (state.character.stats.hp === 0) {
+      this.game.canvas.dataset.playerCombatState = "dead";
+      this.game.canvas.dataset.autoAttack = "stopped";
+      this.player?.clearDestination();
+      this.attackTarget = undefined;
+    }
+  }
+
+  private moveIntoAttackRange(enemy: EnemyEntity): void {
+    if (!this.player || !this.collisionMap) {
+      return;
+    }
+
+    const path = findPath(this.collisionMap, this.player.position, enemy.position);
+
+    if (path.length > 0) {
+      this.player.setPath(path);
+      this.game.canvas.dataset.lastMovementClickValid = "true";
+      this.game.canvas.dataset.lastPathLength = String(path.length);
+    }
+  }
+
   private syncPlayerDataset(): void {
     if (!this.player) {
       return;
@@ -183,6 +380,63 @@ export class WorldScene extends Phaser.Scene {
       : "";
     this.game.canvas.dataset.playerPathRemaining = String(this.player.path.length);
     this.game.canvas.dataset.cameraFollowingPlayer = String(this.isCameraFollowingPlayer);
+  }
+
+  private syncEnemyDataset(): void {
+    if (!this.enemy) {
+      return;
+    }
+
+    this.game.canvas.dataset.enemyHp = `${this.enemy.hp}/${this.enemy.maxHp}`;
+    this.game.canvas.dataset.enemyCombatState = this.enemy.behaviorMode;
+    this.game.canvas.dataset.enemySelected = String(this.enemy.targetingState.selected);
+    this.game.canvas.dataset.enemyAlive = String(this.enemy.isAlive);
+  }
+
+  private syncCombatFormulaDataset(damage: number, hit: boolean, critical: boolean): void {
+    this.game.canvas.dataset.lastCombatFormula = [
+      "kind=physical",
+      `weapon=${this.weaponAttack}`,
+      `hit=${hit}`,
+      `crit=${critical}`,
+      `damage=${damage}`,
+    ].join("|");
+  }
+
+  private createPlayerCombatStats(state: GameState, dataRegistry: DataRegistry): CombatStats {
+    const playerClass = dataRegistry.getClass(state.character.archetype);
+
+    return {
+      attack: playerClass.baseStats.attack,
+      defense: playerClass.baseStats.defense,
+      hitChance: 0.9,
+      dodgeChance: 0.08,
+      criticalChance: 0.15,
+      criticalDamage: 1.5,
+    };
+  }
+
+  private createEnemyCombatStats(enemy: EnemyEntity): CombatStats {
+    return {
+      attack: enemy.stats.attack,
+      defense: enemy.stats.defense,
+      hitChance: 0.82,
+      dodgeChance: 0.04,
+      criticalChance: 0.05,
+      criticalDamage: 1.25,
+    };
+  }
+
+  private getEquippedWeaponAttack(state: GameState, dataRegistry: DataRegistry): number {
+    const weapon = state.equipment.weapon
+      ? dataRegistry.getItem(state.equipment.weapon)
+      : null;
+
+    return weapon ? this.getWeaponAttack(weapon) : 0;
+  }
+
+  private getWeaponAttack(weapon: ItemDefinition): number {
+    return weapon.type === "weapon" ? Math.max(1, Math.floor(weapon.value / 5)) : 0;
   }
 
   private createCollisionMap(
@@ -216,5 +470,21 @@ export class WorldScene extends Phaser.Scene {
     const spawnObject = objectLayer?.objects.find((object) => object.name === "PlayerSpawn");
 
     return new Phaser.Math.Vector2(spawnObject?.x ?? tilemap.widthInPixels / 2, spawnObject?.y ?? tilemap.heightInPixels / 2);
+  }
+
+  private getEnemySpawnPoint(spawnPoint: Phaser.Math.Vector2, tilemap: Phaser.Tilemaps.Tilemap): Phaser.Math.Vector2 {
+    const candidates = [
+      new Phaser.Math.Vector2(spawnPoint.x + 128, spawnPoint.y),
+      new Phaser.Math.Vector2(spawnPoint.x + 96, spawnPoint.y + 64),
+      new Phaser.Math.Vector2(spawnPoint.x - 128, spawnPoint.y),
+    ];
+
+    return candidates.find((candidate) => (
+      candidate.x > 0
+      && candidate.y > 0
+      && candidate.x < tilemap.widthInPixels
+      && candidate.y < tilemap.heightInPixels
+      && this.isWalkable(candidate.x, candidate.y)
+    )) ?? new Phaser.Math.Vector2(tilemap.widthInPixels / 2, tilemap.heightInPixels / 2);
   }
 }

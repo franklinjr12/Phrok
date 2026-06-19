@@ -114,3 +114,33 @@ test("world supports mouse click player movement without WASD movement", async (
   await expect(canvas).toHaveAttribute("data-player-animation-state", "idle-right");
   await expect(canvas).toHaveAttribute("data-movement-marker", "hidden");
 });
+
+test("world supports target selection and auto-attack combat", async ({ page }) => {
+  await page.setViewportSize({ width: 800, height: 600 });
+  await page.goto("/");
+
+  const canvas = page.locator("canvas");
+  await expect(canvas).toHaveAttribute("data-scene", "main-menu");
+  await canvas.click({ position: { x: 400, y: 258 } });
+  await expect(canvas).toHaveAttribute("data-scene", "character-creation");
+  await canvas.click({ position: { x: 400, y: 300 } });
+  await expect(canvas).toHaveAttribute("data-scene", "world");
+  await expect(canvas).toHaveAttribute("data-spawned-monster", "green-jelly");
+  await expect(canvas).toHaveAttribute("data-enemy-hp", "10/10");
+  await expect(canvas).toHaveAttribute("data-target-frame", "hidden");
+
+  await canvas.click({ position: { x: 528, y: 300 } });
+  await expect(canvas).toHaveAttribute("data-enemy-selected", "true");
+  await expect(canvas).toHaveAttribute("data-target-frame", "visible");
+  await expect(canvas).toHaveAttribute("data-target-enemy-id", "green-jelly");
+  await expect(canvas).toHaveAttribute("data-target-enemy-name", "Green Jelly");
+  await expect(canvas).toHaveAttribute("data-auto-attack", /moving-to-range|attacking/);
+
+  await expect.poll(async () => Number((await canvas.getAttribute("data-player-hp"))?.split("/")[0])).toBeLessThan(30);
+  await expect.poll(async () => await canvas.getAttribute("data-enemy-hp")).not.toBe("10/10");
+  await expect.poll(async () => await canvas.getAttribute("data-last-combat-formula")).toContain("weapon=2");
+  await expect.poll(async () => await canvas.getAttribute("data-enemy-alive"), { timeout: 6000 }).toBe("false");
+  await expect(canvas).toHaveAttribute("data-enemy-hp", "0/10");
+  await expect(canvas).toHaveAttribute("data-auto-attack", "stopped");
+  await expect(canvas).toHaveAttribute("data-target-frame", "hidden");
+});

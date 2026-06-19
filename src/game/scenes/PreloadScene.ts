@@ -3,6 +3,7 @@ import { RegistryKeys } from "../constants/registryKeys";
 import { SceneKeys } from "../constants/sceneKeys";
 import { loadDataRegistry } from "../data/dataRegistry";
 import { createNewGameState } from "../data/gameState";
+import { EnemyTextureKeys } from "../entities/EnemyEntity";
 import { PlayerTextureKeys } from "../entities/PlayerEntity";
 
 const prototypeMapKey = "map-crownfield-meadows";
@@ -19,6 +20,7 @@ export class PreloadScene extends Phaser.Scene {
 
   async create(): Promise<void> {
     this.createPlaceholderPlayerTexture();
+    this.createPlaceholderEnemyTexture();
     this.createPrototypeTileTexture();
 
     try {
@@ -52,6 +54,28 @@ export class PreloadScene extends Phaser.Scene {
     graphics.lineStyle(2, 0x0f172a, 1);
     graphics.strokeRoundedRect(8, 4, 32, 44, 8);
     graphics.generateTexture(PlayerTextureKeys.Placeholder, 48, 52);
+    graphics.destroy();
+  }
+
+  private createPlaceholderEnemyTexture(): void {
+    if (this.textures.exists(EnemyTextureKeys.GreenJellyPlaceholder)) {
+      return;
+    }
+
+    const graphics = this.add.graphics();
+    graphics.fillStyle(0x35c46a, 1);
+    graphics.fillEllipse(24, 31, 42, 30);
+    graphics.fillStyle(0x86efac, 0.9);
+    graphics.fillEllipse(17, 22, 16, 10);
+    graphics.fillStyle(0xf8fafc, 1);
+    graphics.fillCircle(17, 29, 3);
+    graphics.fillCircle(31, 29, 3);
+    graphics.fillStyle(0x052e16, 1);
+    graphics.fillCircle(17, 29, 1);
+    graphics.fillCircle(31, 29, 1);
+    graphics.lineStyle(2, 0x166534, 1);
+    graphics.strokeEllipse(24, 31, 42, 30);
+    graphics.generateTexture(EnemyTextureKeys.GreenJellyPlaceholder, 48, 52);
     graphics.destroy();
   }
 

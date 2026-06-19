@@ -9,6 +9,8 @@ export interface GameEventMap {
   equipmentChanged: { slot: string; itemId: string | null };
   skillUsed: { skillId: string; actorId: string };
   enemyKilled: { enemyId: string };
+  enemyHealthChanged: { enemyId: string; name: string; hp: number; maxHp: number };
+  enemyTargetChanged: { enemyId: string | null; name: string; hp: number; maxHp: number };
   lootDropped: { itemId: string; quantity: number };
   mapChanged: { mapId: string };
   saveCompleted: { saveSlot: number };
