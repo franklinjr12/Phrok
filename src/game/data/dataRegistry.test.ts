@@ -7,8 +7,11 @@ const validFiles: Record<string, unknown[]> = {
       id: "swordsman",
       name: "Swordsman",
       baseStats: { hp: 30, sp: 8, attack: 6, defense: 4 },
+      growthRates: { hp: 5, sp: 2, attack: 3, defense: 3 },
+      startingWeaponId: "training-sword",
       startingSkillIds: ["power-slash"],
       startingItemIds: ["training-sword"],
+      advancedClassOptions: ["Knight"],
     },
   ],
   "skills.json": [{ id: "power-slash", name: "Power Slash", classId: "swordsman", power: 12 }],
@@ -40,7 +43,10 @@ describe("loadDataRegistry", () => {
   it("loads typed JSON data and returns entries by ID", async () => {
     const registry = await loadDataRegistry("/assets/data", createFetch(validFiles));
 
+    expect(registry.getClasses().map((entry) => entry.id)).toEqual(["swordsman"]);
     expect(registry.getClass("swordsman").startingSkillIds).toEqual(["power-slash"]);
+    expect(registry.getClass("swordsman").startingWeaponId).toBe("training-sword");
+    expect(registry.getClass("swordsman").difficultyRating).toBe("Normal");
     expect(registry.getSkill("power-slash")).toMatchObject({ spCost: 0, target: "enemy" });
     expect(registry.getItem("training-sword")).toMatchObject({ value: 0 });
     expect(registry.getMonster("green-jelly").dropTableId).toBe("green-jelly-drops");

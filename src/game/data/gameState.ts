@@ -1,4 +1,5 @@
 import type { GameState } from "../types/gameState";
+import type { ClassDefinition } from "../types/dataDefinitions";
 
 export function createNewGameState(): GameState {
   return {
@@ -21,6 +22,7 @@ export function createNewGameState(): GameState {
         sp: 8,
         maxSp: 8,
       },
+      skillIds: ["power-slash"],
     },
     inventory: {
       items: [{ id: "training-sword", quantity: 1 }],
@@ -47,4 +49,28 @@ export function createNewGameState(): GameState {
       textSpeed: 1,
     },
   };
+}
+
+export function createCharacterGameState(name: string, playerClass: ClassDefinition): GameState {
+  const state = createNewGameState();
+  const characterName = name.trim() || "Adventurer";
+  const startingItemIds = playerClass.startingItemIds.includes(playerClass.startingWeaponId)
+    ? playerClass.startingItemIds
+    : [playerClass.startingWeaponId, ...playerClass.startingItemIds];
+
+  state.playerProfile.name = characterName;
+  state.character.archetype = playerClass.id;
+  state.character.stats = {
+    hp: playerClass.baseStats.hp,
+    maxHp: playerClass.baseStats.hp,
+    sp: playerClass.baseStats.sp,
+    maxSp: playerClass.baseStats.sp,
+  };
+  state.character.skillIds = [...playerClass.startingSkillIds];
+  state.inventory.items = startingItemIds.map((id) => ({ id, quantity: 1 }));
+  state.inventory.gold = state.playerProfile.gold;
+  state.inventory.equipmentInstances = [];
+  state.equipment.weapon = playerClass.startingWeaponId;
+
+  return state;
 }

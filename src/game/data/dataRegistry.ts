@@ -52,6 +52,10 @@ interface DataFileDescriptor<K extends DataCollectionKey> {
 export class DataRegistry {
   constructor(private readonly collections: DataCollections) {}
 
+  getClasses(): ClassDefinition[] {
+    return Array.from(this.collections.classes.values());
+  }
+
   getClass(id: string): ClassDefinition {
     return this.getById("classes", id);
   }
@@ -207,19 +211,33 @@ const dataFiles = [
 function validateClass(source: Record<string, unknown>, fileName: string): ClassDefinition {
   const id = readId(source, fileName);
   const baseStats = requireRecord(source, "baseStats", fileName, id);
+  const growthRates = requireRecord(source, "growthRates", fileName, id);
+  const difficultyRating = optionalString(source, "difficultyRating", "Normal");
 
   return {
     id,
     name: requireString(source, "name", fileName, id),
     description: optionalString(source, "description", ""),
+    roleSummary: optionalString(source, "roleSummary", ""),
+    recommendedStats: optionalStringArray(source, "recommendedStats"),
+    difficultyRating: difficultyRating === "Easy" || difficultyRating === "Hard" ? difficultyRating : "Normal",
     baseStats: {
       hp: requireNumber(baseStats, "hp", fileName, id),
       sp: requireNumber(baseStats, "sp", fileName, id),
       attack: requireNumber(baseStats, "attack", fileName, id),
       defense: requireNumber(baseStats, "defense", fileName, id),
     },
+    growthRates: {
+      hp: requireNumber(growthRates, "hp", fileName, id),
+      sp: requireNumber(growthRates, "sp", fileName, id),
+      attack: requireNumber(growthRates, "attack", fileName, id),
+      defense: requireNumber(growthRates, "defense", fileName, id),
+    },
+    startingWeaponId: requireString(source, "startingWeaponId", fileName, id),
+    allowedWeaponTypes: optionalStringArray(source, "allowedWeaponTypes"),
     startingSkillIds: optionalStringArray(source, "startingSkillIds"),
     startingItemIds: optionalStringArray(source, "startingItemIds"),
+    advancedClassOptions: optionalStringArray(source, "advancedClassOptions"),
   };
 }
 

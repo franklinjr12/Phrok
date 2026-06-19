@@ -165,7 +165,8 @@ export class UIScene extends Phaser.Scene {
   private syncPlayerStats(state: GameState, dataRegistry: DataRegistry): void {
     const playerClass = dataRegistry.getClass(state.character.archetype);
     const firstInventoryItem = state.inventory.items[0] ? dataRegistry.getItem(state.inventory.items[0].id) : null;
-    const firstSkill = playerClass.startingSkillIds[0] ? dataRegistry.getSkill(playerClass.startingSkillIds[0]) : null;
+    const firstSkillId = state.character.skillIds[0] ?? playerClass.startingSkillIds[0];
+    const firstSkill = firstSkillId ? dataRegistry.getSkill(firstSkillId) : null;
 
     this.game.canvas.dataset.playerHp = `${state.character.stats.hp}/${state.character.stats.maxHp}`;
     this.game.canvas.dataset.playerSp = `${state.character.stats.sp}/${state.character.stats.maxSp}`;

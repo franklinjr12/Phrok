@@ -7,5 +7,32 @@
     "spCost": 2,
     "power": 12,
     "target": "enemy"
+  },
+  {
+    "id": "ember-bolt",
+    "name": "Ember Bolt",
+    "description": "A small flame projectile that rewards careful timing.",
+    "classId": "mage",
+    "spCost": 3,
+    "power": 14,
+    "target": "enemy"
+  },
+  {
+    "id": "pinning-shot",
+    "name": "Pinning Shot",
+    "description": "A precise opening shot that keeps pressure at range.",
+    "classId": "archer",
+    "spCost": 2,
+    "power": 11,
+    "target": "enemy"
+  },
+  {
+    "id": "quick-stab",
+    "name": "Quick Stab",
+    "description": "A fast dagger strike for exploiting brief openings.",
+    "classId": "thief",
+    "spCost": 2,
+    "power": 10,
+    "target": "enemy"
   }
 ]

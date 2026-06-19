@@ -7,6 +7,27 @@
     "value": 10
   },
   {
+    "id": "apprentice-staff",
+    "name": "Apprentice Staff",
+    "description": "A carved staff that helps new mages focus their first spells.",
+    "type": "weapon",
+    "value": 12
+  },
+  {
+    "id": "shortbow",
+    "name": "Shortbow",
+    "description": "A light bow suited to steady training shots.",
+    "type": "weapon",
+    "value": 11
+  },
+  {
+    "id": "practice-daggers",
+    "name": "Practice Daggers",
+    "description": "A paired set of blunted daggers for quick close-range drills.",
+    "type": "weapon",
+    "value": 9
+  },
+  {
     "id": "jelly-gel",
     "name": "Jelly Gel",
     "description": "A springy crafting material left behind by meadow jellies.",

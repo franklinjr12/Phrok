@@ -18,6 +18,7 @@ export interface CharacterData {
   id: string;
   archetype: string;
   stats: CharacterStats;
+  skillIds: string[];
 }
 
 export interface InventoryItem {

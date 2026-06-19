@@ -3,13 +3,100 @@
     "id": "swordsman",
     "name": "Swordsman",
     "description": "A steady frontline fighter trained with simple blades.",
+    "roleSummary": "Durable melee attacker with forgiving defenses.",
+    "recommendedStats": ["HP", "Attack", "Defense"],
+    "difficultyRating": "Easy",
     "baseStats": {
       "hp": 30,
       "sp": 8,
       "attack": 6,
       "defense": 4
     },
+    "growthRates": {
+      "hp": 5,
+      "sp": 2,
+      "attack": 3,
+      "defense": 3
+    },
+    "startingWeaponId": "training-sword",
+    "allowedWeaponTypes": ["sword", "greatsword"],
     "startingSkillIds": ["power-slash"],
-    "startingItemIds": ["training-sword"]
+    "startingItemIds": ["training-sword"],
+    "advancedClassOptions": ["Knight", "Blade Dancer"]
+  },
+  {
+    "id": "mage",
+    "name": "Mage",
+    "description": "A spellcaster who turns careful positioning into burst damage.",
+    "roleSummary": "High SP ranged caster with fragile defenses.",
+    "recommendedStats": ["SP", "Attack", "HP"],
+    "difficultyRating": "Hard",
+    "baseStats": {
+      "hp": 22,
+      "sp": 18,
+      "attack": 8,
+      "defense": 2
+    },
+    "growthRates": {
+      "hp": 3,
+      "sp": 5,
+      "attack": 4,
+      "defense": 1
+    },
+    "startingWeaponId": "apprentice-staff",
+    "allowedWeaponTypes": ["staff", "wand"],
+    "startingSkillIds": ["ember-bolt"],
+    "startingItemIds": ["apprentice-staff"],
+    "advancedClassOptions": ["Elementalist", "Chronomancer"]
+  },
+  {
+    "id": "archer",
+    "name": "Archer",
+    "description": "A mobile marksman who wins fights before enemies close in.",
+    "roleSummary": "Ranged physical attacker with balanced survival.",
+    "recommendedStats": ["Attack", "HP", "SP"],
+    "difficultyRating": "Normal",
+    "baseStats": {
+      "hp": 26,
+      "sp": 12,
+      "attack": 7,
+      "defense": 3
+    },
+    "growthRates": {
+      "hp": 4,
+      "sp": 3,
+      "attack": 4,
+      "defense": 2
+    },
+    "startingWeaponId": "shortbow",
+    "allowedWeaponTypes": ["bow", "crossbow"],
+    "startingSkillIds": ["pinning-shot"],
+    "startingItemIds": ["shortbow"],
+    "advancedClassOptions": ["Ranger", "Sharpshooter"]
+  },
+  {
+    "id": "thief",
+    "name": "Thief",
+    "description": "A quick skirmisher built around evasive strikes and loot.",
+    "roleSummary": "Fast melee opportunist with strong burst potential.",
+    "recommendedStats": ["Attack", "SP", "Defense"],
+    "difficultyRating": "Normal",
+    "baseStats": {
+      "hp": 24,
+      "sp": 14,
+      "attack": 7,
+      "defense": 2
+    },
+    "growthRates": {
+      "hp": 3,
+      "sp": 4,
+      "attack": 4,
+      "defense": 2
+    },
+    "startingWeaponId": "practice-daggers",
+    "allowedWeaponTypes": ["dagger", "shortsword"],
+    "startingSkillIds": ["quick-stab"],
+    "startingItemIds": ["practice-daggers"],
+    "advancedClassOptions": ["Assassin", "Trickster"]
   }
 ]

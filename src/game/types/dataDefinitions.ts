@@ -2,14 +2,26 @@ export interface ClassDefinition {
   id: string;
   name: string;
   description: string;
+  roleSummary: string;
+  recommendedStats: string[];
+  difficultyRating: "Easy" | "Normal" | "Hard";
   baseStats: {
     hp: number;
     sp: number;
     attack: number;
     defense: number;
   };
+  growthRates: {
+    hp: number;
+    sp: number;
+    attack: number;
+    defense: number;
+  };
+  startingWeaponId: string;
+  allowedWeaponTypes: string[];
   startingSkillIds: string[];
   startingItemIds: string[];
+  advancedClassOptions: string[];
 }
 
 export interface SkillDefinition {
