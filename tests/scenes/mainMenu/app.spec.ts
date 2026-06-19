@@ -64,3 +64,47 @@ test("new game flows from main menu to world with ui state", async ({ page }) =>
   await expect(canvas).toHaveAttribute("data-skill", "power-slash");
   await expect(canvas).toHaveAttribute("data-skill-name", "Power Slash");
 });
+
+test("world supports mouse click player movement without WASD movement", async ({ page }) => {
+  await page.setViewportSize({ width: 800, height: 600 });
+  await page.goto("/");
+
+  const canvas = page.locator("canvas");
+  await expect(canvas).toHaveAttribute("data-scene", "main-menu");
+  await canvas.click({ position: { x: 400, y: 258 } });
+  await expect(canvas).toHaveAttribute("data-scene", "character-creation");
+  await canvas.click({ position: { x: 400, y: 300 } });
+  await expect(canvas).toHaveAttribute("data-scene", "world");
+  await expect(canvas).toHaveAttribute("data-player-character-id", "player");
+  await expect(canvas).toHaveAttribute("data-player-has-collision-body", "true");
+  await expect(canvas).toHaveAttribute("data-camera-following-player", "true");
+  await expect(canvas).toHaveAttribute("data-player-animation-state", "idle-down");
+  await expect(canvas).toHaveAttribute("data-wasd-movement", "disabled");
+
+  const startX = Number(await canvas.getAttribute("data-player-x"));
+  const startY = Number(await canvas.getAttribute("data-player-y"));
+
+  await page.keyboard.press("KeyD");
+  await page.waitForTimeout(100);
+  expect(Number(await canvas.getAttribute("data-player-x"))).toBeCloseTo(startX, 1);
+  expect(Number(await canvas.getAttribute("data-player-y"))).toBeCloseTo(startY, 1);
+  await expect(canvas).toHaveAttribute("data-player-destination", "");
+
+  await canvas.click({ position: { x: 400, y: 190 } });
+  await expect(canvas).toHaveAttribute("data-last-movement-click-valid", "false");
+  await expect(canvas).toHaveAttribute("data-movement-marker", "hidden");
+  await expect(canvas).toHaveAttribute("data-player-destination", "");
+
+  await canvas.click({ position: { x: 560, y: 300 } });
+  await expect(canvas).toHaveAttribute("data-last-movement-click-valid", "true");
+  await expect(canvas).toHaveAttribute("data-movement-marker", "visible");
+  await expect(canvas).toHaveAttribute("data-player-motion-state", "walk");
+  await expect(canvas).toHaveAttribute("data-player-direction", "right");
+  await expect(canvas).toHaveAttribute("data-player-animation-state", "walk-right");
+
+  await expect.poll(async () => Number(await canvas.getAttribute("data-player-x"))).toBeGreaterThan(startX + 80);
+  await expect.poll(async () => await canvas.getAttribute("data-player-destination")).toBe("");
+  await expect(canvas).toHaveAttribute("data-player-motion-state", "idle");
+  await expect(canvas).toHaveAttribute("data-player-animation-state", "idle-right");
+  await expect(canvas).toHaveAttribute("data-movement-marker", "hidden");
+});

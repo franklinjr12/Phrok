@@ -12,6 +12,12 @@ export function createGameConfig(parent: HTMLElement): Phaser.Types.Core.GameCon
   return {
     backgroundColor: "#101318",
     parent,
+    physics: {
+      default: "arcade",
+      arcade: {
+        debug: false,
+      },
+    },
     scale: {
       autoCenter: Phaser.Scale.CENTER_BOTH,
       mode: Phaser.Scale.RESIZE,
