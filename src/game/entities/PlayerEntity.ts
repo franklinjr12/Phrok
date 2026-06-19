@@ -25,6 +25,7 @@ export class PlayerEntity {
   motionState: PlayerMotionState = "idle";
   animationState: PlayerAnimationState = "idle-down";
   destination: Vector2Like | null = null;
+  path: Vector2Like[] = [];
 
   constructor(scene: Phaser.Scene, character: CharacterData, position: Vector2Like) {
     this.character = character;
@@ -51,10 +52,19 @@ export class PlayerEntity {
 
   setDestination(destination: Vector2Like): void {
     this.destination = { ...destination };
+    this.path = [];
+  }
+
+  setPath(path: Vector2Like[]): void {
+    const [, ...remainingPath] = path;
+
+    this.path = remainingPath.map((point) => ({ ...point }));
+    this.destination = this.path.shift() ?? null;
   }
 
   clearDestination(): void {
     this.destination = null;
+    this.path = [];
   }
 
   update(deltaMs: number): void {
@@ -66,7 +76,7 @@ export class PlayerEntity {
     this.animationState = step.animationState;
 
     if (step.reachedDestination) {
-      this.clearDestination();
+      this.destination = this.path.shift() ?? null;
     }
 
     this.applyAnimationState();

@@ -52,6 +52,11 @@ test("new game flows from main menu to world with ui state", async ({ page }) =>
   await expect(canvas).toHaveAttribute("data-character-archetype", "swordsman");
   await expect(canvas).toHaveAttribute("data-spawned-monster", "green-jelly");
   await expect(canvas).toHaveAttribute("data-spawned-monster-name", "Green Jelly");
+  await expect(canvas).toHaveAttribute("data-tilemap-key", "map-crownfield-meadows");
+  await expect(canvas).toHaveAttribute("data-tilemap-layers", "Ground|Decoration|Collision|Objects");
+  await expect(canvas).toHaveAttribute("data-tilemap-size", "25x19");
+  await expect(canvas).toHaveAttribute("data-spawn-point", "400,304");
+  await expect(canvas).toHaveAttribute("data-collision-layer-enabled", "true");
   await expect(canvas).toHaveAttribute("data-ui-scene", "running");
   await expect(canvas).toHaveAttribute("data-player-hp", "30/30");
   await expect(canvas).toHaveAttribute("data-player-sp", "8/8");
@@ -98,6 +103,7 @@ test("world supports mouse click player movement without WASD movement", async (
   await canvas.click({ position: { x: 560, y: 300 } });
   await expect(canvas).toHaveAttribute("data-last-movement-click-valid", "true");
   await expect(canvas).toHaveAttribute("data-movement-marker", "visible");
+  await expect.poll(async () => Number(await canvas.getAttribute("data-last-path-length"))).toBeGreaterThan(1);
   await expect(canvas).toHaveAttribute("data-player-motion-state", "walk");
   await expect(canvas).toHaveAttribute("data-player-direction", "right");
   await expect(canvas).toHaveAttribute("data-player-animation-state", "walk-right");
