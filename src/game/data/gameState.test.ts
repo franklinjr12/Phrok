@@ -26,6 +26,11 @@ describe("createNewGameState", () => {
     expect(state.character.baseStats).toEqual({ str: 8, agi: 5, vit: 7, int: 3, dex: 5, luk: 4 });
     expect(state.character.allocatedStats).toEqual({ str: 0, agi: 0, vit: 0, int: 0, dex: 0, luk: 0 });
     expect(state.character.skillIds).toEqual(["power-slash"]);
+    expect(state.character.skills.learned).toEqual([{ id: "power-slash", level: 1 }]);
+    expect(state.character.hotbar).toEqual([
+      { slot: 1, type: "skill", id: "power-slash" },
+      { slot: 2, type: "item", id: "minor-health-potion" },
+    ]);
     expect(state.inventory.items).toEqual([{ id: "training-sword", quantity: 1 }]);
     expect(state.inventory.gold).toBe(0);
     expect(state.inventory.equipmentInstances).toEqual([]);
@@ -58,6 +63,8 @@ describe("createNewGameState", () => {
     expect(state.playerProfile.name).toBe("Mira");
     expect(state.character.archetype).toBe("mage");
     expect(state.character.skillIds).toEqual(["ember-bolt"]);
+    expect(state.character.skills.learned).toEqual([{ id: "ember-bolt", level: 1 }]);
+    expect(state.character.hotbar[0]).toEqual({ slot: 1, type: "skill", id: "ember-bolt" });
     expect(state.character.stats).toMatchObject({
       hp: 22,
       maxHp: 45,

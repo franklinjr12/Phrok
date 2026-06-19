@@ -37,8 +37,29 @@ export interface DerivedStats {
 
 export interface StatModifier {
   id: string;
+  sourceSkillId?: string;
+  expiresAt?: number;
   baseStats?: Partial<BaseStats>;
   derivedStats?: Partial<DerivedStats>;
+}
+
+export interface LearnedSkillState {
+  id: string;
+  level: number;
+}
+
+export type HotbarActionType = "skill" | "item";
+
+export interface HotbarSlotState {
+  slot: number;
+  type: HotbarActionType;
+  id: string;
+}
+
+export interface SkillState {
+  learned: LearnedSkillState[];
+  cooldowns: Record<string, number>;
+  activeToggleIds: string[];
 }
 
 export interface CharacterData {
@@ -49,6 +70,8 @@ export interface CharacterData {
   allocatedStats: BaseStats;
   statBuffs: StatModifier[];
   skillIds: string[];
+  skills: SkillState;
+  hotbar: HotbarSlotState[];
 }
 
 export interface InventoryItem {

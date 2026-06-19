@@ -27,9 +27,35 @@ export interface ClassDefinition {
 export interface SkillDefinition {
   id: string;
   name: string;
+  class: string;
   description: string;
   classId: string;
+  type: "active" | "passive" | "toggle";
+  targetingMode: "enemy" | "self" | "ground";
+  requiredLevel: number;
+  requiredSkillLevel: number;
+  maxSkillLevel: number;
   spCost: number;
+  cooldown: number;
+  castTime: number;
+  recoveryTime: number;
+  range: number;
+  area: number;
+  element: string;
+  scalingStat: "str" | "agi" | "vit" | "int" | "dex" | "luk" | "none";
+  damageMultiplier: number;
+  statusEffects: string[];
+  animationKey: string;
+  icon: string;
+  passiveModifiers: {
+    baseStats?: Record<string, number>;
+    derivedStats?: Record<string, number>;
+  };
+  buff?: {
+    duration: number;
+    baseStats?: Record<string, number>;
+    derivedStats?: Record<string, number>;
+  };
   power: number;
   target: "enemy" | "self" | "ally";
 }

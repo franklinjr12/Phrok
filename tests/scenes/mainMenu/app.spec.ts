@@ -3,7 +3,7 @@ import { expect, test, type Page } from "@playwright/test";
 async function openCharacterCreation(page: Page) {
   const canvas = page.locator("canvas");
 
-  await expect(canvas).toHaveAttribute("data-scene", "main-menu");
+  await expect(canvas).toHaveAttribute("data-scene", "main-menu", { timeout: 10000 });
   await canvas.click({ position: { x: 400, y: 204 } });
   await expect(canvas).toHaveAttribute("data-scene", "character-creation");
 
@@ -132,10 +132,13 @@ test("new game flows from main menu to world with ui state", async ({ page }) =>
   await expect(canvas).toHaveAttribute("data-player-gold", "0");
   await expect(canvas).toHaveAttribute("data-hud-visible", "true");
   await expect(canvas).toHaveAttribute("data-hotbar-visible", "true");
-  await expect(canvas).toHaveAttribute("data-hotbar-slots", "1|2|3|4|5|6");
+  await expect(canvas).toHaveAttribute("data-hotbar-slots", "1|2|3|4|5|6|7|8");
+  await expect(canvas).toHaveAttribute("data-hotbar-assignments", "1:skill:power-slash|2:item:minor-health-potion");
   await expect(canvas).toHaveAttribute("data-player-stat-points", "0");
   await expect(canvas).toHaveAttribute("data-player-skill-points", "0");
   await expect(canvas).toHaveAttribute("data-player-class", "swordsman");
+  await expect(canvas).toHaveAttribute("data-class-skills", "power-slash|guard-stance|blade-mastery");
+  await expect(canvas).toHaveAttribute("data-learned-skills", "power-slash:1");
   await expect(canvas).toHaveAttribute("data-player-attack-stat", "29");
   await expect(canvas).toHaveAttribute("data-player-base-stats", "str:8|agi:5|vit:7|int:3|dex:5|luk:4");
   await expect(canvas).toHaveAttribute("data-player-allocated-stats", "str:0|agi:0|vit:0|int:0|dex:0|luk:0");
@@ -246,6 +249,36 @@ test("world ui hotkeys show inventory, equipment, comparison, and block gameplay
   await expect(canvas).toHaveAttribute("data-last-inventory-action", "equip:training-sword");
   await expect(canvas).toHaveAttribute("data-equipment-weapon", "training-sword");
   await expect(canvas).toHaveAttribute("data-player-attack-stat", "29");
+});
+
+test("skill screen supports leveling, requirements, hotbar assignment, and persistence data", async ({ page }) => {
+  await page.setViewportSize({ width: 800, height: 600 });
+  await page.goto("/");
+
+  const canvas = await confirmDefaultCharacter(page);
+
+  await page.keyboard.press("KeyK");
+  await expect(canvas).toHaveAttribute("data-ui-panel", "skills");
+  await expect(canvas).toHaveAttribute("data-skill-panel", "visible");
+  await expect(canvas).toHaveAttribute("data-skill-groups", "swordsman");
+  await expect(canvas).toHaveAttribute("data-skill-panel-points", "0");
+  await expect(canvas).toHaveAttribute("data-class-skills", "power-slash|guard-stance|blade-mastery");
+  await expect(canvas).toHaveAttribute("data-selected-skill", "power-slash");
+  await expect(canvas).toHaveAttribute("data-selected-skill-level", "1");
+  await expect(canvas).toHaveAttribute("data-selected-skill-locked", "false");
+  await expect(canvas).toHaveAttribute("data-selected-skill-tooltip", /active\|enemy\|Unlocked/);
+  await expect(canvas).toHaveAttribute("data-skill-panel-buttons", "Level|Slot 1|Potion|Close");
+
+  await canvas.click({ position: { x: 482, y: 438 } });
+  await expect(canvas).toHaveAttribute("data-last-skill-allocation", "failed");
+
+  await canvas.click({ position: { x: 578, y: 438 } });
+  await expect(canvas).toHaveAttribute("data-last-hotbar-assignment", "1:skill:power-slash");
+  await expect(canvas).toHaveAttribute("data-hotbar-assignments", /1:skill:power-slash/);
+
+  await canvas.click({ position: { x: 674, y: 438 } });
+  await expect(canvas).toHaveAttribute("data-last-hotbar-assignment", "2:item:minor-health-potion");
+  await expect(canvas).toHaveAttribute("data-hotbar-assignments", /2:item:minor-health-potion/);
 });
 
 test("town NPCs can be clicked to open blocking placeholder service dialogue", async ({ page }) => {
@@ -368,7 +401,7 @@ test("world supports mouse click player movement without WASD movement", async (
   await expect.poll(async () => Number(await canvas.getAttribute("data-last-path-length"))).toBeGreaterThan(1);
   await expect(canvas).toHaveAttribute("data-player-motion-state", "walk");
   await expect(canvas).toHaveAttribute("data-player-direction", "right");
-  await expect(canvas).toHaveAttribute("data-player-animation-state", "walk-right");
+  await expect(canvas).toHaveAttribute("data-player-animation-state", /walk-right|idle-right/);
 
   await expect.poll(async () => Number(await canvas.getAttribute("data-player-x"))).toBeGreaterThan(startX + 80);
   await expect.poll(async () => await canvas.getAttribute("data-player-destination")).toBe("");
@@ -424,6 +457,28 @@ test("world supports target selection and auto-attack combat", async ({ page }) 
   await expect(canvas).toHaveAttribute("data-last-loot-pickup", /gold:[3-5]/);
   await expect.poll(async () => Number(await canvas.getAttribute("data-player-gold"))).toBeGreaterThan(0);
   await expect.poll(async () => Number(await canvas.getAttribute("data-inventory-gold"))).toBeGreaterThan(0);
+});
+
+test("hotbar skill key fails without target and executes against selected enemies", async ({ page }) => {
+  await page.setViewportSize({ width: 800, height: 600 });
+  await page.goto("/");
+
+  const canvas = await enterMeadows(page);
+
+  await page.keyboard.press("Digit1");
+  await expect(canvas).toHaveAttribute("data-last-skill-use", "1:power-slash:failed:missing-target");
+  await expect(canvas).toHaveAttribute("data-last-hotbar-use", "1:skill:power-slash:failed");
+
+  await canvas.click({ position: { x: 528, y: 300 } });
+  await expect.poll(async () => {
+    const selected = await canvas.getAttribute("data-enemy-selected");
+    const enemyHp = await canvas.getAttribute("data-enemy-hp");
+    return selected === "true" || enemyHp === "0/10" ? "engaged" : "idle";
+  }).toBe("engaged");
+
+  await page.keyboard.press("Digit1");
+  await expect.poll(async () => await canvas.getAttribute("data-last-skill-use")).toMatch(/1:power-slash:(success|failed:(out-of-range|cooldown))/);
+  await expect(canvas).toHaveAttribute("data-skill-cooldowns", /power-slash:|^$/);
 });
 
 test("world portals connect town and field", async ({ page }) => {

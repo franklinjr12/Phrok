@@ -24,6 +24,15 @@ describe("autosave", () => {
       currentMapId: "crownfield-town",
       position: { x: 240, y: 304 },
       skills: ["power-slash"],
+      character: {
+        skills: {
+          learned: [{ id: "power-slash", level: 1 }],
+        },
+        hotbar: [
+          { slot: 1, type: "skill", id: "power-slash" },
+          { slot: 2, type: "item", id: "minor-health-potion" },
+        ],
+      },
       stats: {
         hp: 73,
         maxHp: 73,
@@ -71,6 +80,12 @@ describe("autosave", () => {
           maxSp: 18,
         },
         skillIds: ["ember-bolt"],
+        skills: {
+          learned: [{ id: "ember-bolt", level: 2 }],
+          cooldowns: { "ember-bolt": 123 },
+          activeToggleIds: [],
+        },
+        hotbar: [{ slot: 1, type: "skill", id: "ember-bolt" }],
       },
       inventory: {
         items: [{ id: "apprentice-staff", quantity: 1 }],
@@ -99,6 +114,13 @@ describe("autosave", () => {
         },
         inventory: {
           gold: 42,
+        },
+        character: {
+          skills: {
+            learned: [{ id: "ember-bolt", level: 2 }],
+            cooldowns: { "ember-bolt": 123 },
+          },
+          hotbar: [{ slot: 1, type: "skill", id: "ember-bolt" }],
         },
       },
     });

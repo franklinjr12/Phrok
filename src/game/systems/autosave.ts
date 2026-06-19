@@ -2,6 +2,7 @@ import type { SaveData } from "../types/saveData";
 import type { GameState } from "../types/gameState";
 import { createNewGameState } from "../data/gameState";
 import { baseStatKeys, createEmptyBaseStats } from "./stats";
+import { createInitialHotbar, createInitialSkillState, hotbarSlotCount } from "./skills";
 
 export const autosaveStorageKey = "prok-autosave";
 export const autosaveSlot = 0;
@@ -166,12 +167,50 @@ function normalizeCharacter(rawCharacter: unknown, fallback: GameState["characte
     statBuffs: Array.isArray(source.statBuffs)
       ? source.statBuffs.filter(isRecord).map((modifier) => ({
         id: stringValue(modifier.id, "buff"),
+        sourceSkillId: typeof modifier.sourceSkillId === "string" ? modifier.sourceSkillId : undefined,
+        expiresAt: typeof modifier.expiresAt === "number" && Number.isFinite(modifier.expiresAt) ? modifier.expiresAt : undefined,
         baseStats: normalizePartialBaseStats(modifier.baseStats),
         derivedStats: normalizeNumberRecord(modifier.derivedStats),
       }))
       : [...fallback.statBuffs],
     skillIds: stringArray(source.skillIds, fallback.skillIds),
+    skills: normalizeSkillState(source.skills, fallback.skills, stringArray(source.skillIds, fallback.skillIds)),
+    hotbar: normalizeHotbar(source.hotbar, fallback.hotbar, stringArray(source.skillIds, fallback.skillIds)),
   };
+}
+
+function normalizeSkillState(rawSkillState: unknown, fallback: GameState["character"]["skills"], skillIds: string[]): GameState["character"]["skills"] {
+  const source = isRecord(rawSkillState) ? rawSkillState : {};
+  const defaultState = fallback ?? createInitialSkillState(skillIds);
+  const learned = Array.isArray(source.learned)
+    ? source.learned
+      .filter(isRecord)
+      .map((entry) => ({
+        id: stringValue(entry.id, ""),
+        level: Math.max(1, numberValue(entry.level, 1)),
+      }))
+      .filter((entry) => entry.id.length > 0)
+    : defaultState.learned;
+
+  return {
+    learned: learned.length > 0 ? learned : createInitialSkillState(skillIds).learned,
+    cooldowns: normalizeNumberRecord(source.cooldowns),
+    activeToggleIds: stringArray(source.activeToggleIds, defaultState.activeToggleIds),
+  };
+}
+
+function normalizeHotbar(rawHotbar: unknown, fallback: GameState["character"]["hotbar"], skillIds: string[]): GameState["character"]["hotbar"] {
+  const source = Array.isArray(rawHotbar) ? rawHotbar : fallback ?? createInitialHotbar(skillIds);
+
+  return source
+    .filter(isRecord)
+    .map((entry) => ({
+      slot: numberValue(entry.slot, 0),
+      type: stringValue(entry.type, "skill") === "item" ? "item" as const : "skill" as const,
+      id: stringValue(entry.id, ""),
+    }))
+    .filter((entry) => Number.isInteger(entry.slot) && entry.slot >= 1 && entry.slot <= hotbarSlotCount && entry.id.length > 0)
+    .sort((left, right) => left.slot - right.slot);
 }
 
 function normalizeInventory(rawInventory: unknown, fallback: GameState["inventory"]): GameState["inventory"] {

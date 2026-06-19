@@ -65,6 +65,14 @@ export class DataRegistry {
     return this.getById("skills", id);
   }
 
+  getSkills(): SkillDefinition[] {
+    return Array.from(this.collections.skills.values());
+  }
+
+  getSkillsByClass(classId: string): SkillDefinition[] {
+    return this.getSkills().filter((skill) => skill.classId === classId);
+  }
+
   getItem(id: string): ItemDefinition {
     return this.getById("items", id);
   }
@@ -251,16 +259,83 @@ function validateClass(source: Record<string, unknown>, fileName: string): Class
 function validateSkill(source: Record<string, unknown>, fileName: string): SkillDefinition {
   const id = readId(source, fileName);
   const target = optionalString(source, "target", "enemy");
+  const type = optionalString(source, "type", "active");
+  const targetingMode = optionalString(source, "targetingMode", target === "self" ? "self" : "enemy");
+  const scalingStat = optionalString(source, "scalingStat", "str");
 
   return {
     id,
     name: requireString(source, "name", fileName, id),
+    class: optionalString(source, "class", optionalString(source, "classId", "")),
     description: optionalString(source, "description", ""),
     classId: requireString(source, "classId", fileName, id),
+    type: type === "passive" || type === "toggle" ? type : "active",
+    targetingMode: targetingMode === "self" || targetingMode === "ground" ? targetingMode : "enemy",
+    requiredLevel: optionalNumber(source, "requiredLevel", 1),
+    requiredSkillLevel: optionalNumber(source, "requiredSkillLevel", 0),
+    maxSkillLevel: optionalNumber(source, "maxSkillLevel", 5),
     spCost: optionalNumber(source, "spCost", 0),
+    cooldown: optionalNumber(source, "cooldown", 0),
+    castTime: optionalNumber(source, "castTime", 0),
+    recoveryTime: optionalNumber(source, "recoveryTime", 0),
+    range: optionalNumber(source, "range", 72),
+    area: optionalNumber(source, "area", 0),
+    element: optionalString(source, "element", "neutral"),
+    scalingStat: isBaseScalingStat(scalingStat) ? scalingStat : "none",
+    damageMultiplier: optionalNumber(source, "damageMultiplier", 1),
+    statusEffects: optionalStringArray(source, "statusEffects"),
+    animationKey: optionalString(source, "animationKey", id),
+    icon: optionalString(source, "icon", id),
+    passiveModifiers: normalizeSkillModifier(source.passiveModifiers),
+    buff: normalizeSkillBuff(source.buff),
     power: requireNumber(source, "power", fileName, id),
     target: target === "self" || target === "ally" ? target : "enemy",
   };
+}
+
+function isBaseScalingStat(value: string): value is SkillDefinition["scalingStat"] {
+  return value === "str"
+    || value === "agi"
+    || value === "vit"
+    || value === "int"
+    || value === "dex"
+    || value === "luk"
+    || value === "none";
+}
+
+function normalizeSkillModifier(rawModifier: unknown): SkillDefinition["passiveModifiers"] {
+  if (!isRecord(rawModifier)) {
+    return {};
+  }
+
+  return {
+    baseStats: optionalNumberRecord(rawModifier.baseStats),
+    derivedStats: optionalNumberRecord(rawModifier.derivedStats),
+  };
+}
+
+function normalizeSkillBuff(rawBuff: unknown): SkillDefinition["buff"] {
+  if (!isRecord(rawBuff)) {
+    return undefined;
+  }
+
+  return {
+    duration: optionalNumber(rawBuff, "duration", 5000),
+    baseStats: optionalNumberRecord(rawBuff.baseStats),
+    derivedStats: optionalNumberRecord(rawBuff.derivedStats),
+  };
+}
+
+function optionalNumberRecord(rawRecord: unknown): Record<string, number> | undefined {
+  if (!isRecord(rawRecord)) {
+    return undefined;
+  }
+
+  const entries = Object.entries(rawRecord).filter((entry): entry is [string, number] => (
+    typeof entry[1] === "number" && Number.isFinite(entry[1])
+  ));
+
+  return entries.length > 0 ? Object.fromEntries(entries) : undefined;
 }
 
 function validateItem(source: Record<string, unknown>, fileName: string): ItemDefinition {

@@ -33,5 +33,12 @@
     "description": "A springy crafting material left behind by meadow jellies.",
     "type": "material",
     "value": 2
+  },
+  {
+    "id": "minor-health-potion",
+    "name": "Minor Health Potion",
+    "description": "A simple red draught that restores a small amount of HP.",
+    "type": "consumable",
+    "value": 6
   }
 ]

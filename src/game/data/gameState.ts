@@ -1,6 +1,7 @@
 import type { GameState } from "../types/gameState";
 import type { ClassDefinition } from "../types/dataDefinitions";
 import { createEmptyEquipment } from "../systems/equipment";
+import { createInitialHotbar, createInitialSkillState } from "../systems/skills";
 import { calculateDerivedStats, createClassBaseStats, createEmptyBaseStats, syncCharacterVitalsToDerivedStats } from "../systems/stats";
 
 export function createNewGameState(): GameState {
@@ -39,6 +40,8 @@ export function createNewGameState(): GameState {
       allocatedStats: createEmptyBaseStats(),
       statBuffs: [],
       skillIds: ["power-slash"],
+      skills: createInitialSkillState(["power-slash"]),
+      hotbar: createInitialHotbar(["power-slash"]),
     },
     inventory: {
       items: [{ id: "training-sword", quantity: 1 }],
@@ -87,6 +90,8 @@ export function createCharacterGameState(name: string, playerClass: ClassDefinit
     maxSp: playerClass.baseStats.sp,
   };
   state.character.skillIds = [...playerClass.startingSkillIds];
+  state.character.skills = createInitialSkillState(playerClass.startingSkillIds);
+  state.character.hotbar = createInitialHotbar(playerClass.startingSkillIds);
   state.inventory.items = startingItemIds.map((id) => ({ id, quantity: 1 }));
   state.inventory.gold = state.playerProfile.gold;
   state.inventory.equipmentInstances = [];

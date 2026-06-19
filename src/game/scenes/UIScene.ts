@@ -23,11 +23,12 @@ import {
 import { writeSaveSlot } from "../systems/autosave";
 import { eventBus } from "../systems/eventBus";
 import { removeInventoryItem } from "../systems/inventory";
+import { allocateSkillPoint, assignHotbarAction, getLearnedSkillLevel, hotbarSlotCount } from "../systems/skills";
 import type { DataRegistry } from "../data/dataRegistry";
-import type { ItemDefinition } from "../types/dataDefinitions";
+import type { ItemDefinition, SkillDefinition } from "../types/dataDefinitions";
 import type { BaseStatKey, EquipmentInstance, EquipmentSlot, GameState, InventoryItem } from "../types/gameState";
 
-type PanelMode = "inventory" | "equipment" | "character";
+type PanelMode = "inventory" | "equipment" | "character" | "skills";
 type InventoryPanelEntry = {
   itemId: string;
   quantity: number;
@@ -57,6 +58,9 @@ export class UIScene extends Phaser.Scene {
   private unsubscribeEnemyTarget?: () => void;
   private unsubscribeMapChanged?: () => void;
   private unsubscribeSaveCompleted?: () => void;
+  private unsubscribeSkillPointsChanged?: () => void;
+  private unsubscribeHotbarChanged?: () => void;
+  private unsubscribeHotbarUsed?: () => void;
   private hpText?: Phaser.GameObjects.Text;
   private spText?: Phaser.GameObjects.Text;
   private levelText?: Phaser.GameObjects.Text;
@@ -72,6 +76,7 @@ export class UIScene extends Phaser.Scene {
   private activePanel: PanelMode | null = null;
   private selectedInventoryIndex = 0;
   private selectedEquipmentSlot: EquipmentSlot = "weapon";
+  private selectedSkillIndex = 0;
   private panelObjects: Phaser.GameObjects.GameObject[] = [];
   private comparisonObjects: Phaser.GameObjects.GameObject[] = [];
 
@@ -100,16 +105,20 @@ export class UIScene extends Phaser.Scene {
   private registerKeyboard(): void {
     this.input.keyboard?.on("keydown-I", this.toggleInventoryPanel, this);
     this.input.keyboard?.on("keydown-C", this.toggleCharacterPanel, this);
+    this.input.keyboard?.on("keydown-K", this.toggleSkillPanel, this);
     this.input.keyboard?.on("keydown-P", this.toggleEquipmentPanel, this);
     this.input.keyboard?.on("keydown-S", this.manualSave, this);
     this.input.keyboard?.on("keydown-ESC", this.closePanel, this);
+    this.input.keyboard?.on("keydown", this.handleHotbarKey, this);
 
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
       this.input.keyboard?.off("keydown-I", this.toggleInventoryPanel, this);
       this.input.keyboard?.off("keydown-C", this.toggleCharacterPanel, this);
+      this.input.keyboard?.off("keydown-K", this.toggleSkillPanel, this);
       this.input.keyboard?.off("keydown-P", this.toggleEquipmentPanel, this);
       this.input.keyboard?.off("keydown-S", this.manualSave, this);
       this.input.keyboard?.off("keydown-ESC", this.closePanel, this);
+      this.input.keyboard?.off("keydown", this.handleHotbarKey, this);
       this.unsubscribeHealth?.();
       this.unsubscribeSp?.();
       this.unsubscribeXp?.();
@@ -125,6 +134,9 @@ export class UIScene extends Phaser.Scene {
       this.unsubscribeEnemyTarget?.();
       this.unsubscribeMapChanged?.();
       this.unsubscribeSaveCompleted?.();
+      this.unsubscribeSkillPointsChanged?.();
+      this.unsubscribeHotbarChanged?.();
+      this.unsubscribeHotbarUsed?.();
     });
   }
 
@@ -237,6 +249,22 @@ export class UIScene extends Phaser.Scene {
     this.unsubscribeSaveCompleted = eventBus.on("saveCompleted", ({ saveSlot }) => {
       this.game.canvas.dataset.lastAutosaveSlot = String(saveSlot);
     });
+
+    this.unsubscribeSkillPointsChanged = eventBus.on("skillPointsChanged", ({ skillId, skillLevel, skillPoints }) => {
+      this.game.canvas.dataset.lastSkillAllocation = `${skillId}:${skillLevel}`;
+      this.game.canvas.dataset.playerSkillPoints = String(skillPoints);
+      this.syncSkillDataset(state, dataRegistry);
+      this.refreshOpenPanel();
+    });
+
+    this.unsubscribeHotbarChanged = eventBus.on("hotbarChanged", ({ hotbar }) => {
+      this.game.canvas.dataset.hotbarAssignments = hotbar.map((entry) => `${entry.slot}:${entry.type}:${entry.id}`).join("|");
+      this.refreshOpenPanel();
+    });
+
+    this.unsubscribeHotbarUsed = eventBus.on("hotbarUsed", ({ slot, type, id, success }) => {
+      this.game.canvas.dataset.lastHotbarUse = `${slot}:${type}:${id}:${success ? "success" : "failed"}`;
+    });
   }
 
   private createHud(state: GameState, dataRegistry: DataRegistry): void {
@@ -278,21 +306,30 @@ export class UIScene extends Phaser.Scene {
     const x = Math.max(210, width / 2 - 140);
     const y = Math.max(540, Number(this.scale.height || 600) - 58);
 
-    for (let index = 0; index < 6; index += 1) {
-      this.add.rectangle(x + index * 48, y, 38, 38, 0x17212b, 0.9)
+    for (let index = 0; index < hotbarSlotCount; index += 1) {
+      const assignment = this.state?.character.hotbar.find((entry) => entry.slot === index + 1);
+      this.add.rectangle(x + index * 42, y, 36, 36, 0x17212b, 0.9)
         .setStrokeStyle(1, index === 0 ? 0xfacc15 : 0x64748b, 0.9)
         .setScrollFactor(0)
         .setDepth(hudDepth);
-      this.add.text(x + index * 48 - 4, y - 8, String(index + 1), {
+      this.add.text(x + index * 42 - 12, y - 12, String(index + 1), {
         color: "#f8fafc",
         fontFamily: "Arial, sans-serif",
-        fontSize: "13px",
+        fontSize: "12px",
+      })
+        .setScrollFactor(0)
+        .setDepth(hudDepth + 1);
+      this.add.text(x + index * 42 - 12, y + 2, assignment?.type === "item" ? "POT" : (assignment?.id.slice(0, 3).toUpperCase() ?? ""), {
+        color: "#cbd5e1",
+        fontFamily: "Arial, sans-serif",
+        fontSize: "10px",
       })
         .setScrollFactor(0)
         .setDepth(hudDepth + 1);
     }
 
-    this.game.canvas.dataset.hotbarSlots = "1|2|3|4|5|6";
+    this.game.canvas.dataset.hotbarSlots = Array.from({ length: hotbarSlotCount }, (_, index) => String(index + 1)).join("|");
+    this.game.canvas.dataset.hotbarAssignments = this.state?.character.hotbar.map((entry) => `${entry.slot}:${entry.type}:${entry.id}`).join("|") ?? "";
   }
 
   private addHudText(x: number, y: number, text: string, color: string): Phaser.GameObjects.Text {
@@ -332,6 +369,15 @@ export class UIScene extends Phaser.Scene {
     this.openPanel("character");
   }
 
+  private toggleSkillPanel(): void {
+    if (this.activePanel === "skills") {
+      this.closePanel();
+      return;
+    }
+
+    this.openPanel("skills");
+  }
+
   private openPanel(mode: PanelMode): void {
     this.activePanel = mode;
     this.game.canvas.dataset.uiPanel = mode;
@@ -362,6 +408,22 @@ export class UIScene extends Phaser.Scene {
     eventBus.emit("saveCompleted", { saveSlot: this.state.currentSaveSlot });
   }
 
+  private requestHotbarAction(slot: number): void {
+    if (this.game.canvas.dataset.gameplayInputBlocked === "true") {
+      return;
+    }
+
+    eventBus.emit("hotbarActionRequested", { slot });
+  }
+
+  private handleHotbarKey(event: KeyboardEvent): void {
+    const slot = Number(event.key);
+
+    if (Number.isInteger(slot) && slot >= 1 && slot <= hotbarSlotCount) {
+      this.requestHotbarAction(slot);
+    }
+  }
+
   private refreshOpenPanel(): void {
     if (this.activePanel) {
       this.renderPanel();
@@ -379,9 +441,65 @@ export class UIScene extends Phaser.Scene {
       this.renderInventoryPanel(this.state, this.dataRegistry);
     } else if (this.activePanel === "equipment") {
       this.renderEquipmentPanel(this.state, this.dataRegistry);
-    } else {
+    } else if (this.activePanel === "character") {
       this.renderCharacterPanel(this.state, this.dataRegistry);
+    } else {
+      this.renderSkillPanel(this.state, this.dataRegistry);
     }
+  }
+
+  private renderSkillPanel(state: GameState, dataRegistry: DataRegistry): void {
+    const classSkills = dataRegistry.getSkillsByClass(state.character.archetype);
+    const selectedSkill = classSkills[this.clampSelectedSkillIndex(classSkills)] ?? null;
+
+    this.addPanelRectangle(70, 60, 660, 470, panelFill, 0.95)
+      .setOrigin(0)
+      .setStrokeStyle(2, panelStroke, 0.92);
+    this.addPanelText(96, 84, "Skills", 24, "#f8fafc");
+    this.addPanelText(96, 120, `Class ${dataRegistry.getClass(state.character.archetype).name}   Skill Points ${state.playerProfile.skillPoints}`, 15, "#fde68a");
+    this.game.canvas.dataset.skillPanel = "visible";
+    this.game.canvas.dataset.skillGroups = state.character.archetype;
+    this.game.canvas.dataset.skillPanelPoints = String(state.playerProfile.skillPoints);
+
+    classSkills.forEach((skill, index) => {
+      const y = 158 + index * 50;
+      const level = getLearnedSkillLevel(state, skill.id);
+      const locked = !this.isSkillUnlocked(state, skill);
+      const row = this.addPanelRectangle(96, y, 330, 40, index === this.selectedSkillIndex ? 0x293548 : 0x18222c, 0.94)
+        .setOrigin(0)
+        .setStrokeStyle(1, index === this.selectedSkillIndex ? 0xfacc15 : 0x334155, 0.9)
+        .setInteractive({ useHandCursor: true });
+      row.on("pointerdown", () => {
+        this.selectedSkillIndex = index;
+        this.renderPanel();
+      });
+      this.addPanelText(110, y + 6, `${skill.name} ${level}/${skill.maxSkillLevel}`, 14, locked ? "#94a3b8" : "#f8fafc");
+      this.addPanelText(292, y + 6, skill.type, 13, "#cbd5e1");
+      this.addPanelText(352, y + 6, locked ? `Req Lv ${skill.requiredLevel}` : "Unlocked", 12, locked ? "#fca5a5" : "#bbf7d0");
+    });
+
+    if (selectedSkill) {
+      const level = getLearnedSkillLevel(state, selectedSkill.id);
+      this.addPanelRectangle(456, 158, 230, 240, 0x17212b, 0.95)
+        .setOrigin(0)
+        .setStrokeStyle(1, 0x475569, 0.86);
+      this.addPanelText(476, 178, selectedSkill.name, 17, "#f8fafc");
+      this.addPanelText(476, 208, `Level ${level}/${selectedSkill.maxSkillLevel}   ${selectedSkill.targetingMode}`, 13, "#cbd5e1");
+      this.addPanelText(476, 236, this.wrapText(selectedSkill.description, 24), 13, "#cbd5e1");
+      this.addPanelText(476, 306, `SP ${selectedSkill.spCost}  CD ${selectedSkill.cooldown}ms`, 13, "#93c5fd");
+      this.addPanelText(476, 332, this.getSkillRequirementText(state, selectedSkill), 12, this.isSkillUnlocked(state, selectedSkill) ? "#bbf7d0" : "#fca5a5");
+      this.game.canvas.dataset.selectedSkill = selectedSkill.id;
+      this.game.canvas.dataset.selectedSkillLevel = String(level);
+      this.game.canvas.dataset.selectedSkillLocked = String(!this.isSkillUnlocked(state, selectedSkill));
+      this.game.canvas.dataset.selectedSkillTooltip = `${selectedSkill.type}|${selectedSkill.targetingMode}|${this.getSkillRequirementText(state, selectedSkill)}`;
+    }
+
+    this.addPanelButton(456, 420, 86, 34, "Level", () => this.levelSelectedSkill());
+    this.addPanelButton(552, 420, 86, 34, "Slot 1", () => this.assignSelectedSkillToHotbar(1));
+    this.addPanelButton(648, 420, 66, 34, "Potion", () => this.assignPotionToHotbar(2));
+    this.addPanelButton(628, 476, 86, 28, "Close", () => this.closePanel());
+    this.game.canvas.dataset.skillPanelButtons = "Level|Slot 1|Potion|Close";
+    this.syncSkillDataset(state, dataRegistry);
   }
 
   private renderInventoryPanel(state: GameState, dataRegistry: DataRegistry): void {
@@ -807,9 +925,30 @@ export class UIScene extends Phaser.Scene {
     this.game.canvas.dataset.equipmentInstanceCount = String(state.inventory.equipmentInstances.length);
     this.game.canvas.dataset.skill = firstSkill?.id ?? "";
     this.game.canvas.dataset.skillName = firstSkill?.name ?? "";
+    this.syncSkillDataset(state, dataRegistry);
     this.syncEquipmentDataset(state, dataRegistry);
     this.syncBaseStatsDataset(state);
     this.syncDerivedStatsDataset(state, dataRegistry);
+  }
+
+  private syncSkillDataset(state: GameState, dataRegistry: DataRegistry): void {
+    const classSkills = dataRegistry.getSkillsByClass(state.character.archetype);
+
+    this.game.canvas.dataset.learnedSkills = state.character.skills.learned
+      .map((entry) => `${entry.id}:${entry.level}`)
+      .join("|");
+    this.game.canvas.dataset.classSkills = classSkills.map((skill) => skill.id).join("|");
+    this.game.canvas.dataset.lockedSkills = classSkills
+      .filter((skill) => !this.isSkillUnlocked(state, skill))
+      .map((skill) => skill.id)
+      .join("|");
+    this.game.canvas.dataset.activeBuffs = state.character.statBuffs
+      .filter((modifier) => modifier.sourceSkillId)
+      .map((modifier) => modifier.sourceSkillId)
+      .join("|");
+    this.game.canvas.dataset.hotbarAssignments = state.character.hotbar
+      .map((entry) => `${entry.slot}:${entry.type}:${entry.id}`)
+      .join("|");
   }
 
   private syncEquipmentDataset(state: GameState, dataRegistry: DataRegistry): void {
@@ -890,6 +1029,45 @@ export class UIScene extends Phaser.Scene {
     }
   }
 
+  private levelSelectedSkill(): void {
+    if (!this.state || !this.dataRegistry) {
+      return;
+    }
+
+    const skill = this.dataRegistry.getSkillsByClass(this.state.character.archetype)[this.selectedSkillIndex];
+    const allocated = skill ? allocateSkillPoint(this.state, skill) : false;
+    this.game.canvas.dataset.lastSkillAllocation = allocated && skill
+      ? `${skill.id}:${getLearnedSkillLevel(this.state, skill.id)}`
+      : "failed";
+    this.syncSkillDataset(this.state, this.dataRegistry);
+    this.refreshOpenPanel();
+  }
+
+  private assignSelectedSkillToHotbar(slot: number): void {
+    if (!this.state || !this.dataRegistry) {
+      return;
+    }
+
+    const skill = this.dataRegistry.getSkillsByClass(this.state.character.archetype)[this.selectedSkillIndex];
+
+    if (!skill || getLearnedSkillLevel(this.state, skill.id) <= 0) {
+      this.game.canvas.dataset.lastHotbarAssignment = "failed";
+      return;
+    }
+
+    assignHotbarAction(this.state, slot, { type: "skill", id: skill.id });
+    this.game.canvas.dataset.lastHotbarAssignment = `${slot}:skill:${skill.id}`;
+  }
+
+  private assignPotionToHotbar(slot: number): void {
+    if (!this.state) {
+      return;
+    }
+
+    assignHotbarAction(this.state, slot, { type: "item", id: "minor-health-potion" });
+    this.game.canvas.dataset.lastHotbarAssignment = `${slot}:item:minor-health-potion`;
+  }
+
   private syncVitalsDataset(state: GameState): void {
     this.game.canvas.dataset.playerHp = `${state.character.stats.hp}/${state.character.stats.maxHp}`;
     this.game.canvas.dataset.playerSp = `${state.character.stats.sp}/${state.character.stats.maxSp}`;
@@ -933,6 +1111,31 @@ export class UIScene extends Phaser.Scene {
     this.game.canvas.dataset.selectedInventoryItemRarity = item ? getItemRarity(item) : "";
     this.game.canvas.dataset.selectedInventoryItemDescription = item?.description ?? "";
     this.game.canvas.dataset.selectedInventoryItemSource = source ?? "";
+  }
+
+  private clampSelectedSkillIndex(skills: SkillDefinition[]): number {
+    if (skills.length === 0) {
+      this.selectedSkillIndex = 0;
+      return 0;
+    }
+
+    this.selectedSkillIndex = Phaser.Math.Clamp(this.selectedSkillIndex, 0, skills.length - 1);
+    return this.selectedSkillIndex;
+  }
+
+  private isSkillUnlocked(state: GameState, skill: SkillDefinition): boolean {
+    return state.playerProfile.level >= skill.requiredLevel
+      && getLearnedSkillLevel(state, skill.id) >= skill.requiredSkillLevel;
+  }
+
+  private getSkillRequirementText(state: GameState, skill: SkillDefinition): string {
+    const requirements = [
+      `Lv ${skill.requiredLevel}`,
+      skill.requiredSkillLevel > 0 ? `Skill Lv ${skill.requiredSkillLevel}` : "",
+    ].filter((entry) => entry.length > 0);
+    const status = this.isSkillUnlocked(state, skill) ? "Unlocked" : "Locked";
+
+    return `${status}: ${requirements.join(", ")}`;
   }
 
   private getInventoryWeight(state: GameState): number {

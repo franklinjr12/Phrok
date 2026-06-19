@@ -1,4 +1,4 @@
-import type { BaseStatKey, DerivedStats, InventoryState } from "../types/gameState";
+import type { BaseStatKey, DerivedStats, HotbarSlotState, InventoryState } from "../types/gameState";
 
 export interface GameEventMap {
   playerHealthChanged: { hp: number; maxHp: number };
@@ -20,6 +20,10 @@ export interface GameEventMap {
   statResetCompleted: { cost: number; refundedPoints: number; gold: number };
   statResetFailed: { reason: "insufficient-gold" | "no-allocated-stats"; cost: number; gold: number };
   skillUsed: { skillId: string; actorId: string };
+  skillPointsChanged: { skillId: string; skillLevel: number; skillPoints: number };
+  hotbarChanged: { hotbar: HotbarSlotState[] };
+  hotbarUsed: { slot: number; type: "skill" | "item"; id: string; success: boolean };
+  hotbarActionRequested: { slot: number };
   enemyKilled: { enemyId: string };
   enemyHealthChanged: { enemyId: string; name: string; hp: number; maxHp: number };
   enemyTargetChanged: { enemyId: string | null; name: string; hp: number; maxHp: number };

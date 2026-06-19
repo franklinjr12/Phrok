@@ -62,7 +62,19 @@ describe("loadDataRegistry", () => {
     expect(registry.getClass("swordsman").startingSkillIds).toEqual(["power-slash"]);
     expect(registry.getClass("swordsman").startingWeaponId).toBe("training-sword");
     expect(registry.getClass("swordsman").difficultyRating).toBe("Normal");
-    expect(registry.getSkill("power-slash")).toMatchObject({ spCost: 0, target: "enemy" });
+    expect(registry.getSkill("power-slash")).toMatchObject({
+      spCost: 0,
+      target: "enemy",
+      type: "active",
+      targetingMode: "enemy",
+      requiredLevel: 1,
+      maxSkillLevel: 5,
+      cooldown: 0,
+      range: 72,
+      element: "neutral",
+      icon: "power-slash",
+    });
+    expect(registry.getSkillsByClass("swordsman").map((skill) => skill.id)).toEqual(["power-slash"]);
     expect(registry.getItem("training-sword")).toMatchObject({ value: 0 });
     expect(registry.getMonster("green-jelly").dropTableId).toBe("green-jelly-drops");
     expect(registry.getDropTable("green-jelly-drops").entries).toContainEqual({

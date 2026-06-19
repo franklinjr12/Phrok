@@ -16,6 +16,7 @@ import { generateLootDrops, type LootDrop } from "../systems/lootDrops";
 import { awardXp, getLevelXpThreshold } from "../systems/progression";
 import { autosaveSlot, writeAutosave, writeSaveSlot } from "../systems/autosave";
 import { getEquipmentStats } from "../systems/equipment";
+import { applyPassiveSkills, expireSkillBuffs, useHotbarSlot as useHotbarSlotAction, type SkillExecutionTarget } from "../systems/skills";
 import { calculateDerivedStats, getSpentStatPoints, resetAllocatedStats } from "../systems/stats";
 import type { DataRegistry } from "../data/dataRegistry";
 import type { DialogueSceneData } from "./DialogueScene";
@@ -76,6 +77,7 @@ export class WorldScene extends Phaser.Scene {
   private unsubscribeEquipmentChanged?: () => void;
   private unsubscribeStatsChanged?: () => void;
   private unsubscribeStatResetRequested?: () => void;
+  private unsubscribeHotbarActionRequested?: () => void;
   private playerAttackTimerMs = playerAttackCooldownMs;
   private enemyAttackTimerMs = 0;
   private isCameraFollowingPlayer = false;
@@ -147,6 +149,7 @@ export class WorldScene extends Phaser.Scene {
     this.createObjectMarkers(tilemap);
 
     this.player = new PlayerEntity(this, state.character, spawnPoint);
+    applyPassiveSkills(state, dataRegistry.getSkills());
     this.playerCombatStats = this.createPlayerCombatStats(state, dataRegistry);
     this.weaponAttack = this.getEquippedWeaponAttack(state, dataRegistry);
     if (collisionLayer) {
@@ -190,11 +193,15 @@ export class WorldScene extends Phaser.Scene {
 
       resetAllocatedStats(state, dataRegistry.getClass(state.character.archetype), (id) => dataRegistry.getItem(id), cost);
     });
+    this.unsubscribeHotbarActionRequested = eventBus.on("hotbarActionRequested", ({ slot }) => {
+      this.useHotbarSlot(slot);
+    });
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
       this.unsubscribeDialogueClosed?.();
       this.unsubscribeEquipmentChanged?.();
       this.unsubscribeStatsChanged?.();
       this.unsubscribeStatResetRequested?.();
+      this.unsubscribeHotbarActionRequested?.();
       this.input.off("pointerdown", this.handlePointerDown, this);
     });
 
@@ -214,6 +221,8 @@ export class WorldScene extends Phaser.Scene {
     this.game.canvas.dataset.autoAttack = "idle";
     this.game.canvas.dataset.playerCombatState = "alive";
     this.game.canvas.dataset.lastCombatFormula = "";
+    this.game.canvas.dataset.lastSkillUse = "";
+    this.game.canvas.dataset.skillCooldowns = "";
     this.game.canvas.dataset.lastXpGain = "";
     this.game.canvas.dataset.lastLevelUp = "";
     this.game.canvas.dataset.lastLootDrop = "";
@@ -263,6 +272,9 @@ export class WorldScene extends Phaser.Scene {
   }
 
   update(_time: number, delta: number): void {
+    if (this.state) {
+      expireSkillBuffs(this.state);
+    }
     this.player?.update(delta);
     this.updateNpcInteraction();
     this.updateCombat(delta);
@@ -549,6 +561,85 @@ export class WorldScene extends Phaser.Scene {
       });
       this.attackTarget = undefined;
     }
+  }
+
+  private useHotbarSlot(slot: number): void {
+    if (!this.state || !this.dataRegistry || this.isDialogueOpen) {
+      return;
+    }
+
+    const target = this.createSkillTarget();
+    const result = useHotbarSlotAction(
+      this.state,
+      slot,
+      (id) => this.dataRegistry!.getSkill(id),
+      (id) => this.dataRegistry!.getItem(id),
+      target,
+    );
+
+    if (!result) {
+      this.game.canvas.dataset.lastSkillUse = `${slot}:item`;
+      this.syncPlayerDataset();
+      return;
+    }
+
+    this.game.canvas.dataset.lastSkillUse = result.success
+      ? `${slot}:${result.skillId}:success:${result.damage}:${result.affectedTargetIds.join(",")}`
+      : `${slot}:${result.skillId}:failed:${result.reason}`;
+    this.game.canvas.dataset.skillCooldowns = Object.entries(this.state.character.skills.cooldowns)
+      .map(([skillId, readyAt]) => `${skillId}:${readyAt}`)
+      .join("|");
+    this.game.canvas.dataset.playerSp = `${this.state.character.stats.sp}/${this.state.character.stats.maxSp}`;
+
+    if (this.attackTarget) {
+      this.syncEnemyDataset();
+      eventBus.emit("enemyHealthChanged", {
+        enemyId: this.attackTarget.id,
+        name: this.attackTarget.name,
+        hp: this.attackTarget.hp,
+        maxHp: this.attackTarget.maxHp,
+      });
+
+      if (!this.attackTarget.isAlive) {
+        const defeated = this.attackTarget;
+        this.game.canvas.dataset.autoAttack = "stopped";
+        this.game.canvas.dataset.enemySelected = "false";
+        this.rewardEnemyKill(defeated);
+        eventBus.emit("enemyTargetChanged", {
+          enemyId: null,
+          name: "",
+          hp: 0,
+          maxHp: 0,
+        });
+        this.attackTarget = undefined;
+      }
+    }
+
+    this.playerCombatStats = this.createPlayerCombatStats(this.state, this.dataRegistry);
+  }
+
+  private createSkillTarget(): SkillExecutionTarget | undefined {
+    if (!this.player || !this.attackTarget || !this.attackTarget.isAlive) {
+      return undefined;
+    }
+
+    const enemy = this.attackTarget;
+
+    return {
+      kind: "enemy",
+      id: enemy.id,
+      distance: Phaser.Math.Distance.Between(
+        this.player.sprite.x,
+        this.player.sprite.y,
+        enemy.sprite.x,
+        enemy.sprite.y,
+      ),
+      hp: enemy.hp,
+      applyDamage: (damage: number) => enemy.takeDamage(damage),
+      applyStatusEffect: (effectId: string) => {
+        this.game.canvas.dataset.lastSkillStatusEffect = `${enemy.id}:${effectId}`;
+      },
+    };
   }
 
   private rewardEnemyKill(enemy: EnemyEntity): void {
