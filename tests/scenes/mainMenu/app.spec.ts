@@ -33,3 +33,26 @@ test("main menu buttons respond to pointer input", async ({ page }) => {
 
   await expect(canvas).toBeVisible();
 });
+
+test("new game flows from main menu to world with ui state", async ({ page }) => {
+  await page.setViewportSize({ width: 800, height: 600 });
+  await page.goto("/");
+
+  const canvas = page.locator("canvas");
+  await expect(canvas).toHaveAttribute("data-scene", "main-menu");
+
+  await canvas.click({ position: { x: 400, y: 258 } });
+  await expect(canvas).toHaveAttribute("data-scene", "character-creation");
+  await expect(canvas).toHaveAttribute("data-character-name", "Adventurer");
+
+  await canvas.click({ position: { x: 400, y: 300 } });
+  await expect(canvas).toHaveAttribute("data-scene", "world");
+  await expect(canvas).toHaveAttribute("data-current-map", "prologue-field");
+  await expect(canvas).toHaveAttribute("data-character-archetype", "wanderer");
+  await expect(canvas).toHaveAttribute("data-ui-scene", "running");
+  await expect(canvas).toHaveAttribute("data-player-hp", "24/24");
+  await expect(canvas).toHaveAttribute("data-player-sp", "10/10");
+  await expect(canvas).toHaveAttribute("data-player-xp", "0");
+  await expect(canvas).toHaveAttribute("data-player-level", "1");
+  await expect(canvas).toHaveAttribute("data-player-gold", "0");
+});

@@ -1,4 +1,5 @@
 import Phaser from "phaser";
+import { SceneKeys } from "../../constants/sceneKeys";
 import { createMainMenuLayout } from "./mainMenuLayout";
 
 const buttonStyle: Phaser.Types.GameObjects.Text.TextStyle = {
@@ -21,7 +22,7 @@ const buttonHoverStyle: Phaser.Types.GameObjects.Text.TextStyle = {
 
 export class MainMenuScene extends Phaser.Scene {
   constructor() {
-    super("MainMenuScene");
+    super(SceneKeys.MainMenu);
   }
 
   create(): void {
@@ -63,6 +64,10 @@ export class MainMenuScene extends Phaser.Scene {
     button.on("pointerup", () => {
       delete this.game.canvas.dataset.pressedButton;
       button.setAlpha(1);
+
+      if (label === "Start Game") {
+        this.scene.start(SceneKeys.CharacterCreation);
+      }
     });
 
     return button;
