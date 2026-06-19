@@ -1,0 +1,4 @@
+interface:
+  display_name: "Implement From Backlog"
+  short_description: "Load one backlog epic without context bloat"
+  default_prompt: "Use $implement-from-backlog to implement Epic M0-E01 from docs/backlog.md."
