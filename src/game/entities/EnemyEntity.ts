@@ -6,7 +6,7 @@ export const EnemyTextureKeys = {
   GreenJellyPlaceholder: "enemy-green-jelly-placeholder",
 } as const;
 
-export type EnemyBehaviorMode = "idle" | "chasing" | "attacking" | "dead";
+export type EnemyBehaviorMode = "idle" | "chasing" | "attacking" | "casting" | "returning" | "dead";
 
 export interface EnemyTargetingState {
   selected: boolean;
@@ -18,6 +18,17 @@ export class EnemyEntity {
   readonly name: string;
   readonly level: number;
   readonly maxHp: number;
+  readonly behavior: MonsterDefinition["behavior"];
+  readonly aggroRange: number;
+  readonly attackRange: number;
+  readonly leashDistance: number;
+  readonly leashTimeoutMs: number;
+  readonly assistRadius: number;
+  readonly castRange: number;
+  readonly castCooldownMs: number;
+  readonly respawnMs: number;
+  readonly elite: boolean;
+  readonly boss: boolean;
   readonly stats: {
     attack: number;
     defense: number;
@@ -35,16 +46,29 @@ export class EnemyEntity {
   private readonly highlight: Phaser.GameObjects.Ellipse;
   private readonly hpBarBackground: Phaser.GameObjects.Rectangle;
   private readonly hpBarFill: Phaser.GameObjects.Rectangle;
+  private readonly traitMarker?: Phaser.GameObjects.Text;
 
   constructor(scene: Phaser.Scene, monster: MonsterDefinition, position: Phaser.Math.Vector2) {
     this.id = monster.id;
     this.name = monster.name;
     this.level = monster.level;
-    this.maxHp = monster.hp;
-    this.hp = monster.hp;
+    this.behavior = monster.behavior;
+    this.aggroRange = monster.aggroRange;
+    this.attackRange = monster.attackRange;
+    this.leashDistance = monster.leashDistance;
+    this.leashTimeoutMs = monster.leashTimeoutMs;
+    this.assistRadius = monster.assistRadius;
+    this.castRange = monster.castRange;
+    this.castCooldownMs = monster.castCooldownMs;
+    this.respawnMs = monster.respawnMs;
+    this.elite = monster.elite;
+    this.boss = monster.boss;
+    const statMultiplier = monster.boss ? 2.4 : monster.elite ? 1.7 : 1;
+    this.maxHp = Math.ceil(monster.hp * statMultiplier);
+    this.hp = this.maxHp;
     this.stats = {
-      attack: monster.attack,
-      defense: monster.defense,
+      attack: Math.ceil(monster.attack * (monster.boss ? 1.8 : monster.elite ? 1.4 : 1)),
+      defense: Math.ceil(monster.defense * (monster.boss ? 1.6 : monster.elite ? 1.3 : 1)),
     };
 
     this.highlight = scene.add.ellipse(position.x, position.y + 15, 56, 24, 0xfacc15, 0.22)
@@ -64,6 +88,15 @@ export class EnemyEntity {
     this.hpBarFill = scene.add.rectangle(position.x - 21, position.y - 34, 42, 4, 0x22c55e, 1)
       .setOrigin(0, 0.5)
       .setDepth(22);
+    if (monster.elite || monster.boss) {
+      this.traitMarker = scene.add.text(position.x, position.y - 52, monster.boss ? "BOSS" : "ELITE", {
+        color: monster.boss ? "#fca5a5" : "#fde68a",
+        fontFamily: "Arial, sans-serif",
+        fontSize: monster.boss ? "11px" : "10px",
+      })
+        .setOrigin(0.5)
+        .setDepth(23);
+    }
     this.syncVisuals();
   }
 
@@ -98,6 +131,7 @@ export class EnemyEntity {
     this.highlight.destroy();
     this.hpBarBackground.destroy();
     this.hpBarFill.destroy();
+    this.traitMarker?.destroy();
     this.sprite.destroy();
   }
 
@@ -110,6 +144,7 @@ export class EnemyEntity {
     this.highlight.setVisible(false);
     this.hpBarBackground.setVisible(false);
     this.hpBarFill.setVisible(false);
+    this.traitMarker?.setVisible(false);
     this.sprite.disableBody(true, true);
   }
 
@@ -117,6 +152,7 @@ export class EnemyEntity {
     this.highlight.setPosition(this.sprite.x, this.sprite.y + 15);
     this.hpBarBackground.setPosition(this.sprite.x, this.sprite.y - 34);
     this.hpBarFill.setPosition(this.sprite.x - 21, this.sprite.y - 34);
+    this.traitMarker?.setPosition(this.sprite.x, this.sprite.y - 52);
     this.hpBarFill.displayWidth = Math.max(0, 42 * (this.hp / this.maxHp));
   }
 }

@@ -7,6 +7,13 @@
     "attack": 2,
     "defense": 1,
     "xpReward": 5,
-    "dropTableId": "green-jelly-drops"
+    "dropTableId": "green-jelly-drops",
+    "behavior": "aggressive",
+    "aggroRange": 150,
+    "attackRange": 70,
+    "leashDistance": 240,
+    "leashTimeoutMs": 6500,
+    "assistRadius": 96,
+    "respawnMs": 15000
   }
 ]

@@ -89,7 +89,20 @@ describe("loadDataRegistry", () => {
     });
     expect(registry.getSkillsByClass("swordsman").map((skill) => skill.id)).toEqual(["power-slash"]);
     expect(registry.getItem("training-sword")).toMatchObject({ value: 0 });
-    expect(registry.getMonster("green-jelly").dropTableId).toBe("green-jelly-drops");
+    expect(registry.getMonster("green-jelly")).toMatchObject({
+      dropTableId: "green-jelly-drops",
+      behavior: "passive",
+      aggroRange: 180,
+      attackRange: 70,
+      leashDistance: 320,
+      leashTimeoutMs: 8000,
+      assistRadius: 140,
+      castRange: 160,
+      castCooldownMs: 2200,
+      respawnMs: 8000,
+      elite: false,
+      boss: false,
+    });
     expect(registry.getDropTable("green-jelly-drops").entries).toContainEqual({
       itemId: undefined,
       type: "gold",

@@ -1477,7 +1477,23 @@
           "id": 1,
           "name": "PlayerSpawn",
           "point": true,
-          "properties": [],
+          "properties": [
+            {
+              "name": "monsterId",
+              "type": "string",
+              "value": "green-jelly"
+            },
+            {
+              "name": "maxCount",
+              "type": "int",
+              "value": 1
+            },
+            {
+              "name": "respawnMs",
+              "type": "int",
+              "value": 15000
+            }
+          ],
           "rotation": 0,
           "type": "spawn",
           "visible": true,

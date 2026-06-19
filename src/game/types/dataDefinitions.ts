@@ -77,6 +77,17 @@ export interface MonsterDefinition {
   defense: number;
   xpReward: number;
   dropTableId: string;
+  behavior: "passive" | "aggressive" | "assist" | "caster";
+  aggroRange: number;
+  attackRange: number;
+  leashDistance: number;
+  leashTimeoutMs: number;
+  assistRadius: number;
+  castRange: number;
+  castCooldownMs: number;
+  respawnMs: number;
+  elite: boolean;
+  boss: boolean;
 }
 
 export interface DropTableEntryDefinition {

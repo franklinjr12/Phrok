@@ -353,6 +353,7 @@ function validateItem(source: Record<string, unknown>, fileName: string): ItemDe
 
 function validateMonster(source: Record<string, unknown>, fileName: string): MonsterDefinition {
   const id = readId(source, fileName);
+  const behavior = optionalString(source, "behavior", "passive");
 
   return {
     id,
@@ -363,7 +364,22 @@ function validateMonster(source: Record<string, unknown>, fileName: string): Mon
     defense: optionalNumber(source, "defense", 0),
     xpReward: optionalNumber(source, "xpReward", 0),
     dropTableId: requireString(source, "dropTableId", fileName, id),
+    behavior: normalizeMonsterBehavior(behavior),
+    aggroRange: optionalNumber(source, "aggroRange", 180),
+    attackRange: optionalNumber(source, "attackRange", 70),
+    leashDistance: optionalNumber(source, "leashDistance", 320),
+    leashTimeoutMs: optionalNumber(source, "leashTimeoutMs", 8000),
+    assistRadius: optionalNumber(source, "assistRadius", 140),
+    castRange: optionalNumber(source, "castRange", 160),
+    castCooldownMs: optionalNumber(source, "castCooldownMs", 2200),
+    respawnMs: optionalNumber(source, "respawnMs", 8000),
+    elite: Boolean(source.elite),
+    boss: Boolean(source.boss),
   };
+}
+
+function normalizeMonsterBehavior(value: string): MonsterDefinition["behavior"] {
+  return value === "aggressive" || value === "assist" || value === "caster" ? value : "passive";
 }
 
 function validateDropTable(source: Record<string, unknown>, fileName: string): DropTableDefinition {
