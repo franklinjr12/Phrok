@@ -14,6 +14,10 @@ export function createNewGameState(): GameState {
       skillPoints: 0,
     },
     currentMapId: "crownfield-town",
+    position: {
+      x: 240,
+      y: 304,
+    },
     character: {
       id: "player",
       archetype: "swordsman",

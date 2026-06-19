@@ -1,6 +1,15 @@
 import { describe, expect, it } from "vitest";
 import { createNewGameState } from "../data/gameState";
-import { autosaveStorageKey, createSaveData, writeAutosave } from "./autosave";
+import {
+  autosaveStorageKey,
+  createSaveData,
+  deserializeSaveData,
+  getSaveSlotStorageKey,
+  readSaveSlot,
+  serializeSaveData,
+  writeAutosave,
+  writeSaveSlot,
+} from "./autosave";
 
 describe("autosave", () => {
   it("creates a versioned save snapshot without sharing state references", () => {
@@ -12,6 +21,14 @@ describe("autosave", () => {
     expect(saveData).toMatchObject({
       version: 1,
       savedAt: "2026-06-19T12:00:00.000Z",
+      currentMapId: "crownfield-town",
+      position: { x: 240, y: 304 },
+      skills: ["power-slash"],
+      stats: {
+        hp: 30,
+        maxHp: 30,
+      },
+      gold: 0,
       gameState: {
         currentMapId: "crownfield-town",
       },
@@ -32,9 +49,96 @@ describe("autosave", () => {
 
     expect(JSON.parse(values.get(autosaveStorageKey) ?? "{}")).toMatchObject({
       version: 1,
+      currentMapId: "crownfield-meadows",
       gameState: {
         currentMapId: "crownfield-meadows",
       },
     });
+  });
+
+  it("serializes and deserializes save data with defaults for optional fields", () => {
+    const saveData = deserializeSaveData(JSON.stringify({
+      version: 1,
+      savedAt: "2026-06-19T12:00:00.000Z",
+      currentMapId: "crownfield-meadows",
+      character: {
+        id: "player",
+        archetype: "mage",
+        stats: {
+          hp: 22,
+          maxHp: 22,
+          sp: 18,
+          maxSp: 18,
+        },
+        skillIds: ["ember-bolt"],
+      },
+      inventory: {
+        items: [{ id: "apprentice-staff", quantity: 1 }],
+        gold: 42,
+      },
+      equipment: {
+        weapon: "apprentice-staff",
+      },
+    }));
+
+    expect(JSON.parse(serializeSaveData(saveData))).toMatchObject({
+      version: 1,
+      currentMapId: "crownfield-meadows",
+      position: { x: 240, y: 304 },
+      gold: 42,
+      bestiary: {
+        discoveredEnemyIds: [],
+      },
+      settings: {
+        musicVolume: 0.8,
+      },
+      gameState: {
+        currentMapId: "crownfield-meadows",
+        playerProfile: {
+          gold: 42,
+        },
+        inventory: {
+          gold: 42,
+        },
+      },
+    });
+  });
+
+  it("writes and reads manual save slots", () => {
+    const state = createNewGameState();
+    const values = new Map<string, string>();
+    const storage = {
+      getItem: (key: string) => values.get(key) ?? null,
+      setItem: (key: string, value: string) => {
+        values.set(key, value);
+      },
+    } as Storage;
+
+    state.playerProfile.name = "Lyra";
+    state.playerProfile.level = 3;
+    state.playerProfile.xp = 225;
+    state.inventory.items.push({ id: "jelly-gel", quantity: 2 });
+    state.position = { x: 512, y: 300 };
+    writeSaveSlot(2, state, storage);
+
+    expect(JSON.parse(values.get(getSaveSlotStorageKey(2)) ?? "{}")).toMatchObject({
+      currentSaveSlot: 2,
+      position: { x: 512, y: 300 },
+      gameState: {
+        currentSaveSlot: 2,
+        playerProfile: {
+          name: "Lyra",
+          level: 3,
+          xp: 225,
+        },
+        inventory: {
+          items: [
+            { id: "training-sword", quantity: 1 },
+            { id: "jelly-gel", quantity: 2 },
+          ],
+        },
+      },
+    });
+    expect(readSaveSlot(2, storage)?.gameState.playerProfile.name).toBe("Lyra");
   });
 });

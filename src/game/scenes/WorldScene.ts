@@ -14,7 +14,7 @@ import { eventBus } from "../systems/eventBus";
 import { addGold, addInventoryItem } from "../systems/inventory";
 import { generateLootDrops, type LootDrop } from "../systems/lootDrops";
 import { awardXp, getLevelXpThreshold } from "../systems/progression";
-import { autosaveSlot, writeAutosave } from "../systems/autosave";
+import { autosaveSlot, writeAutosave, writeSaveSlot } from "../systems/autosave";
 import { getEquipmentStats } from "../systems/equipment";
 import type { DataRegistry } from "../data/dataRegistry";
 import type { DialogueSceneData } from "./DialogueScene";
@@ -42,6 +42,7 @@ type WorldSceneData = {
   lastAutosaveMap?: string;
   lastAutosaveSlot?: string;
   lastTransition?: string;
+  useSavedPosition?: boolean;
 };
 type PortalObject = {
   name: string;
@@ -81,6 +82,7 @@ export class WorldScene extends Phaser.Scene {
   private lastAutosaveMap = "";
   private lastAutosaveSlot = "";
   private lastTransition = "";
+  private useSavedPosition = false;
 
   constructor() {
     super(SceneKeys.World);
@@ -91,6 +93,7 @@ export class WorldScene extends Phaser.Scene {
     this.lastAutosaveMap = data.lastAutosaveMap ?? "";
     this.lastAutosaveSlot = data.lastAutosaveSlot ?? "";
     this.lastTransition = data.lastTransition ?? "";
+    this.useSavedPosition = data.useSavedPosition ?? false;
   }
 
   create(): void {
@@ -117,7 +120,9 @@ export class WorldScene extends Phaser.Scene {
     const groundLayer = tilemap.createLayer(tiledLayerNames.ground, tileset, 0, 0);
     const decorationLayer = tilemap.createLayer(tiledLayerNames.decoration, tileset, 0, 0);
     const collisionLayer = tilemap.createLayer(tiledLayerNames.collision, tileset, 0, 0);
-    const spawnPoint = this.getSpawnPoint(tilemap, this.spawnName);
+    const spawnPoint = this.useSavedPosition
+      ? new Phaser.Math.Vector2(state.position.x, state.position.y)
+      : this.getSpawnPoint(tilemap, this.spawnName);
     this.collisionMap = this.createCollisionMap(tilemap, collisionLayer);
     this.portals = this.createPortals(tilemap);
     this.isTransitioning = false;
@@ -206,6 +211,7 @@ export class WorldScene extends Phaser.Scene {
     this.game.canvas.dataset.tilemapSize = `${tilemap.width}x${tilemap.height}`;
     this.game.canvas.dataset.spawnPoint = `${spawnPoint.x},${spawnPoint.y}`;
     this.game.canvas.dataset.spawnName = this.spawnName;
+    this.game.canvas.dataset.currentSaveSlot = String(state.currentSaveSlot ?? "");
     this.game.canvas.dataset.npcCount = String(map.npcIds.length);
     this.game.canvas.dataset.npcEntityCount = String(this.npcs.length);
     this.game.canvas.dataset.npcNames = this.npcs.map((npc) => npc.name).join("|");
@@ -227,6 +233,7 @@ export class WorldScene extends Phaser.Scene {
     this.game.canvas.dataset.wasdMovement = "disabled";
     this.game.canvas.dataset.movementMarker = "hidden";
     this.syncPlayerDataset();
+    this.persistTransitionSpawn();
     this.syncEnemyDataset();
 
     this.scene.launch(SceneKeys.UI);
@@ -668,6 +675,9 @@ export class WorldScene extends Phaser.Scene {
     }
 
     const { x, y } = this.player.position;
+    if (this.state) {
+      this.state.position = { x, y };
+    }
     this.game.canvas.dataset.playerX = x.toFixed(1);
     this.game.canvas.dataset.playerY = y.toFixed(1);
     this.game.canvas.dataset.playerDirection = this.player.direction;
@@ -715,17 +725,36 @@ export class WorldScene extends Phaser.Scene {
     this.isTransitioning = true;
     this.player.clearDestination();
     this.state.currentMapId = portal.targetMapId;
-    const saveData = writeAutosave(this.state);
+    this.state.position = { x: this.player.sprite.x, y: this.player.sprite.y };
+    const saveData = this.state.currentSaveSlot
+      ? writeSaveSlot(this.state.currentSaveSlot, this.state)
+      : writeAutosave(this.state);
+    const savedSlot = this.state.currentSaveSlot ?? autosaveSlot;
     this.game.canvas.dataset.lastTransition = `${portal.name}:${portal.targetMapId}:${portal.targetSpawnName}`;
-    this.game.canvas.dataset.lastAutosaveSlot = String(autosaveSlot);
+    this.game.canvas.dataset.lastAutosaveSlot = String(savedSlot);
     this.game.canvas.dataset.lastAutosaveMap = saveData.gameState.currentMapId;
-    eventBus.emit("saveCompleted", { saveSlot: autosaveSlot });
+    eventBus.emit("saveCompleted", { saveSlot: savedSlot });
     this.scene.restart({
       spawnName: portal.targetSpawnName,
       lastAutosaveMap: saveData.gameState.currentMapId,
-      lastAutosaveSlot: String(autosaveSlot),
+      lastAutosaveSlot: String(savedSlot),
       lastTransition: `${portal.name}:${portal.targetMapId}:${portal.targetSpawnName}`,
     });
+  }
+
+  private persistTransitionSpawn(): void {
+    if (!this.state || this.lastTransition.length === 0) {
+      return;
+    }
+
+    const saveData = this.state.currentSaveSlot
+      ? writeSaveSlot(this.state.currentSaveSlot, this.state)
+      : writeAutosave(this.state);
+    const savedSlot = this.state.currentSaveSlot ?? autosaveSlot;
+
+    this.game.canvas.dataset.lastAutosaveSlot = String(savedSlot);
+    this.game.canvas.dataset.lastAutosaveMap = saveData.currentMapId;
+    eventBus.emit("saveCompleted", { saveSlot: savedSlot });
   }
 
   private createPlayerCombatStats(state: GameState, dataRegistry: DataRegistry): CombatStats {

@@ -9,14 +9,28 @@ describe("createMainMenuLayout", () => {
     expect(layout.centerY).toBe(300);
     expect(layout.buttons).toEqual([
       {
-        label: "Start Game",
+        label: "Slot 1: New Game",
         x: 400,
-        y: 258,
+        y: 204,
+        slot: 1,
+      },
+      {
+        label: "Slot 2: New Game",
+        x: 400,
+        y: 280,
+        slot: 2,
+      },
+      {
+        label: "Slot 3: New Game",
+        x: 400,
+        y: 356,
+        slot: 3,
       },
       {
         label: "Options",
         x: 400,
-        y: 342,
+        y: 432,
+        slot: null,
       },
     ]);
   });
@@ -26,14 +40,28 @@ describe("createMainMenuLayout", () => {
 
     expect(layout.buttons).toEqual([
       {
-        label: "Start Game",
+        label: "Slot 1: New Game",
         x: 512,
-        y: 342,
+        y: 288,
+        slot: 1,
+      },
+      {
+        label: "Slot 2: New Game",
+        x: 512,
+        y: 364,
+        slot: 2,
+      },
+      {
+        label: "Slot 3: New Game",
+        x: 512,
+        y: 440,
+        slot: 3,
       },
       {
         label: "Options",
         x: 512,
-        y: 426,
+        y: 516,
+        slot: null,
       },
     ]);
   });

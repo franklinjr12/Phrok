@@ -2,6 +2,7 @@ import Phaser from "phaser";
 import { RegistryKeys } from "../constants/registryKeys";
 import { SceneKeys } from "../constants/sceneKeys";
 import { createCharacterGameState } from "../data/gameState";
+import { writeSaveSlot } from "../systems/autosave";
 import type { DataRegistry } from "../data/dataRegistry";
 import type { ClassDefinition } from "../types/dataDefinitions";
 import type { GameState } from "../types/gameState";
@@ -269,7 +270,16 @@ export class CharacterCreationScene extends Phaser.Scene {
       return;
     }
 
-    this.registry.set(RegistryKeys.GameState, createCharacterGameState(this.characterName, this.selectedClass));
+    const state = createCharacterGameState(this.characterName, this.selectedClass);
+    const pendingSaveSlot = this.registry.get(RegistryKeys.PendingSaveSlot) as number | undefined;
+
+    if (pendingSaveSlot) {
+      state.currentSaveSlot = pendingSaveSlot;
+      writeSaveSlot(pendingSaveSlot, state);
+      this.registry.remove(RegistryKeys.PendingSaveSlot);
+    }
+
+    this.registry.set(RegistryKeys.GameState, state);
     this.scene.start(SceneKeys.World);
   }
 

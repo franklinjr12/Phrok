@@ -8,6 +8,7 @@ describe("createNewGameState", () => {
 
     expect(state.currentSaveSlot).toBeNull();
     expect(state.currentMapId).toBe("crownfield-town");
+    expect(state.position).toEqual({ x: 240, y: 304 });
     expect(state.playerProfile).toMatchObject({
       level: 1,
       xp: 0,

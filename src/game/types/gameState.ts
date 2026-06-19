@@ -67,10 +67,16 @@ export interface SettingsState {
   textSpeed: number;
 }
 
+export interface PositionState {
+  x: number;
+  y: number;
+}
+
 export interface GameState {
   currentSaveSlot: number | null;
   playerProfile: PlayerProfile;
   currentMapId: string;
+  position: PositionState;
   character: CharacterData;
   inventory: InventoryState;
   equipment: EquipmentData;

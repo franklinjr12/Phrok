@@ -1,20 +1,271 @@
 import type { SaveData } from "../types/saveData";
 import type { GameState } from "../types/gameState";
+import { createNewGameState } from "../data/gameState";
 
 export const autosaveStorageKey = "prok-autosave";
 export const autosaveSlot = 0;
+export const manualSaveSlotCount = 3;
+export const saveDataVersion = 1;
+
+export function getSaveSlotStorageKey(slot: number): string {
+  return `prok-save-slot-${slot}`;
+}
 
 export function createSaveData(gameState: GameState, savedAt = new Date().toISOString()): SaveData {
+  const snapshot = structuredClone(gameState);
+
   return {
-    version: 1,
+    version: saveDataVersion,
     savedAt,
-    gameState: structuredClone(gameState),
+    currentSaveSlot: snapshot.currentSaveSlot,
+    character: snapshot.character,
+    currentMapId: snapshot.currentMapId,
+    position: snapshot.position,
+    inventory: snapshot.inventory,
+    equipment: snapshot.equipment,
+    skills: [...snapshot.character.skillIds],
+    stats: snapshot.character.stats,
+    gold: snapshot.playerProfile.gold,
+    bestiary: snapshot.bestiary,
+    quests: snapshot.quests,
+    worldFlags: snapshot.worldFlags,
+    settings: snapshot.settings,
+    gameState: snapshot,
   };
+}
+
+export function serializeSaveData(saveData: SaveData): string {
+  return JSON.stringify(saveData);
+}
+
+export function deserializeSaveData(serialized: string): SaveData {
+  return normalizeSaveData(JSON.parse(serialized));
+}
+
+export function saveDataToGameState(saveData: SaveData): GameState {
+  return structuredClone(saveData.gameState);
 }
 
 export function writeAutosave(gameState: GameState, storage: Storage = window.localStorage): SaveData {
   const saveData = createSaveData(gameState);
-  storage.setItem(autosaveStorageKey, JSON.stringify(saveData));
+  storage.setItem(autosaveStorageKey, serializeSaveData(saveData));
 
   return saveData;
+}
+
+export function readAutosave(storage: Storage = window.localStorage): SaveData | null {
+  const serialized = storage.getItem(autosaveStorageKey);
+
+  return serialized ? readSerializedSave(serialized) : null;
+}
+
+export function writeSaveSlot(
+  slot: number,
+  gameState: GameState,
+  storage: Storage = window.localStorage,
+): SaveData {
+  assertManualSaveSlot(slot);
+  const slotState = structuredClone(gameState);
+  slotState.currentSaveSlot = slot;
+  const saveData = createSaveData(slotState);
+
+  storage.setItem(getSaveSlotStorageKey(slot), serializeSaveData(saveData));
+
+  return saveData;
+}
+
+export function readSaveSlot(slot: number, storage: Storage = window.localStorage): SaveData | null {
+  assertManualSaveSlot(slot);
+  const serialized = storage.getItem(getSaveSlotStorageKey(slot));
+
+  return serialized ? readSerializedSave(serialized) : null;
+}
+
+export function readSaveSlots(storage: Storage = window.localStorage): Array<SaveData | null> {
+  return Array.from({ length: manualSaveSlotCount }, (_, index) => readSaveSlot(index + 1, storage));
+}
+
+function readSerializedSave(serialized: string): SaveData | null {
+  try {
+    return deserializeSaveData(serialized);
+  } catch {
+    return null;
+  }
+}
+
+function normalizeSaveData(rawSave: unknown): SaveData {
+  if (!isRecord(rawSave)) {
+    throw new Error("Save data must be an object.");
+  }
+
+  const fallbackState = createNewGameState();
+  const rawGameState = isRecord(rawSave.gameState) ? rawSave.gameState : {};
+  const character = normalizeCharacter(
+    isRecord(rawSave.character) ? rawSave.character : rawGameState.character,
+    fallbackState.character,
+  );
+  const inventory = normalizeInventory(
+    isRecord(rawSave.inventory) ? rawSave.inventory : rawGameState.inventory,
+    fallbackState.inventory,
+  );
+  const equipment = {
+    ...fallbackState.equipment,
+    ...normalizeRecord(
+      isRecord(rawSave.equipment) ? rawSave.equipment : rawGameState.equipment,
+      {},
+    ),
+  };
+  const gameState: GameState = {
+    ...fallbackState,
+    currentSaveSlot: nullableNumber(rawSave.currentSaveSlot, nullableNumber(rawGameState.currentSaveSlot, null)),
+    playerProfile: {
+      ...fallbackState.playerProfile,
+      ...normalizeRecord(rawGameState.playerProfile, {}),
+      gold: numberValue(rawSave.gold, numberValue(isRecord(rawGameState.playerProfile) ? rawGameState.playerProfile.gold : undefined, fallbackState.playerProfile.gold)),
+    },
+    currentMapId: stringValue(rawSave.currentMapId, stringValue(rawGameState.currentMapId, fallbackState.currentMapId)),
+    position: normalizePosition(
+      isRecord(rawSave.position) ? rawSave.position : rawGameState.position,
+      fallbackState.position,
+    ),
+    character,
+    inventory,
+    equipment,
+    quests: normalizeQuestState(isRecord(rawSave.quests) ? rawSave.quests : rawGameState.quests, fallbackState.quests),
+    bestiary: normalizeBestiaryState(isRecord(rawSave.bestiary) ? rawSave.bestiary : rawGameState.bestiary, fallbackState.bestiary),
+    worldFlags: normalizeBooleanRecord(rawSave.worldFlags, fallbackState.worldFlags),
+    settings: normalizeSettings(isRecord(rawSave.settings) ? rawSave.settings : rawGameState.settings, fallbackState.settings),
+  };
+
+  gameState.inventory.gold = numberValue(rawSave.gold, gameState.inventory.gold);
+  gameState.playerProfile.gold = gameState.inventory.gold;
+
+  return createSaveData(
+    gameState,
+    stringValue(rawSave.savedAt, new Date(0).toISOString()),
+  );
+}
+
+function normalizeCharacter(rawCharacter: unknown, fallback: GameState["character"]): GameState["character"] {
+  const source = isRecord(rawCharacter) ? rawCharacter : {};
+  const fallbackStats = fallback.stats;
+  const sourceStats = isRecord(source.stats) ? source.stats : {};
+
+  return {
+    id: stringValue(source.id, fallback.id),
+    archetype: stringValue(source.archetype, fallback.archetype),
+    stats: {
+      hp: numberValue(sourceStats.hp, fallbackStats.hp),
+      maxHp: numberValue(sourceStats.maxHp, fallbackStats.maxHp),
+      sp: numberValue(sourceStats.sp, fallbackStats.sp),
+      maxSp: numberValue(sourceStats.maxSp, fallbackStats.maxSp),
+    },
+    skillIds: stringArray(source.skillIds, fallback.skillIds),
+  };
+}
+
+function normalizeInventory(rawInventory: unknown, fallback: GameState["inventory"]): GameState["inventory"] {
+  const source = isRecord(rawInventory) ? rawInventory : {};
+  const rawItems = Array.isArray(source.items) ? source.items : fallback.items;
+  const rawEquipmentInstances = Array.isArray(source.equipmentInstances)
+    ? source.equipmentInstances
+    : fallback.equipmentInstances;
+
+  return {
+    items: rawItems
+      .filter(isRecord)
+      .map((item) => ({
+        id: stringValue(item.id, ""),
+        quantity: numberValue(item.quantity, 1),
+      }))
+      .filter((item) => item.id.length > 0),
+    gold: numberValue(source.gold, fallback.gold),
+    equipmentInstances: rawEquipmentInstances
+      .filter(isRecord)
+      .map((item) => ({
+        instanceId: stringValue(item.instanceId, ""),
+        itemId: stringValue(item.itemId, ""),
+      }))
+      .filter((item) => item.instanceId.length > 0 && item.itemId.length > 0),
+  };
+}
+
+function normalizePosition(rawPosition: unknown, fallback: GameState["position"]): GameState["position"] {
+  const source = isRecord(rawPosition) ? rawPosition : {};
+
+  return {
+    x: numberValue(source.x, fallback.x),
+    y: numberValue(source.y, fallback.y),
+  };
+}
+
+function normalizeQuestState(rawQuestState: unknown, fallback: GameState["quests"]): GameState["quests"] {
+  const source = isRecord(rawQuestState) ? rawQuestState : {};
+
+  return {
+    activeQuestIds: stringArray(source.activeQuestIds, fallback.activeQuestIds),
+    completedQuestIds: stringArray(source.completedQuestIds, fallback.completedQuestIds),
+  };
+}
+
+function normalizeBestiaryState(rawBestiaryState: unknown, fallback: GameState["bestiary"]): GameState["bestiary"] {
+  const source = isRecord(rawBestiaryState) ? rawBestiaryState : {};
+
+  return {
+    discoveredEnemyIds: stringArray(source.discoveredEnemyIds, fallback.discoveredEnemyIds),
+    defeatedEnemyIds: stringArray(source.defeatedEnemyIds, fallback.defeatedEnemyIds),
+  };
+}
+
+function normalizeSettings(rawSettings: unknown, fallback: GameState["settings"]): GameState["settings"] {
+  const source = isRecord(rawSettings) ? rawSettings : {};
+
+  return {
+    musicVolume: numberValue(source.musicVolume, fallback.musicVolume),
+    sfxVolume: numberValue(source.sfxVolume, fallback.sfxVolume),
+    textSpeed: numberValue(source.textSpeed, fallback.textSpeed),
+  };
+}
+
+function normalizeBooleanRecord(rawRecord: unknown, fallback: Record<string, boolean>): Record<string, boolean> {
+  const source = isRecord(rawRecord) ? rawRecord : fallback;
+
+  return Object.fromEntries(
+    Object.entries(source).filter((entry): entry is [string, boolean] => typeof entry[1] === "boolean"),
+  );
+}
+
+function normalizeRecord<T extends Record<string, unknown>>(rawRecord: unknown, fallback: T): T {
+  return {
+    ...fallback,
+    ...(isRecord(rawRecord) ? rawRecord : {}),
+  };
+}
+
+function assertManualSaveSlot(slot: number): void {
+  if (!Number.isInteger(slot) || slot < 1 || slot > manualSaveSlotCount) {
+    throw new Error(`Save slot must be between 1 and ${manualSaveSlotCount}.`);
+  }
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function stringValue(value: unknown, fallback: string): string {
+  return typeof value === "string" ? value : fallback;
+}
+
+function numberValue(value: unknown, fallback: number): number {
+  return typeof value === "number" && Number.isFinite(value) ? value : fallback;
+}
+
+function nullableNumber(value: unknown, fallback: number | null): number | null {
+  return typeof value === "number" && Number.isInteger(value) ? value : fallback;
+}
+
+function stringArray(value: unknown, fallback: string[]): string[] {
+  return Array.isArray(value)
+    ? value.filter((entry): entry is string => typeof entry === "string")
+    : [...fallback];
 }

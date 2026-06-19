@@ -2,6 +2,7 @@ export interface MainMenuButtonLayout {
   label: string;
   x: number;
   y: number;
+  slot: number | null;
 }
 
 export interface MainMenuLayout {
@@ -11,8 +12,10 @@ export interface MainMenuLayout {
 }
 
 const buttonDefinitions = [
-  { label: "Start Game", yOffset: -42 },
-  { label: "Options", yOffset: 42 },
+  { label: "Slot 1: New Game", yOffset: -96, slot: 1 },
+  { label: "Slot 2: New Game", yOffset: -20, slot: 2 },
+  { label: "Slot 3: New Game", yOffset: 56, slot: 3 },
+  { label: "Options", yOffset: 132, slot: null },
 ] as const;
 
 export function createMainMenuLayout(width: number, height: number): MainMenuLayout {
@@ -22,10 +25,11 @@ export function createMainMenuLayout(width: number, height: number): MainMenuLay
   return {
     centerX,
     centerY,
-    buttons: buttonDefinitions.map(({ label, yOffset }) => ({
+    buttons: buttonDefinitions.map(({ label, yOffset, slot }) => ({
       label,
       x: centerX,
       y: centerY + yOffset,
+      slot,
     })),
   };
 }

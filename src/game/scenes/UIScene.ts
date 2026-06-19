@@ -10,6 +10,7 @@ import {
   getItemRarity,
   removeEquipment,
 } from "../systems/equipment";
+import { writeSaveSlot } from "../systems/autosave";
 import { eventBus } from "../systems/eventBus";
 import { removeInventoryItem } from "../systems/inventory";
 import type { DataRegistry } from "../data/dataRegistry";
@@ -87,12 +88,14 @@ export class UIScene extends Phaser.Scene {
     this.input.keyboard?.on("keydown-I", this.toggleInventoryPanel, this);
     this.input.keyboard?.on("keydown-C", this.toggleEquipmentPanel, this);
     this.input.keyboard?.on("keydown-P", this.toggleEquipmentPanel, this);
+    this.input.keyboard?.on("keydown-S", this.manualSave, this);
     this.input.keyboard?.on("keydown-ESC", this.closePanel, this);
 
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
       this.input.keyboard?.off("keydown-I", this.toggleInventoryPanel, this);
       this.input.keyboard?.off("keydown-C", this.toggleEquipmentPanel, this);
       this.input.keyboard?.off("keydown-P", this.toggleEquipmentPanel, this);
+      this.input.keyboard?.off("keydown-S", this.manualSave, this);
       this.input.keyboard?.off("keydown-ESC", this.closePanel, this);
       this.unsubscribeHealth?.();
       this.unsubscribeSp?.();
@@ -289,6 +292,21 @@ export class UIScene extends Phaser.Scene {
     this.game.canvas.dataset.uiPanel = "closed";
     this.game.canvas.dataset.gameplayInputBlocked = "false";
     this.game.canvas.dataset.itemComparison = "hidden";
+  }
+
+  private manualSave(): void {
+    if (!this.state?.currentSaveSlot) {
+      this.game.canvas.dataset.lastManualSaveSlot = "";
+      this.game.canvas.dataset.lastManualSaveStatus = "no-slot";
+      return;
+    }
+
+    const saveData = writeSaveSlot(this.state.currentSaveSlot, this.state);
+
+    this.game.canvas.dataset.lastManualSaveSlot = String(this.state.currentSaveSlot);
+    this.game.canvas.dataset.lastManualSaveStatus = "saved";
+    this.game.canvas.dataset.lastManualSaveMap = saveData.currentMapId;
+    eventBus.emit("saveCompleted", { saveSlot: this.state.currentSaveSlot });
   }
 
   private refreshOpenPanel(): void {

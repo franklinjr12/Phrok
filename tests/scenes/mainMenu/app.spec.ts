@@ -4,7 +4,7 @@ async function openCharacterCreation(page: Page) {
   const canvas = page.locator("canvas");
 
   await expect(canvas).toHaveAttribute("data-scene", "main-menu");
-  await canvas.click({ position: { x: 400, y: 258 } });
+  await canvas.click({ position: { x: 400, y: 204 } });
   await expect(canvas).toHaveAttribute("data-scene", "character-creation");
 
   return canvas;
@@ -22,10 +22,31 @@ async function confirmDefaultCharacter(page: Page) {
 async function enterMeadows(page: Page) {
   const canvas = await confirmDefaultCharacter(page);
 
-  await canvas.click({ position: { x: 760, y: 304 } });
-  await expect.poll(async () => await canvas.getAttribute("data-current-map"), { timeout: 6000 }).toBe("crownfield-meadows");
+  await expect(canvas).toHaveAttribute("data-portal-count", "1");
+  await clickUntilMapChanges(canvas, "crownfield-meadows", { x: 760, y: 304 });
 
   return canvas;
+}
+
+async function clickUntilMapChanges(
+  canvas: ReturnType<Page["locator"]>,
+  mapId: string,
+  position: { x: number; y: number },
+) {
+  const deadline = Date.now() + 6000;
+
+  while (Date.now() < deadline) {
+    await canvas.click({ position });
+
+    try {
+      await expect.poll(async () => await canvas.getAttribute("data-current-map"), { timeout: 700 }).toBe(mapId);
+      return;
+    } catch {
+      // The click can land before the world input listener settles under parallel load.
+    }
+  }
+
+  await expect.poll(async () => await canvas.getAttribute("data-current-map"), { timeout: 1000 }).toBe(mapId);
 }
 
 test("loads the app shell", async ({ page }) => {
@@ -34,7 +55,12 @@ test("loads the app shell", async ({ page }) => {
   await expect(page).toHaveTitle("Prok");
   await expect(page.locator("#app")).toHaveAttribute("data-ready", "true");
   await expect(page.locator("canvas")).toHaveAttribute("data-scene", "main-menu");
-  await expect(page.locator("canvas")).toHaveAttribute("data-menu-buttons", "Start Game|Options");
+  await expect(page.locator("canvas")).toHaveAttribute(
+    "data-menu-buttons",
+    "Slot 1: New Game|Slot 2: New Game|Slot 3: New Game|Options",
+  );
+  await expect(page.locator("canvas")).toHaveAttribute("data-save-slot-count", "3");
+  await expect(page.locator("canvas")).toHaveAttribute("data-save-slots", "1:empty:New Game|2:empty:New Game|3:empty:New Game");
 });
 
 test("main menu buttons respond to pointer input", async ({ page }) => {
@@ -44,13 +70,13 @@ test("main menu buttons respond to pointer input", async ({ page }) => {
   const canvas = page.locator("canvas");
   await expect(canvas).toHaveAttribute("data-scene", "main-menu");
 
-  await canvas.hover({ position: { x: 400, y: 258 } });
-  await expect(canvas).toHaveAttribute("data-active-button", "Start Game");
+  await canvas.hover({ position: { x: 400, y: 204 } });
+  await expect(canvas).toHaveAttribute("data-active-button", "Slot 1: New Game");
 
   const bounds = await canvas.boundingBox();
   expect(bounds).not.toBeNull();
 
-  await page.mouse.move(bounds!.x + 400, bounds!.y + 342);
+  await page.mouse.move(bounds!.x + 400, bounds!.y + 432);
   await expect(canvas).toHaveAttribute("data-active-button", "Options");
 
   await page.mouse.down();
@@ -123,6 +149,39 @@ test("new game flows from main menu to world with ui state", async ({ page }) =>
   );
   await expect(canvas).toHaveAttribute("data-skill", "power-slash");
   await expect(canvas).toHaveAttribute("data-skill-name", "Power Slash");
+});
+
+test("save slots support manual save and continue", async ({ page }) => {
+  await page.setViewportSize({ width: 800, height: 600 });
+  await page.goto("/");
+
+  const canvas = await confirmDefaultCharacter(page);
+  await expect(canvas).toHaveAttribute("data-current-save-slot", "1");
+
+  await canvas.click({ position: { x: 560, y: 300 } });
+  await expect.poll(async () => Number(await canvas.getAttribute("data-player-x"))).toBeGreaterThan(320);
+
+  await page.keyboard.press("KeyS");
+  await expect(canvas).toHaveAttribute("data-last-manual-save-status", "saved");
+  await expect(canvas).toHaveAttribute("data-last-manual-save-slot", "1");
+
+  const savedSlot = await page.evaluate(() => localStorage.getItem("prok-save-slot-1"));
+  expect(savedSlot).toContain("\"currentSaveSlot\":1");
+  expect(savedSlot).toContain("\"position\"");
+
+  await page.reload();
+  await expect(canvas).toHaveAttribute("data-scene", "main-menu");
+  await expect(canvas).toHaveAttribute("data-save-slots", /1:used:Adventurer:Swordsman:Lv 1:Crownfield/);
+  await expect(canvas).toHaveAttribute("data-menu-buttons", /Slot 1: Adventurer - Swordsman Lv 1 - Crownfield/);
+
+  await canvas.click({ position: { x: 400, y: 204 } });
+  await expect(canvas).toHaveAttribute("data-scene", "world");
+  await expect(canvas).toHaveAttribute("data-current-save-slot", "1");
+  await expect(canvas).toHaveAttribute("data-current-map", "crownfield-town");
+  await expect.poll(async () => Number(await canvas.getAttribute("data-player-x"))).toBeGreaterThan(320);
+  await expect(canvas).toHaveAttribute("data-player-level", "1");
+  await expect(canvas).toHaveAttribute("data-inventory-item", "training-sword");
+  await expect(canvas).toHaveAttribute("data-equipment-weapon", "training-sword");
 });
 
 test("world ui hotkeys show inventory, equipment, comparison, and block gameplay clicks", async ({ page }) => {
@@ -298,7 +357,7 @@ test("world supports target selection and auto-attack combat", async ({ page }) 
   await expect(canvas).toHaveAttribute("data-spawned-monster", "green-jelly");
   await expect(canvas).toHaveAttribute("data-current-map-name", "Crownfield Meadows");
   await expect(canvas).toHaveAttribute("data-spawn-name", "TownGateSpawn");
-  await expect(canvas).toHaveAttribute("data-last-autosave-slot", "0");
+  await expect(canvas).toHaveAttribute("data-last-autosave-slot", "1");
   await expect(canvas).toHaveAttribute("data-last-autosave-map", "crownfield-meadows");
   await expect(canvas).toHaveAttribute("data-monster-spawn-zone-count", "1");
   await expect(canvas).toHaveAttribute("data-gathering-spot-count", "1");
