@@ -1,5 +1,17 @@
 [
   {
+    "id": "field-guide",
+    "name": "Field Guide",
+    "mapId": "crownfield-town",
+    "dialogueId": "field-guide-greeting"
+  },
+  {
+    "id": "town-smith",
+    "name": "Town Smith",
+    "mapId": "crownfield-town",
+    "dialogueId": "town-smith-greeting"
+  },
+  {
     "id": "meadow-keeper",
     "name": "Meadow Keeper",
     "mapId": "crownfield-meadows",

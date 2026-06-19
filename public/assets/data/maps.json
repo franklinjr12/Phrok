@@ -1,5 +1,12 @@
 [
   {
+    "id": "crownfield-town",
+    "name": "Crownfield",
+    "description": "A sheltered starter town with market stalls, trainers, and a road to the meadows.",
+    "monsterIds": [],
+    "npcIds": ["field-guide", "town-smith"]
+  },
+  {
     "id": "crownfield-meadows",
     "name": "Crownfield Meadows",
     "description": "A quiet starter meadow outside the first town.",

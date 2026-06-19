@@ -13,11 +13,15 @@ import { eventBus } from "../systems/eventBus";
 import { addGold, addInventoryItem } from "../systems/inventory";
 import { generateLootDrops, type LootDrop } from "../systems/lootDrops";
 import { awardXp, getLevelXpThreshold } from "../systems/progression";
+import { autosaveSlot, writeAutosave } from "../systems/autosave";
 import type { DataRegistry } from "../data/dataRegistry";
 import type { ItemDefinition } from "../types/dataDefinitions";
 import type { GameState } from "../types/gameState";
 
-const prototypeMapKey = "map-crownfield-meadows";
+const mapKeysById: Record<string, string> = {
+  "crownfield-town": "map-crownfield-town",
+  "crownfield-meadows": "map-crownfield-meadows",
+};
 const prototypeTilesKey = "prototype-tiles";
 const tiledLayerNames = {
   ground: "Ground",
@@ -31,6 +35,18 @@ const playerAttackCooldownMs = 850;
 const enemyAttackCooldownMs = 1250;
 
 type PrototypeTilemapLayer = Phaser.Tilemaps.TilemapLayer | Phaser.Tilemaps.TilemapGPULayer;
+type WorldSceneData = {
+  spawnName?: string;
+  lastAutosaveMap?: string;
+  lastAutosaveSlot?: string;
+  lastTransition?: string;
+};
+type PortalObject = {
+  name: string;
+  bounds: Phaser.Geom.Rectangle;
+  targetMapId: string;
+  targetSpawnName: string;
+};
 type DroppedLootObject = {
   id: string;
   drop: LootDrop;
@@ -49,12 +65,25 @@ export class WorldScene extends Phaser.Scene {
   private weaponAttack = 0;
   private attackTarget?: EnemyEntity;
   private droppedLoot: DroppedLootObject[] = [];
+  private portals: PortalObject[] = [];
   private playerAttackTimerMs = playerAttackCooldownMs;
   private enemyAttackTimerMs = 0;
   private isCameraFollowingPlayer = false;
+  private isTransitioning = false;
+  private spawnName = "PlayerSpawn";
+  private lastAutosaveMap = "";
+  private lastAutosaveSlot = "";
+  private lastTransition = "";
 
   constructor() {
     super(SceneKeys.World);
+  }
+
+  init(data: WorldSceneData): void {
+    this.spawnName = data.spawnName ?? "PlayerSpawn";
+    this.lastAutosaveMap = data.lastAutosaveMap ?? "";
+    this.lastAutosaveSlot = data.lastAutosaveSlot ?? "";
+    this.lastTransition = data.lastTransition ?? "";
   }
 
   create(): void {
@@ -64,8 +93,9 @@ export class WorldScene extends Phaser.Scene {
     this.dataRegistry = dataRegistry;
     const map = dataRegistry.getMap(state.currentMapId);
     const firstMonster = map.monsterIds[0] ? dataRegistry.getMonster(map.monsterIds[0]) : null;
+    const tilemapKey = mapKeysById[state.currentMapId] ?? mapKeysById["crownfield-town"];
 
-    const tilemap = this.make.tilemap({ key: prototypeMapKey });
+    const tilemap = this.make.tilemap({ key: tilemapKey });
     const tileset = tilemap.addTilesetImage(prototypeTilesKey, prototypeTilesKey);
 
     if (!tileset) {
@@ -75,8 +105,10 @@ export class WorldScene extends Phaser.Scene {
     const groundLayer = tilemap.createLayer(tiledLayerNames.ground, tileset, 0, 0);
     const decorationLayer = tilemap.createLayer(tiledLayerNames.decoration, tileset, 0, 0);
     const collisionLayer = tilemap.createLayer(tiledLayerNames.collision, tileset, 0, 0);
-    const spawnPoint = this.getSpawnPoint(tilemap);
+    const spawnPoint = this.getSpawnPoint(tilemap, this.spawnName);
     this.collisionMap = this.createCollisionMap(tilemap, collisionLayer);
+    this.portals = this.createPortals(tilemap);
+    this.isTransitioning = false;
 
     this.cameras.main.setBackgroundColor("#162019");
     this.physics.world.setBounds(0, 0, tilemap.widthInPixels, tilemap.heightInPixels);
@@ -92,6 +124,7 @@ export class WorldScene extends Phaser.Scene {
       fontFamily: "Arial, sans-serif",
       fontSize: "24px",
     }).setOrigin(0.5);
+    this.createObjectMarkers(tilemap);
 
     this.player = new PlayerEntity(this, state.character, spawnPoint);
     this.playerCombatStats = this.createPlayerCombatStats(state, dataRegistry);
@@ -138,7 +171,7 @@ export class WorldScene extends Phaser.Scene {
     this.game.canvas.dataset.inventoryStackCount = String(state.inventory.items.length);
     this.game.canvas.dataset.equipmentInstanceCount = String(state.inventory.equipmentInstances.length);
     this.game.canvas.dataset.playerXpNext = String(getLevelXpThreshold(dataRegistry.getXpTable("standard"), state.playerProfile.level + 1) ?? "");
-    this.game.canvas.dataset.tilemapKey = prototypeMapKey;
+    this.game.canvas.dataset.tilemapKey = tilemapKey;
     this.game.canvas.dataset.tilemapLayers = [
       tiledLayerNames.ground,
       tiledLayerNames.decoration,
@@ -147,6 +180,16 @@ export class WorldScene extends Phaser.Scene {
     ].join("|");
     this.game.canvas.dataset.tilemapSize = `${tilemap.width}x${tilemap.height}`;
     this.game.canvas.dataset.spawnPoint = `${spawnPoint.x},${spawnPoint.y}`;
+    this.game.canvas.dataset.spawnName = this.spawnName;
+    this.game.canvas.dataset.npcCount = String(map.npcIds.length);
+    this.game.canvas.dataset.portalCount = String(this.portals.length);
+    this.game.canvas.dataset.safeZone = firstMonster ? "field-entrance" : "town";
+    this.game.canvas.dataset.gatheringSpotCount = String(this.countObjectsByType(tilemap, "gathering"));
+    this.game.canvas.dataset.monsterSpawnZoneCount = String(this.countObjectsByType(tilemap, "monsterSpawn"));
+    this.game.canvas.dataset.treasureSpotCount = String(this.countObjectsByType(tilemap, "treasure"));
+    this.game.canvas.dataset.lastAutosaveSlot = this.lastAutosaveSlot;
+    this.game.canvas.dataset.lastAutosaveMap = this.lastAutosaveMap;
+    this.game.canvas.dataset.lastTransition = this.lastTransition;
     this.game.canvas.dataset.collisionLayerEnabled = String(Boolean(collisionLayer));
     this.game.canvas.dataset.playerCharacterId = this.player.character.id;
     this.game.canvas.dataset.playerHasCollisionBody = String(Boolean(this.player.sprite.body));
@@ -162,6 +205,7 @@ export class WorldScene extends Phaser.Scene {
   update(_time: number, delta: number): void {
     this.player?.update(delta);
     this.updateCombat(delta);
+    this.updateMapTransitions();
     this.syncPlayerDataset();
     this.syncEnemyDataset();
   }
@@ -525,6 +569,33 @@ export class WorldScene extends Phaser.Scene {
     ].join("|");
   }
 
+  private updateMapTransitions(): void {
+    if (!this.player || !this.state || this.isTransitioning) {
+      return;
+    }
+
+    const portal = this.portals.find((entry) => entry.bounds.contains(this.player!.sprite.x, this.player!.sprite.y));
+
+    if (!portal) {
+      return;
+    }
+
+    this.isTransitioning = true;
+    this.player.clearDestination();
+    this.state.currentMapId = portal.targetMapId;
+    const saveData = writeAutosave(this.state);
+    this.game.canvas.dataset.lastTransition = `${portal.name}:${portal.targetMapId}:${portal.targetSpawnName}`;
+    this.game.canvas.dataset.lastAutosaveSlot = String(autosaveSlot);
+    this.game.canvas.dataset.lastAutosaveMap = saveData.gameState.currentMapId;
+    eventBus.emit("saveCompleted", { saveSlot: autosaveSlot });
+    this.scene.restart({
+      spawnName: portal.targetSpawnName,
+      lastAutosaveMap: saveData.gameState.currentMapId,
+      lastAutosaveSlot: String(autosaveSlot),
+      lastTransition: `${portal.name}:${portal.targetMapId}:${portal.targetSpawnName}`,
+    });
+  }
+
   private createPlayerCombatStats(state: GameState, dataRegistry: DataRegistry): CombatStats {
     const playerClass = dataRegistry.getClass(state.character.archetype);
 
@@ -587,14 +658,104 @@ export class WorldScene extends Phaser.Scene {
     };
   }
 
-  private getSpawnPoint(tilemap: Phaser.Tilemaps.Tilemap): Phaser.Math.Vector2 {
+  private getSpawnPoint(tilemap: Phaser.Tilemaps.Tilemap, spawnName: string): Phaser.Math.Vector2 {
     const objectLayer = tilemap.getObjectLayer(tiledLayerNames.objects);
-    const spawnObject = objectLayer?.objects.find((object) => object.name === "PlayerSpawn");
+    const spawnObject = objectLayer?.objects.find((object) => object.name === spawnName)
+      ?? objectLayer?.objects.find((object) => object.name === "PlayerSpawn");
 
     return new Phaser.Math.Vector2(spawnObject?.x ?? tilemap.widthInPixels / 2, spawnObject?.y ?? tilemap.heightInPixels / 2);
   }
 
+  private createPortals(tilemap: Phaser.Tilemaps.Tilemap): PortalObject[] {
+    const objectLayer = tilemap.getObjectLayer(tiledLayerNames.objects);
+
+    return objectLayer?.objects
+      .filter((object) => object.type === "portal")
+      .map((object) => ({
+        name: object.name,
+        bounds: new Phaser.Geom.Rectangle(
+          object.x ?? 0,
+          object.y ?? 0,
+          object.width ?? tilemap.tileWidth,
+          object.height ?? tilemap.tileHeight,
+        ),
+        targetMapId: this.getObjectStringProperty(object, "targetMapId"),
+        targetSpawnName: this.getObjectStringProperty(object, "targetSpawnName", "PlayerSpawn"),
+      }))
+      .filter((portal) => portal.targetMapId.length > 0) ?? [];
+  }
+
+  private createObjectMarkers(tilemap: Phaser.Tilemaps.Tilemap): void {
+    const objectLayer = tilemap.getObjectLayer(tiledLayerNames.objects);
+
+    for (const object of objectLayer?.objects ?? []) {
+      if (object.type === "npc") {
+        this.createNpcMarker(object);
+      } else if (object.type === "portal") {
+        this.createPortalMarker(object);
+      } else if (object.type === "gathering" || object.type === "treasure") {
+        this.createSpotMarker(object);
+      }
+    }
+  }
+
+  private createNpcMarker(object: Phaser.Types.Tilemaps.TiledObject): void {
+    const x = object.x ?? 0;
+    const y = object.y ?? 0;
+    const npcId = this.getObjectStringProperty(object, "npcId");
+    const npcName = npcId && this.dataRegistry ? this.dataRegistry.getNpc(npcId).name : object.name;
+
+    this.add.rectangle(x, y, 30, 38, 0xf59e0b, 0.92)
+      .setStrokeStyle(2, 0xfffbeb, 0.9)
+      .setDepth(18);
+    this.add.text(x, y - 32, npcName, {
+      color: "#f8fafc",
+      fontFamily: "Arial, sans-serif",
+      fontSize: "12px",
+    }).setOrigin(0.5).setDepth(19);
+  }
+
+  private createPortalMarker(object: Phaser.Types.Tilemaps.TiledObject): void {
+    const x = (object.x ?? 0) + (object.width ?? 32) / 2;
+    const y = (object.y ?? 0) + (object.height ?? 32) / 2;
+
+    this.add.rectangle(x, y, object.width ?? 32, object.height ?? 32, 0x38bdf8, 0.28)
+      .setStrokeStyle(2, 0xbae6fd, 0.8)
+      .setDepth(12);
+  }
+
+  private createSpotMarker(object: Phaser.Types.Tilemaps.TiledObject): void {
+    const x = object.x ?? 0;
+    const y = object.y ?? 0;
+    const color = object.type === "treasure" ? 0xfacc15 : 0x22c55e;
+
+    this.add.rectangle(x, y, 24, 20, color, 0.85)
+      .setStrokeStyle(2, 0xf8fafc, 0.75)
+      .setDepth(14);
+  }
+
+  private countObjectsByType(tilemap: Phaser.Tilemaps.Tilemap, type: string): number {
+    return tilemap.getObjectLayer(tiledLayerNames.objects)?.objects
+      .filter((object) => object.type === type).length ?? 0;
+  }
+
+  private getObjectStringProperty(
+    object: Phaser.Types.Tilemaps.TiledObject,
+    propertyName: string,
+    fallback = "",
+  ): string {
+    const property = object.properties?.find((entry: { name?: string }) => entry.name === propertyName);
+    return typeof property?.value === "string" ? property.value : fallback;
+  }
+
   private getEnemySpawnPoint(spawnPoint: Phaser.Math.Vector2, tilemap: Phaser.Tilemaps.Tilemap): Phaser.Math.Vector2 {
+    const objectLayer = tilemap.getObjectLayer(tiledLayerNames.objects);
+    const spawnObject = objectLayer?.objects.find((object) => object.type === "monsterSpawn");
+
+    if (spawnObject) {
+      return new Phaser.Math.Vector2(spawnObject.x ?? spawnPoint.x, spawnObject.y ?? spawnPoint.y);
+    }
+
     const candidates = [
       new Phaser.Math.Vector2(spawnPoint.x + 128, spawnPoint.y),
       new Phaser.Math.Vector2(spawnPoint.x + 96, spawnPoint.y + 64),

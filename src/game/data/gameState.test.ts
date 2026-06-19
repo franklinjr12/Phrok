@@ -7,7 +7,7 @@ describe("createNewGameState", () => {
     const state = createNewGameState();
 
     expect(state.currentSaveSlot).toBeNull();
-    expect(state.currentMapId).toBe("crownfield-meadows");
+    expect(state.currentMapId).toBe("crownfield-town");
     expect(state.playerProfile).toMatchObject({
       level: 1,
       xp: 0,

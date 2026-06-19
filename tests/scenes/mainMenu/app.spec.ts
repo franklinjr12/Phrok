@@ -19,6 +19,15 @@ async function confirmDefaultCharacter(page: Page) {
   return canvas;
 }
 
+async function enterMeadows(page: Page) {
+  const canvas = await confirmDefaultCharacter(page);
+
+  await canvas.click({ position: { x: 760, y: 304 } });
+  await expect.poll(async () => await canvas.getAttribute("data-current-map"), { timeout: 6000 }).toBe("crownfield-meadows");
+
+  return canvas;
+}
+
 test("loads the app shell", async ({ page }) => {
   await page.goto("/");
 
@@ -69,15 +78,20 @@ test("new game flows from main menu to world with ui state", async ({ page }) =>
 
   await canvas.click({ position: { x: 630, y: 545 } });
   await expect(canvas).toHaveAttribute("data-scene", "world");
-  await expect(canvas).toHaveAttribute("data-current-map", "crownfield-meadows");
-  await expect(canvas).toHaveAttribute("data-current-map-name", "Crownfield Meadows");
+  await expect(canvas).toHaveAttribute("data-current-map", "crownfield-town");
+  await expect(canvas).toHaveAttribute("data-current-map-name", "Crownfield");
   await expect(canvas).toHaveAttribute("data-character-archetype", "swordsman");
-  await expect(canvas).toHaveAttribute("data-spawned-monster", "green-jelly");
-  await expect(canvas).toHaveAttribute("data-spawned-monster-name", "Green Jelly");
-  await expect(canvas).toHaveAttribute("data-tilemap-key", "map-crownfield-meadows");
+  await expect(canvas).toHaveAttribute("data-spawned-monster", "");
+  await expect(canvas).toHaveAttribute("data-spawned-monster-name", "");
+  await expect(canvas).toHaveAttribute("data-tilemap-key", "map-crownfield-town");
   await expect(canvas).toHaveAttribute("data-tilemap-layers", "Ground|Decoration|Collision|Objects");
   await expect(canvas).toHaveAttribute("data-tilemap-size", "25x19");
-  await expect(canvas).toHaveAttribute("data-spawn-point", "400,304");
+  await expect(canvas).toHaveAttribute("data-spawn-point", "240,304");
+  await expect(canvas).toHaveAttribute("data-spawn-name", "PlayerSpawn");
+  await expect(canvas).toHaveAttribute("data-npc-count", "2");
+  await expect(canvas).toHaveAttribute("data-portal-count", "1");
+  await expect(canvas).toHaveAttribute("data-safe-zone", "town");
+  await expect(canvas).toHaveAttribute("data-monster-spawn-zone-count", "0");
   await expect(canvas).toHaveAttribute("data-collision-layer-enabled", "true");
   await expect(canvas).toHaveAttribute("data-ui-scene", "running");
   await expect(canvas).toHaveAttribute("data-player-hp", "30/30");
@@ -157,7 +171,7 @@ test("world supports mouse click player movement without WASD movement", async (
   expect(Number(await canvas.getAttribute("data-player-y"))).toBeCloseTo(startY, 1);
   await expect(canvas).toHaveAttribute("data-player-destination", "");
 
-  await canvas.click({ position: { x: 400, y: 190 } });
+  await canvas.click({ position: { x: 160, y: 128 } });
   await expect(canvas).toHaveAttribute("data-last-movement-click-valid", "false");
   await expect(canvas).toHaveAttribute("data-movement-marker", "hidden");
   await expect(canvas).toHaveAttribute("data-player-destination", "");
@@ -173,7 +187,7 @@ test("world supports mouse click player movement without WASD movement", async (
   await expect.poll(async () => Number(await canvas.getAttribute("data-player-x"))).toBeGreaterThan(startX + 80);
   await expect.poll(async () => await canvas.getAttribute("data-player-destination")).toBe("");
   await expect(canvas).toHaveAttribute("data-player-motion-state", "idle");
-  await expect(canvas).toHaveAttribute("data-player-animation-state", "idle-right");
+  await expect(canvas).toHaveAttribute("data-player-animation-state", /idle-/);
   await expect(canvas).toHaveAttribute("data-movement-marker", "hidden");
 });
 
@@ -181,8 +195,15 @@ test("world supports target selection and auto-attack combat", async ({ page }) 
   await page.setViewportSize({ width: 800, height: 600 });
   await page.goto("/");
 
-  const canvas = await confirmDefaultCharacter(page);
+  const canvas = await enterMeadows(page);
   await expect(canvas).toHaveAttribute("data-spawned-monster", "green-jelly");
+  await expect(canvas).toHaveAttribute("data-current-map-name", "Crownfield Meadows");
+  await expect(canvas).toHaveAttribute("data-spawn-name", "TownGateSpawn");
+  await expect(canvas).toHaveAttribute("data-last-autosave-slot", "0");
+  await expect(canvas).toHaveAttribute("data-last-autosave-map", "crownfield-meadows");
+  await expect(canvas).toHaveAttribute("data-monster-spawn-zone-count", "1");
+  await expect(canvas).toHaveAttribute("data-gathering-spot-count", "1");
+  await expect(canvas).toHaveAttribute("data-treasure-spot-count", "1");
   await expect(canvas).toHaveAttribute("data-enemy-hp", "10/10");
   await expect(canvas).toHaveAttribute("data-target-frame", "hidden");
 
@@ -216,4 +237,26 @@ test("world supports target selection and auto-attack combat", async ({ page }) 
   await expect(canvas).toHaveAttribute("data-last-loot-pickup", /gold:[3-5]/);
   await expect.poll(async () => Number(await canvas.getAttribute("data-player-gold"))).toBeGreaterThan(0);
   await expect.poll(async () => Number(await canvas.getAttribute("data-inventory-gold"))).toBeGreaterThan(0);
+});
+
+test("world portals connect town and field", async ({ page }) => {
+  await page.setViewportSize({ width: 800, height: 600 });
+  await page.goto("/");
+
+  const canvas = await enterMeadows(page);
+
+  await expect(canvas).toHaveAttribute("data-current-map", "crownfield-meadows");
+  await expect(canvas).toHaveAttribute("data-current-map-name", "Crownfield Meadows");
+  await expect(canvas).toHaveAttribute("data-spawn-point", "80,304");
+  await expect(canvas).toHaveAttribute("data-spawn-name", "TownGateSpawn");
+  await expect(canvas).toHaveAttribute("data-safe-zone", "field-entrance");
+  await expect(canvas).toHaveAttribute("data-last-transition", "TownEastGate:crownfield-meadows:TownGateSpawn");
+
+  await canvas.click({ position: { x: 20, y: 304 } });
+  await expect.poll(async () => await canvas.getAttribute("data-current-map"), { timeout: 6000 }).toBe("crownfield-town");
+  await expect(canvas).toHaveAttribute("data-current-map-name", "Crownfield");
+  await expect(canvas).toHaveAttribute("data-spawn-point", "704,304");
+  await expect(canvas).toHaveAttribute("data-spawn-name", "FieldRoadReturn");
+  await expect(canvas).toHaveAttribute("data-spawned-monster", "");
+  await expect(canvas).toHaveAttribute("data-last-autosave-map", "crownfield-town");
 });

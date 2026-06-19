@@ -14,10 +14,13 @@ export class UIScene extends Phaser.Scene {
   private unsubscribeLootPickedUp?: () => void;
   private unsubscribeEnemyHealth?: () => void;
   private unsubscribeEnemyTarget?: () => void;
+  private unsubscribeMapChanged?: () => void;
+  private unsubscribeSaveCompleted?: () => void;
   private xpBarFill?: Phaser.GameObjects.Rectangle;
   private targetFrame?: Phaser.GameObjects.Rectangle;
   private targetNameText?: Phaser.GameObjects.Text;
   private targetHpText?: Phaser.GameObjects.Text;
+  private mapNameText?: Phaser.GameObjects.Text;
 
   constructor() {
     super("UIScene");
@@ -30,6 +33,7 @@ export class UIScene extends Phaser.Scene {
     this.game.canvas.dataset.uiScene = "running";
     this.syncPlayerStats(state, dataRegistry);
     this.createPlayerBars(state);
+    this.createMapLabel(dataRegistry.getMap(state.currentMapId).name);
     this.syncXpBar(state, dataRegistry);
     this.createTargetFrame();
 
@@ -90,6 +94,17 @@ export class UIScene extends Phaser.Scene {
       this.setTargetFrame(enemyId, name, hp, maxHp);
     });
 
+    this.unsubscribeMapChanged = eventBus.on("mapChanged", ({ mapId }) => {
+      const map = dataRegistry.getMap(mapId);
+      this.mapNameText?.setText(map.name);
+      this.game.canvas.dataset.currentMap = map.id;
+      this.game.canvas.dataset.currentMapName = map.name;
+    });
+
+    this.unsubscribeSaveCompleted = eventBus.on("saveCompleted", ({ saveSlot }) => {
+      this.game.canvas.dataset.lastAutosaveSlot = String(saveSlot);
+    });
+
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
       this.unsubscribeHealth?.();
       this.unsubscribeSp?.();
@@ -100,6 +115,8 @@ export class UIScene extends Phaser.Scene {
       this.unsubscribeLootPickedUp?.();
       this.unsubscribeEnemyHealth?.();
       this.unsubscribeEnemyTarget?.();
+      this.unsubscribeMapChanged?.();
+      this.unsubscribeSaveCompleted?.();
     });
   }
 
@@ -140,6 +157,17 @@ export class UIScene extends Phaser.Scene {
       .setDepth(101)
       .setVisible(false);
     this.clearTargetFrame();
+  }
+
+  private createMapLabel(mapName: string): void {
+    this.mapNameText = this.add.text(20, 24, mapName, {
+      color: "#f8fafc",
+      fontFamily: "Arial, sans-serif",
+      fontSize: "18px",
+    })
+      .setScrollFactor(0)
+      .setDepth(100);
+    this.game.canvas.dataset.currentMapName = mapName;
   }
 
   private setTargetFrame(enemyId: string, name: string, hp: number, maxHp: number): void {

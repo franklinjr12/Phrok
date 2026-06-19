@@ -6,7 +6,10 @@ import { createNewGameState } from "../data/gameState";
 import { EnemyTextureKeys } from "../entities/EnemyEntity";
 import { PlayerTextureKeys } from "../entities/PlayerEntity";
 
-const prototypeMapKey = "map-crownfield-meadows";
+const mapAssets = [
+  { key: "map-crownfield-town", path: "assets/maps/crownfield-town.json" },
+  { key: "map-crownfield-meadows", path: "assets/maps/crownfield-meadows.json" },
+] as const;
 const prototypeTilesKey = "prototype-tiles";
 
 export class PreloadScene extends Phaser.Scene {
@@ -15,7 +18,9 @@ export class PreloadScene extends Phaser.Scene {
   }
 
   preload(): void {
-    this.load.tilemapTiledJSON(prototypeMapKey, "assets/maps/crownfield-meadows.json");
+    for (const mapAsset of mapAssets) {
+      this.load.tilemapTiledJSON(mapAsset.key, mapAsset.path);
+    }
   }
 
   async create(): Promise<void> {
