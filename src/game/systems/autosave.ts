@@ -1,6 +1,7 @@
 import type { SaveData } from "../types/saveData";
 import type { GameState } from "../types/gameState";
 import { createNewGameState } from "../data/gameState";
+import { baseStatKeys, createEmptyBaseStats } from "./stats";
 
 export const autosaveStorageKey = "prok-autosave";
 export const autosaveSlot = 0;
@@ -160,6 +161,15 @@ function normalizeCharacter(rawCharacter: unknown, fallback: GameState["characte
       sp: numberValue(sourceStats.sp, fallbackStats.sp),
       maxSp: numberValue(sourceStats.maxSp, fallbackStats.maxSp),
     },
+    baseStats: normalizeBaseStats(source.baseStats, fallback.baseStats),
+    allocatedStats: normalizeBaseStats(source.allocatedStats, fallback.allocatedStats),
+    statBuffs: Array.isArray(source.statBuffs)
+      ? source.statBuffs.filter(isRecord).map((modifier) => ({
+        id: stringValue(modifier.id, "buff"),
+        baseStats: normalizePartialBaseStats(modifier.baseStats),
+        derivedStats: normalizeNumberRecord(modifier.derivedStats),
+      }))
+      : [...fallback.statBuffs],
     skillIds: stringArray(source.skillIds, fallback.skillIds),
   };
 }
@@ -232,6 +242,40 @@ function normalizeBooleanRecord(rawRecord: unknown, fallback: Record<string, boo
 
   return Object.fromEntries(
     Object.entries(source).filter((entry): entry is [string, boolean] => typeof entry[1] === "boolean"),
+  );
+}
+
+function normalizeBaseStats(rawStats: unknown, fallback: GameState["character"]["baseStats"]): GameState["character"]["baseStats"] {
+  const source = isRecord(rawStats) ? rawStats : {};
+  const stats = createEmptyBaseStats();
+
+  for (const key of baseStatKeys) {
+    stats[key] = numberValue(source[key], fallback[key]);
+  }
+
+  return stats;
+}
+
+function normalizePartialBaseStats(rawStats: unknown): Partial<GameState["character"]["baseStats"]> {
+  const source = isRecord(rawStats) ? rawStats : {};
+  const stats: Partial<GameState["character"]["baseStats"]> = {};
+
+  for (const key of baseStatKeys) {
+    const value = source[key];
+
+    if (typeof value === "number" && Number.isFinite(value)) {
+      stats[key] = value;
+    }
+  }
+
+  return stats;
+}
+
+function normalizeNumberRecord(rawRecord: unknown): Record<string, number> {
+  const source = isRecord(rawRecord) ? rawRecord : {};
+
+  return Object.fromEntries(
+    Object.entries(source).filter((entry): entry is [string, number] => typeof entry[1] === "number" && Number.isFinite(entry[1])),
   );
 }
 

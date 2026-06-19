@@ -43,9 +43,9 @@
     "id": "sella-greenward-greeting",
     "lines": [
       "Hold still a moment. Even a small bruise tells a story.",
-      "Healing services will open once I finish sorting the herb jars."
+      "For 50 gold I can help you retrain your allocated stats while keeping your class foundation intact."
     ],
-    "choices": [{ "id": "open-healing", "label": "Request healing", "disabled": true }]
+    "choices": [{ "id": "reset-stats", "label": "Reset stats", "disabled": false }]
   },
   {
     "id": "joric-wayfare-greeting",

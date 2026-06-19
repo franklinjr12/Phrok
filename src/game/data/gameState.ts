@@ -1,9 +1,10 @@
 import type { GameState } from "../types/gameState";
 import type { ClassDefinition } from "../types/dataDefinitions";
 import { createEmptyEquipment } from "../systems/equipment";
+import { calculateDerivedStats, createClassBaseStats, createEmptyBaseStats, syncCharacterVitalsToDerivedStats } from "../systems/stats";
 
 export function createNewGameState(): GameState {
-  return {
+  const state: GameState = {
     currentSaveSlot: null,
     playerProfile: {
       name: "Adventurer",
@@ -22,11 +23,21 @@ export function createNewGameState(): GameState {
       id: "player",
       archetype: "swordsman",
       stats: {
-        hp: 30,
-        maxHp: 30,
-        sp: 8,
-        maxSp: 8,
+        hp: 73,
+        maxHp: 73,
+        sp: 24,
+        maxSp: 24,
       },
+      baseStats: {
+        str: 8,
+        agi: 5,
+        vit: 7,
+        int: 3,
+        dex: 5,
+        luk: 4,
+      },
+      allocatedStats: createEmptyBaseStats(),
+      statBuffs: [],
       skillIds: ["power-slash"],
     },
     inventory: {
@@ -53,6 +64,8 @@ export function createNewGameState(): GameState {
       textSpeed: 1,
     },
   };
+
+  return state;
 }
 
 export function createCharacterGameState(name: string, playerClass: ClassDefinition): GameState {
@@ -64,6 +77,9 @@ export function createCharacterGameState(name: string, playerClass: ClassDefinit
 
   state.playerProfile.name = characterName;
   state.character.archetype = playerClass.id;
+  state.character.baseStats = createClassBaseStats(playerClass);
+  state.character.allocatedStats = createEmptyBaseStats();
+  state.character.statBuffs = [];
   state.character.stats = {
     hp: playerClass.baseStats.hp,
     maxHp: playerClass.baseStats.hp,
@@ -75,6 +91,18 @@ export function createCharacterGameState(name: string, playerClass: ClassDefinit
   state.inventory.gold = state.playerProfile.gold;
   state.inventory.equipmentInstances = [];
   state.equipment.weapon = playerClass.startingWeaponId;
+  syncCharacterVitalsToDerivedStats(
+    state,
+    calculateDerivedStats(state, playerClass, (id) => {
+      return {
+        id,
+        name: id,
+        description: "",
+        type: "material",
+        value: 0,
+      };
+    }),
+  );
 
   return state;
 }

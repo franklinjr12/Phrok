@@ -10,14 +10,24 @@ import {
   getItemRarity,
   removeEquipment,
 } from "../systems/equipment";
+import {
+  allocateStatPoint,
+  baseStatKeys,
+  baseStatLabels,
+  calculateDerivedStats,
+  getStatCost,
+  getTotalBaseStats,
+  resetAllocatedStats,
+  statResetCost,
+} from "../systems/stats";
 import { writeSaveSlot } from "../systems/autosave";
 import { eventBus } from "../systems/eventBus";
 import { removeInventoryItem } from "../systems/inventory";
 import type { DataRegistry } from "../data/dataRegistry";
 import type { ItemDefinition } from "../types/dataDefinitions";
-import type { EquipmentInstance, EquipmentSlot, GameState, InventoryItem } from "../types/gameState";
+import type { BaseStatKey, EquipmentInstance, EquipmentSlot, GameState, InventoryItem } from "../types/gameState";
 
-type PanelMode = "inventory" | "equipment";
+type PanelMode = "inventory" | "equipment" | "character";
 type InventoryPanelEntry = {
   itemId: string;
   quantity: number;
@@ -38,6 +48,9 @@ export class UIScene extends Phaser.Scene {
   private unsubscribeLevelUp?: () => void;
   private unsubscribeInventory?: () => void;
   private unsubscribeEquipment?: () => void;
+  private unsubscribeStats?: () => void;
+  private unsubscribeStatResetCompleted?: () => void;
+  private unsubscribeStatResetFailed?: () => void;
   private unsubscribeLootDropped?: () => void;
   private unsubscribeLootPickedUp?: () => void;
   private unsubscribeEnemyHealth?: () => void;
@@ -86,14 +99,14 @@ export class UIScene extends Phaser.Scene {
 
   private registerKeyboard(): void {
     this.input.keyboard?.on("keydown-I", this.toggleInventoryPanel, this);
-    this.input.keyboard?.on("keydown-C", this.toggleEquipmentPanel, this);
+    this.input.keyboard?.on("keydown-C", this.toggleCharacterPanel, this);
     this.input.keyboard?.on("keydown-P", this.toggleEquipmentPanel, this);
     this.input.keyboard?.on("keydown-S", this.manualSave, this);
     this.input.keyboard?.on("keydown-ESC", this.closePanel, this);
 
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
       this.input.keyboard?.off("keydown-I", this.toggleInventoryPanel, this);
-      this.input.keyboard?.off("keydown-C", this.toggleEquipmentPanel, this);
+      this.input.keyboard?.off("keydown-C", this.toggleCharacterPanel, this);
       this.input.keyboard?.off("keydown-P", this.toggleEquipmentPanel, this);
       this.input.keyboard?.off("keydown-S", this.manualSave, this);
       this.input.keyboard?.off("keydown-ESC", this.closePanel, this);
@@ -103,6 +116,9 @@ export class UIScene extends Phaser.Scene {
       this.unsubscribeLevelUp?.();
       this.unsubscribeInventory?.();
       this.unsubscribeEquipment?.();
+      this.unsubscribeStats?.();
+      this.unsubscribeStatResetCompleted?.();
+      this.unsubscribeStatResetFailed?.();
       this.unsubscribeLootDropped?.();
       this.unsubscribeLootPickedUp?.();
       this.unsubscribeEnemyHealth?.();
@@ -152,14 +168,40 @@ export class UIScene extends Phaser.Scene {
       this.game.canvas.dataset.inventoryGold = String(inventory.gold);
       this.game.canvas.dataset.playerGold = String(inventory.gold);
       this.goldText?.setText(`Gold ${inventory.gold}`);
-      this.weightText?.setText(`Weight ${this.getInventoryWeight(state)}/60`);
+      this.weightText?.setText(`Weight ${this.getInventoryWeight(state)}/${this.getWeightLimit(state, dataRegistry)}`);
       this.refreshOpenPanel();
     });
 
     this.unsubscribeEquipment = eventBus.on("equipmentChanged", () => {
       this.syncEquipmentDataset(state, dataRegistry);
-      this.refreshAttackText(state, dataRegistry);
+      this.syncDerivedStatsDataset(state, dataRegistry);
+      this.refreshCombatText(state, dataRegistry);
       this.refreshOpenPanel();
+    });
+
+    this.unsubscribeStats = eventBus.on("statsChanged", () => {
+      this.syncVitalsDataset(state);
+      this.syncBaseStatsDataset(state);
+      this.syncDerivedStatsDataset(state, dataRegistry);
+      this.refreshCombatText(state, dataRegistry);
+      this.hpText?.setText(`HP ${state.character.stats.hp}/${state.character.stats.maxHp}`);
+      this.spText?.setText(`SP ${state.character.stats.sp}/${state.character.stats.maxSp}`);
+      this.weightText?.setText(`Weight ${this.getInventoryWeight(state)}/${this.getWeightLimit(state, dataRegistry)}`);
+      this.refreshOpenPanel();
+    });
+
+    this.unsubscribeStatResetCompleted = eventBus.on("statResetCompleted", ({ cost, refundedPoints, gold }) => {
+      this.game.canvas.dataset.statResetPrompt = "closed";
+      this.game.canvas.dataset.lastStatReset = `success:${cost}:${refundedPoints}`;
+      this.game.canvas.dataset.playerGold = String(gold);
+      this.game.canvas.dataset.inventoryGold = String(gold);
+      this.goldText?.setText(`Gold ${gold}`);
+      this.refreshOpenPanel();
+    });
+
+    this.unsubscribeStatResetFailed = eventBus.on("statResetFailed", ({ reason, cost, gold }) => {
+      this.game.canvas.dataset.statResetPrompt = "closed";
+      this.game.canvas.dataset.lastStatReset = `failed:${reason}:${cost}:${gold}`;
     });
 
     this.unsubscribeLootDropped = eventBus.on("lootDropped", ({ kind, itemId, quantity }) => {
@@ -207,7 +249,7 @@ export class UIScene extends Phaser.Scene {
     this.spText = this.addHudText(24, 46, `SP ${state.character.stats.sp}/${state.character.stats.maxSp}`, "#93c5fd");
     this.levelText = this.addHudText(178, 22, `Lv ${state.playerProfile.level}`, "#f8fafc");
     this.goldText = this.addHudText(178, 46, `Gold ${state.inventory.gold}`, "#fde68a");
-    this.weightText = this.addHudText(24, 92, `Weight ${this.getInventoryWeight(state)}/60`, "#cbd5e1");
+    this.weightText = this.addHudText(24, 92, `Weight ${this.getInventoryWeight(state)}/${this.getWeightLimit(state, dataRegistry)}`, "#cbd5e1");
     this.attackText = this.addHudText(178, 92, "", "#bbf7d0");
     this.addHudText(24, 70, "XP", "#f8fafc");
     this.add.rectangle(58, 80, 180, 8, 0x111827, 0.9)
@@ -220,8 +262,10 @@ export class UIScene extends Phaser.Scene {
       .setDepth(hudDepth + 1);
     this.xpText = this.addHudText(246, 70, "", "#fde68a");
     this.createHotbar();
-    this.refreshAttackText(state, dataRegistry);
+    this.refreshCombatText(state, dataRegistry);
     this.syncEquipmentDataset(state, dataRegistry);
+    this.syncBaseStatsDataset(state);
+    this.syncDerivedStatsDataset(state, dataRegistry);
     this.game.canvas.dataset.hudVisible = "true";
     this.game.canvas.dataset.hotbarVisible = "true";
     this.game.canvas.dataset.xpBar = "visible";
@@ -279,6 +323,15 @@ export class UIScene extends Phaser.Scene {
     this.openPanel("equipment");
   }
 
+  private toggleCharacterPanel(): void {
+    if (this.activePanel === "character") {
+      this.closePanel();
+      return;
+    }
+
+    this.openPanel("character");
+  }
+
   private openPanel(mode: PanelMode): void {
     this.activePanel = mode;
     this.game.canvas.dataset.uiPanel = mode;
@@ -324,8 +377,10 @@ export class UIScene extends Phaser.Scene {
 
     if (this.activePanel === "inventory") {
       this.renderInventoryPanel(this.state, this.dataRegistry);
-    } else {
+    } else if (this.activePanel === "equipment") {
       this.renderEquipmentPanel(this.state, this.dataRegistry);
+    } else {
+      this.renderCharacterPanel(this.state, this.dataRegistry);
     }
   }
 
@@ -334,7 +389,7 @@ export class UIScene extends Phaser.Scene {
       .setOrigin(0)
       .setStrokeStyle(2, panelStroke, 0.92);
     this.addPanelText(118, 94, "Inventory", 24, "#f8fafc");
-    this.addPanelText(118, 128, `Gold ${state.inventory.gold}   Weight ${this.getInventoryWeight(state)}/60`, 15, "#fde68a");
+    this.addPanelText(118, 128, `Gold ${state.inventory.gold}   Weight ${this.getInventoryWeight(state)}/${this.getWeightLimit(state, dataRegistry)}`, 15, "#fde68a");
     this.addPanelText(118, 160, "Item", 13, "#94a3b8");
     this.addPanelText(372, 160, "Qty", 13, "#94a3b8");
     this.addPanelText(430, 160, "Rarity", 13, "#94a3b8");
@@ -403,9 +458,9 @@ export class UIScene extends Phaser.Scene {
       .setOrigin(0)
       .setStrokeStyle(2, panelStroke, 0.92);
     this.addPanelText(96, 84, "Equipment", 24, "#f8fafc");
-    const baseAttack = dataRegistry.getClass(state.character.archetype).baseStats.attack;
     const stats = getEquipmentStats(state.equipment, (id) => dataRegistry.getItem(id));
-    this.addPanelText(96, 120, `Attack ${baseAttack + stats.attack}   Defense +${stats.defense}`, 15, "#bbf7d0");
+    const derivedStats = calculateDerivedStats(state, dataRegistry.getClass(state.character.archetype), (id) => dataRegistry.getItem(id));
+    this.addPanelText(96, 120, `Attack ${derivedStats.physicalAttack}   Defense ${derivedStats.defense}   Gear +${stats.attack}/+${stats.defense}`, 15, "#bbf7d0");
     this.game.canvas.dataset.equipmentPanel = "visible";
     this.game.canvas.dataset.equipmentSlotsVisible = equipmentSlots.join("|");
 
@@ -436,6 +491,63 @@ export class UIScene extends Phaser.Scene {
     this.addPanelButton(210, 450, 102, 34, "Close", () => this.closePanel());
     this.renderComparisonFrame();
     this.syncEquipmentDataset(state, dataRegistry);
+  }
+
+  private renderCharacterPanel(state: GameState, dataRegistry: DataRegistry): void {
+    this.addPanelRectangle(56, 48, 688, 504, panelFill, 0.95)
+      .setOrigin(0)
+      .setStrokeStyle(2, panelStroke, 0.92);
+    this.addPanelText(84, 72, "Character", 24, "#f8fafc");
+    this.addPanelText(84, 108, `${state.playerProfile.name}   Lv ${state.playerProfile.level}   Points ${state.playerProfile.statPoints}`, 15, "#fde68a");
+    this.addPanelText(84, 144, "Base Stats", 16, "#f8fafc");
+
+    const totalStats = getTotalBaseStats(state);
+    this.game.canvas.dataset.characterPanel = "visible";
+    this.game.canvas.dataset.statAllocationPoints = String(state.playerProfile.statPoints);
+
+    baseStatKeys.forEach((key, index) => {
+      const y = 174 + index * 42;
+      const cost = getStatCost(totalStats[key]);
+      const canIncrease = state.playerProfile.statPoints >= cost;
+
+      this.addPanelText(92, y, baseStatLabels[key], 15, "#94a3b8");
+      this.addPanelText(152, y, String(totalStats[key]), 15, "#f8fafc");
+      this.addPanelText(198, y, `Cost ${cost}`, 13, canIncrease ? "#bbf7d0" : "#fca5a5");
+      this.addPanelButton(270, y - 8, 34, 30, "+", () => this.increaseStat(key));
+    });
+
+    this.addPanelText(342, 144, "Derived Stats", 16, "#f8fafc");
+    const derived = calculateDerivedStats(state, dataRegistry.getClass(state.character.archetype), (id) => dataRegistry.getItem(id));
+    const rows = [
+      ["Max HP", derived.maxHp],
+      ["Max SP", derived.maxSp],
+      ["Physical ATK", derived.physicalAttack],
+      ["Ranged ATK", derived.rangedAttack],
+      ["Magic ATK", derived.magicAttack],
+      ["Defense", derived.defense],
+      ["Magic DEF", derived.magicDefense],
+      ["Hit", derived.hit],
+      ["Dodge", derived.dodge],
+      ["Crit", `${derived.crit}%`],
+      ["Attack Speed", derived.attackSpeed],
+      ["Cast Speed", derived.castSpeed],
+      ["Move Speed", derived.moveSpeed],
+      ["Weight Limit", derived.weightLimit],
+    ] as const;
+
+    rows.forEach(([label, value], index) => {
+      const column = index < 7 ? 0 : 1;
+      const row = index % 7;
+      const x = 342 + column * 178;
+      const y = 174 + row * 36;
+      this.addPanelText(x, y, label, 13, "#94a3b8");
+      this.addPanelText(x + 104, y, String(value), 13, "#f8fafc");
+    });
+
+    this.addPanelButton(84, 468, 120, 34, "Confirm", () => this.confirmStats());
+    this.addPanelButton(216, 468, 120, 34, "Reset", () => this.requestStatReset());
+    this.addPanelButton(348, 468, 86, 34, "Close", () => this.closePanel());
+    this.game.canvas.dataset.characterPanelButtons = "Confirm|Reset|Close";
   }
 
   private renderComparisonFrame(): void {
@@ -696,6 +808,8 @@ export class UIScene extends Phaser.Scene {
     this.game.canvas.dataset.skill = firstSkill?.id ?? "";
     this.game.canvas.dataset.skillName = firstSkill?.name ?? "";
     this.syncEquipmentDataset(state, dataRegistry);
+    this.syncBaseStatsDataset(state);
+    this.syncDerivedStatsDataset(state, dataRegistry);
   }
 
   private syncEquipmentDataset(state: GameState, dataRegistry: DataRegistry): void {
@@ -703,12 +817,12 @@ export class UIScene extends Phaser.Scene {
       .map((slot) => `${slot}:${state.equipment[slot] ?? "empty"}`)
       .join("|");
     const stats = getEquipmentStats(state.equipment, (id) => dataRegistry.getItem(id));
-    const baseAttack = dataRegistry.getClass(state.character.archetype).baseStats.attack;
+    const derivedStats = calculateDerivedStats(state, dataRegistry.getClass(state.character.archetype), (id) => dataRegistry.getItem(id));
 
     this.game.canvas.dataset.equipmentSlots = slotSummary;
     this.game.canvas.dataset.equipmentWeapon = state.equipment.weapon ?? "";
     this.game.canvas.dataset.equipmentAttackBonus = String(stats.attack);
-    this.game.canvas.dataset.playerAttackStat = String(baseAttack + stats.attack);
+    this.game.canvas.dataset.playerAttackStat = String(derivedStats.physicalAttack);
   }
 
   private syncXpBar(state: GameState, dataRegistry: DataRegistry): void {
@@ -729,11 +843,87 @@ export class UIScene extends Phaser.Scene {
     this.game.canvas.dataset.xpBarWidth = String(width);
   }
 
-  private refreshAttackText(state: GameState, dataRegistry: DataRegistry): void {
-    const stats = getEquipmentStats(state.equipment, (id) => dataRegistry.getItem(id));
-    const baseAttack = dataRegistry.getClass(state.character.archetype).baseStats.attack;
-    this.attackText?.setText(`Attack ${baseAttack + stats.attack}`);
-    this.game.canvas.dataset.playerAttackStat = String(baseAttack + stats.attack);
+  private refreshCombatText(state: GameState, dataRegistry: DataRegistry): void {
+    const derivedStats = calculateDerivedStats(state, dataRegistry.getClass(state.character.archetype), (id) => dataRegistry.getItem(id));
+    this.attackText?.setText(`Attack ${derivedStats.physicalAttack}`);
+    this.game.canvas.dataset.playerAttackStat = String(derivedStats.physicalAttack);
+  }
+
+  private increaseStat(stat: BaseStatKey): void {
+    if (!this.state || !this.dataRegistry) {
+      return;
+    }
+
+    const increased = allocateStatPoint(
+      this.state,
+      this.dataRegistry.getClass(this.state.character.archetype),
+      stat,
+      (id) => this.dataRegistry!.getItem(id),
+    );
+    this.game.canvas.dataset.lastStatAllocation = increased ? `increase:${stat}` : `failed:${stat}`;
+  }
+
+  private confirmStats(): void {
+    this.game.canvas.dataset.lastStatConfirmation = "confirmed";
+    this.closePanel();
+  }
+
+  private requestStatReset(): void {
+    if (!this.state || !this.dataRegistry) {
+      return;
+    }
+
+    this.game.canvas.dataset.statResetPrompt = `confirm:${statResetCost}`;
+    const reset = resetAllocatedStats(
+      this.state,
+      this.dataRegistry.getClass(this.state.character.archetype),
+      (id) => this.dataRegistry!.getItem(id),
+    );
+
+    if (!reset) {
+      const reason = this.state.inventory.gold < statResetCost ? "insufficient-gold" : "no-allocated-stats";
+      eventBus.emit("statResetFailed", {
+        reason,
+        cost: statResetCost,
+        gold: this.state.inventory.gold,
+      });
+    }
+  }
+
+  private syncVitalsDataset(state: GameState): void {
+    this.game.canvas.dataset.playerHp = `${state.character.stats.hp}/${state.character.stats.maxHp}`;
+    this.game.canvas.dataset.playerSp = `${state.character.stats.sp}/${state.character.stats.maxSp}`;
+    this.game.canvas.dataset.playerStatPoints = String(state.playerProfile.statPoints);
+  }
+
+  private syncBaseStatsDataset(state: GameState): void {
+    const totalStats = getTotalBaseStats(state);
+    this.game.canvas.dataset.playerBaseStats = baseStatKeys
+      .map((key) => `${key}:${totalStats[key]}`)
+      .join("|");
+    this.game.canvas.dataset.playerAllocatedStats = baseStatKeys
+      .map((key) => `${key}:${state.character.allocatedStats[key]}`)
+      .join("|");
+  }
+
+  private syncDerivedStatsDataset(state: GameState, dataRegistry: DataRegistry): void {
+    const stats = calculateDerivedStats(state, dataRegistry.getClass(state.character.archetype), (id) => dataRegistry.getItem(id));
+    this.game.canvas.dataset.playerDerivedStats = [
+      `maxHp:${stats.maxHp}`,
+      `maxSp:${stats.maxSp}`,
+      `physicalAttack:${stats.physicalAttack}`,
+      `rangedAttack:${stats.rangedAttack}`,
+      `magicAttack:${stats.magicAttack}`,
+      `defense:${stats.defense}`,
+      `magicDefense:${stats.magicDefense}`,
+      `hit:${stats.hit}`,
+      `dodge:${stats.dodge}`,
+      `crit:${stats.crit}`,
+      `attackSpeed:${stats.attackSpeed}`,
+      `castSpeed:${stats.castSpeed}`,
+      `moveSpeed:${stats.moveSpeed}`,
+      `weightLimit:${stats.weightLimit}`,
+    ].join("|");
   }
 
   private syncSelectedInventoryDataset(item: ItemDefinition | null, quantity: number | null, source: string | null): void {
@@ -748,6 +938,10 @@ export class UIScene extends Phaser.Scene {
   private getInventoryWeight(state: GameState): number {
     const stackWeight = state.inventory.items.reduce((total, item) => total + item.quantity, 0);
     return stackWeight + state.inventory.equipmentInstances.length;
+  }
+
+  private getWeightLimit(state: GameState, dataRegistry: DataRegistry): number {
+    return calculateDerivedStats(state, dataRegistry.getClass(state.character.archetype), (id) => dataRegistry.getItem(id)).weightLimit;
   }
 
   private clampSelectedInventoryIndex(items: InventoryPanelEntry[]): number {

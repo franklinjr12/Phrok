@@ -88,8 +88,18 @@ export class DialogueScene extends Phaser.Scene {
 
       if (!choice.disabled) {
         button.setInteractive({ useHandCursor: true });
+        button.on(Phaser.Input.Events.POINTER_DOWN, () => this.selectChoice(choice.id));
       }
     });
+  }
+
+  private selectChoice(choiceId: string): void {
+    this.game.canvas.dataset.lastDialogueChoice = choiceId;
+
+    if (choiceId === "reset-stats") {
+      this.game.canvas.dataset.statResetPrompt = "confirm:50";
+      eventBus.emit("statResetRequested", { cost: 50 });
+    }
   }
 
   private createButton(x: number, y: number, label: string, onClick: () => void): Phaser.GameObjects.Text {

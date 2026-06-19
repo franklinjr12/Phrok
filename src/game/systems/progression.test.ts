@@ -27,10 +27,10 @@ describe("progression", () => {
     expect(state.playerProfile.xp).toBe(12);
     expect(state.playerProfile.statPoints).toBe(6);
     expect(state.playerProfile.skillPoints).toBe(2);
-    expect(state.character.stats.maxHp).toBe(40);
-    expect(state.character.stats.maxSp).toBe(12);
-    expect(state.character.stats.hp).toBe(40);
-    expect(state.character.stats.sp).toBe(12);
+    expect(state.character.stats.maxHp).toBe(83);
+    expect(state.character.stats.maxSp).toBe(28);
+    expect(state.character.stats.hp).toBe(83);
+    expect(state.character.stats.sp).toBe(28);
     expect(levelUps).toEqual([2, 3]);
   });
 });

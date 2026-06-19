@@ -45,7 +45,7 @@
     "mapId": "crownfield-town",
     "interactionRadius": 72,
     "dialogueId": "sella-greenward-greeting",
-    "serviceType": "healer"
+    "serviceType": "stat-reset"
   },
   {
     "id": "joric-wayfare",

@@ -25,8 +25,8 @@ describe("autosave", () => {
       position: { x: 240, y: 304 },
       skills: ["power-slash"],
       stats: {
-        hp: 30,
-        maxHp: 30,
+        hp: 73,
+        maxHp: 73,
       },
       gold: 0,
       gameState: {

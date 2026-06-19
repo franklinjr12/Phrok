@@ -16,6 +16,7 @@ import { generateLootDrops, type LootDrop } from "../systems/lootDrops";
 import { awardXp, getLevelXpThreshold } from "../systems/progression";
 import { autosaveSlot, writeAutosave, writeSaveSlot } from "../systems/autosave";
 import { getEquipmentStats } from "../systems/equipment";
+import { calculateDerivedStats, getSpentStatPoints, resetAllocatedStats } from "../systems/stats";
 import type { DataRegistry } from "../data/dataRegistry";
 import type { DialogueSceneData } from "./DialogueScene";
 import type { GameState } from "../types/gameState";
@@ -73,6 +74,8 @@ export class WorldScene extends Phaser.Scene {
   private pendingNpcInteraction?: NpcEntity;
   private unsubscribeDialogueClosed?: () => void;
   private unsubscribeEquipmentChanged?: () => void;
+  private unsubscribeStatsChanged?: () => void;
+  private unsubscribeStatResetRequested?: () => void;
   private playerAttackTimerMs = playerAttackCooldownMs;
   private enemyAttackTimerMs = 0;
   private isCameraFollowingPlayer = false;
@@ -169,10 +172,29 @@ export class WorldScene extends Phaser.Scene {
     });
     this.unsubscribeEquipmentChanged = eventBus.on("equipmentChanged", () => {
       this.weaponAttack = this.getEquippedWeaponAttack(state, dataRegistry);
+      this.playerCombatStats = this.createPlayerCombatStats(state, dataRegistry);
+    });
+    this.unsubscribeStatsChanged = eventBus.on("statsChanged", () => {
+      this.playerCombatStats = this.createPlayerCombatStats(state, dataRegistry);
+    });
+    this.unsubscribeStatResetRequested = eventBus.on("statResetRequested", ({ cost }) => {
+      if (state.inventory.gold < cost) {
+        eventBus.emit("statResetFailed", { reason: "insufficient-gold", cost, gold: state.inventory.gold });
+        return;
+      }
+
+      if (getSpentStatPoints(state) === 0) {
+        eventBus.emit("statResetFailed", { reason: "no-allocated-stats", cost, gold: state.inventory.gold });
+        return;
+      }
+
+      resetAllocatedStats(state, dataRegistry.getClass(state.character.archetype), (id) => dataRegistry.getItem(id), cost);
     });
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
       this.unsubscribeDialogueClosed?.();
       this.unsubscribeEquipmentChanged?.();
+      this.unsubscribeStatsChanged?.();
+      this.unsubscribeStatResetRequested?.();
       this.input.off("pointerdown", this.handlePointerDown, this);
     });
 
@@ -758,14 +780,18 @@ export class WorldScene extends Phaser.Scene {
   }
 
   private createPlayerCombatStats(state: GameState, dataRegistry: DataRegistry): CombatStats {
-    const playerClass = dataRegistry.getClass(state.character.archetype);
+    const derivedStats = calculateDerivedStats(
+      state,
+      dataRegistry.getClass(state.character.archetype),
+      (id) => dataRegistry.getItem(id),
+    );
 
     return {
-      attack: playerClass.baseStats.attack,
-      defense: playerClass.baseStats.defense,
-      hitChance: 0.9,
-      dodgeChance: 0.08,
-      criticalChance: 0.15,
+      attack: derivedStats.physicalAttack,
+      defense: derivedStats.defense,
+      hitChance: derivedStats.hit / 100,
+      dodgeChance: derivedStats.dodge / 100,
+      criticalChance: derivedStats.crit / 100,
       criticalDamage: 1.5,
     };
   }

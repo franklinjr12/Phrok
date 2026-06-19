@@ -17,12 +17,14 @@ describe("createNewGameState", () => {
       skillPoints: 0,
     });
     expect(state.character.stats).toMatchObject({
-      hp: 30,
-      maxHp: 30,
-      sp: 8,
-      maxSp: 8,
+      hp: 73,
+      maxHp: 73,
+      sp: 24,
+      maxSp: 24,
     });
     expect(state.character.archetype).toBe("swordsman");
+    expect(state.character.baseStats).toEqual({ str: 8, agi: 5, vit: 7, int: 3, dex: 5, luk: 4 });
+    expect(state.character.allocatedStats).toEqual({ str: 0, agi: 0, vit: 0, int: 0, dex: 0, luk: 0 });
     expect(state.character.skillIds).toEqual(["power-slash"]);
     expect(state.inventory.items).toEqual([{ id: "training-sword", quantity: 1 }]);
     expect(state.inventory.gold).toBe(0);
@@ -58,10 +60,11 @@ describe("createNewGameState", () => {
     expect(state.character.skillIds).toEqual(["ember-bolt"]);
     expect(state.character.stats).toMatchObject({
       hp: 22,
-      maxHp: 22,
+      maxHp: 45,
       sp: 18,
-      maxSp: 18,
+      maxSp: 49,
     });
+    expect(state.character.baseStats).toEqual({ str: 3, agi: 4, vit: 4, int: 9, dex: 5, luk: 5 });
     expect(state.inventory.items).toEqual([{ id: "apprentice-staff", quantity: 1 }]);
     expect(state.equipment.weapon).toBe("apprentice-staff");
   });

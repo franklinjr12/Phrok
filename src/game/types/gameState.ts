@@ -14,10 +14,40 @@ export interface CharacterStats {
   maxSp: number;
 }
 
+export type BaseStatKey = "str" | "agi" | "vit" | "int" | "dex" | "luk";
+
+export type BaseStats = Record<BaseStatKey, number>;
+
+export interface DerivedStats {
+  maxHp: number;
+  maxSp: number;
+  physicalAttack: number;
+  rangedAttack: number;
+  magicAttack: number;
+  defense: number;
+  magicDefense: number;
+  hit: number;
+  dodge: number;
+  crit: number;
+  attackSpeed: number;
+  castSpeed: number;
+  moveSpeed: number;
+  weightLimit: number;
+}
+
+export interface StatModifier {
+  id: string;
+  baseStats?: Partial<BaseStats>;
+  derivedStats?: Partial<DerivedStats>;
+}
+
 export interface CharacterData {
   id: string;
   archetype: string;
   stats: CharacterStats;
+  baseStats: BaseStats;
+  allocatedStats: BaseStats;
+  statBuffs: StatModifier[];
   skillIds: string[];
 }
 

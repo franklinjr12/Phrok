@@ -1,4 +1,4 @@
-import type { InventoryState } from "../types/gameState";
+import type { BaseStatKey, DerivedStats, InventoryState } from "../types/gameState";
 
 export interface GameEventMap {
   playerHealthChanged: { hp: number; maxHp: number };
@@ -15,6 +15,10 @@ export interface GameEventMap {
   };
   inventoryChanged: { inventory: InventoryState };
   equipmentChanged: { slot: string; itemId: string | null };
+  statsChanged: { stat?: BaseStatKey; derivedStats: DerivedStats; statPoints: number };
+  statResetRequested: { cost: number };
+  statResetCompleted: { cost: number; refundedPoints: number; gold: number };
+  statResetFailed: { reason: "insufficient-gold" | "no-allocated-stats"; cost: number; gold: number };
   skillUsed: { skillId: string; actorId: string };
   enemyKilled: { enemyId: string };
   enemyHealthChanged: { enemyId: string; name: string; hp: number; maxHp: number };

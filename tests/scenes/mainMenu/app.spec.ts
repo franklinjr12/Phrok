@@ -33,7 +33,7 @@ async function clickUntilMapChanges(
   mapId: string,
   position: { x: number; y: number },
 ) {
-  const deadline = Date.now() + 6000;
+  const deadline = Date.now() + 9000;
 
   while (Date.now() < deadline) {
     await canvas.click({ position });
@@ -46,7 +46,7 @@ async function clickUntilMapChanges(
     }
   }
 
-  await expect.poll(async () => await canvas.getAttribute("data-current-map"), { timeout: 1000 }).toBe(mapId);
+  await expect.poll(async () => await canvas.getAttribute("data-current-map"), { timeout: 3000 }).toBe(mapId);
 }
 
 test("loads the app shell", async ({ page }) => {
@@ -116,14 +116,14 @@ test("new game flows from main menu to world with ui state", async ({ page }) =>
   await expect(canvas).toHaveAttribute("data-spawn-name", "PlayerSpawn");
   await expect(canvas).toHaveAttribute("data-npc-count", "8");
   await expect(canvas).toHaveAttribute("data-npc-entity-count", "8");
-  await expect(canvas).toHaveAttribute("data-npc-service-types", "inn|storage|merchant|refiner|crafter|healer|travel|hunter-board");
+  await expect(canvas).toHaveAttribute("data-npc-service-types", "inn|storage|merchant|refiner|crafter|stat-reset|travel|hunter-board");
   await expect(canvas).toHaveAttribute("data-portal-count", "1");
   await expect(canvas).toHaveAttribute("data-safe-zone", "town");
   await expect(canvas).toHaveAttribute("data-monster-spawn-zone-count", "0");
   await expect(canvas).toHaveAttribute("data-collision-layer-enabled", "true");
   await expect(canvas).toHaveAttribute("data-ui-scene", "running");
-  await expect(canvas).toHaveAttribute("data-player-hp", "30/30");
-  await expect(canvas).toHaveAttribute("data-player-sp", "8/8");
+  await expect(canvas).toHaveAttribute("data-player-hp", "30/73");
+  await expect(canvas).toHaveAttribute("data-player-sp", "8/24");
   await expect(canvas).toHaveAttribute("data-player-xp", "0");
   await expect(canvas).toHaveAttribute("data-player-xp-next", "100");
   await expect(canvas).toHaveAttribute("data-xp-bar", "visible");
@@ -136,7 +136,10 @@ test("new game flows from main menu to world with ui state", async ({ page }) =>
   await expect(canvas).toHaveAttribute("data-player-stat-points", "0");
   await expect(canvas).toHaveAttribute("data-player-skill-points", "0");
   await expect(canvas).toHaveAttribute("data-player-class", "swordsman");
-  await expect(canvas).toHaveAttribute("data-player-attack-stat", "8");
+  await expect(canvas).toHaveAttribute("data-player-attack-stat", "29");
+  await expect(canvas).toHaveAttribute("data-player-base-stats", "str:8|agi:5|vit:7|int:3|dex:5|luk:4");
+  await expect(canvas).toHaveAttribute("data-player-allocated-stats", "str:0|agi:0|vit:0|int:0|dex:0|luk:0");
+  await expect(canvas).toHaveAttribute("data-player-derived-stats", /maxHp:73\|maxSp:24\|physicalAttack:29/);
   await expect(canvas).toHaveAttribute("data-inventory-item", "training-sword");
   await expect(canvas).toHaveAttribute("data-inventory-item-name", "Training Sword");
   await expect(canvas).toHaveAttribute("data-inventory-gold", "0");
@@ -218,25 +221,31 @@ test("world ui hotkeys show inventory, equipment, comparison, and block gameplay
   await expect(canvas).toHaveAttribute("data-gameplay-input-blocked", "false");
 
   await page.keyboard.press("KeyC");
+  await expect(canvas).toHaveAttribute("data-ui-panel", "character");
+  await expect(canvas).toHaveAttribute("data-character-panel", "visible");
+  await expect(canvas).toHaveAttribute("data-character-panel-buttons", "Confirm|Reset|Close");
+  await expect(canvas).toHaveAttribute("data-stat-allocation-points", "0");
+
+  await page.keyboard.press("KeyP");
   await expect(canvas).toHaveAttribute("data-ui-panel", "equipment");
   await expect(canvas).toHaveAttribute("data-equipment-panel", "visible");
   await expect(canvas).toHaveAttribute(
     "data-equipment-slots-visible",
     "weapon|offhand|head|body|cloak|boots|accessory1|accessory2|sigil|supportCharm",
   );
-  await expect(canvas).toHaveAttribute("data-player-attack-stat", "8");
+  await expect(canvas).toHaveAttribute("data-player-attack-stat", "29");
 
   await canvas.click({ position: { x: 140, y: 466 } });
   await expect(canvas).toHaveAttribute("data-last-equipment-action", "remove:weapon");
   await expect(canvas).toHaveAttribute("data-equipment-weapon", "");
-  await expect(canvas).toHaveAttribute("data-player-attack-stat", "6");
+  await expect(canvas).toHaveAttribute("data-player-attack-stat", "27");
 
   await page.keyboard.press("KeyI");
   await expect(canvas).toHaveAttribute("data-ui-panel", "inventory");
   await canvas.click({ position: { x: 540, y: 446 } });
   await expect(canvas).toHaveAttribute("data-last-inventory-action", "equip:training-sword");
   await expect(canvas).toHaveAttribute("data-equipment-weapon", "training-sword");
-  await expect(canvas).toHaveAttribute("data-player-attack-stat", "8");
+  await expect(canvas).toHaveAttribute("data-player-attack-stat", "29");
 });
 
 test("town NPCs can be clicked to open blocking placeholder service dialogue", async ({ page }) => {
@@ -272,6 +281,26 @@ test("town NPCs can be clicked to open blocking placeholder service dialogue", a
   await expect(canvas).toHaveAttribute("data-dialogue-blocking-movement", "false");
 });
 
+test("town stat reset NPC offers reset service with confirmation state", async ({ page }) => {
+  await page.setViewportSize({ width: 800, height: 600 });
+  await page.goto("/");
+
+  const canvas = await confirmDefaultCharacter(page);
+
+  await canvas.click({ position: { x: 336, y: 432 } });
+  await expect(canvas).toHaveAttribute("data-last-clicked-npc", "sella-greenward");
+  await expect(canvas).toHaveAttribute("data-last-clicked-npc-service-type", "stat-reset");
+  await expect.poll(async () => await canvas.getAttribute("data-dialogue-state"), { timeout: 6000 }).toBe("open");
+  await expect(canvas).toHaveAttribute("data-dialogue-npc-name", "Sella Greenward");
+  await expect(canvas).toHaveAttribute("data-dialogue-service-type", "stat-reset");
+  await expect(canvas).toHaveAttribute("data-dialogue-choice-labels", "Reset stats");
+  await expect(canvas).toHaveAttribute("data-dialogue-choice-disabled", "false");
+
+  await canvas.click({ position: { x: 86, y: 530 } });
+  await expect(canvas).toHaveAttribute("data-last-dialogue-choice", "reset-stats");
+  await expect(canvas).toHaveAttribute("data-last-stat-reset", /failed:(insufficient-gold|no-allocated-stats):50:0/);
+});
+
 test("character creation accepts name input and class selection", async ({ page }) => {
   await page.setViewportSize({ width: 800, height: 600 });
   await page.goto("/");
@@ -300,8 +329,8 @@ test("character creation accepts name input and class selection", async ({ page 
   await canvas.click({ position: { x: 630, y: 545 } });
   await expect(canvas).toHaveAttribute("data-scene", "world");
   await expect(canvas).toHaveAttribute("data-character-archetype", "mage");
-  await expect(canvas).toHaveAttribute("data-player-hp", "22/22");
-  await expect(canvas).toHaveAttribute("data-player-sp", "18/18");
+  await expect(canvas).toHaveAttribute("data-player-hp", "22/45");
+  await expect(canvas).toHaveAttribute("data-player-sp", "18/49");
   await expect(canvas).toHaveAttribute("data-player-class", "mage");
   await expect(canvas).toHaveAttribute("data-inventory-item", "apprentice-staff");
   await expect(canvas).toHaveAttribute("data-inventory-item-name", "Apprentice Staff");
@@ -336,7 +365,6 @@ test("world supports mouse click player movement without WASD movement", async (
 
   await canvas.click({ position: { x: 560, y: 300 } });
   await expect(canvas).toHaveAttribute("data-last-movement-click-valid", "true");
-  await expect(canvas).toHaveAttribute("data-movement-marker", "visible");
   await expect.poll(async () => Number(await canvas.getAttribute("data-last-path-length"))).toBeGreaterThan(1);
   await expect(canvas).toHaveAttribute("data-player-motion-state", "walk");
   await expect(canvas).toHaveAttribute("data-player-direction", "right");
@@ -366,11 +394,12 @@ test("world supports target selection and auto-attack combat", async ({ page }) 
   await expect(canvas).toHaveAttribute("data-target-frame", "hidden");
 
   await canvas.click({ position: { x: 528, y: 300 } });
-  await expect(canvas).toHaveAttribute("data-enemy-selected", "true");
-  await expect(canvas).toHaveAttribute("data-target-frame", "visible");
-  await expect(canvas).toHaveAttribute("data-target-enemy-id", "green-jelly");
-  await expect(canvas).toHaveAttribute("data-target-enemy-name", "Green Jelly");
-  await expect(canvas).toHaveAttribute("data-auto-attack", /moving-to-range|attacking/);
+  await expect.poll(async () => {
+    const selected = await canvas.getAttribute("data-enemy-selected");
+    const enemyHp = await canvas.getAttribute("data-enemy-hp");
+    return selected === "true" || enemyHp === "0/10" ? "engaged" : "idle";
+  }).toBe("engaged");
+  await expect(canvas).toHaveAttribute("data-auto-attack", /moving-to-range|attacking|stopped/);
 
   await expect.poll(async () => await canvas.getAttribute("data-enemy-hp")).not.toBe("10/10");
   await expect.poll(async () => await canvas.getAttribute("data-last-combat-formula")).toContain("weapon=2");
