@@ -515,6 +515,114 @@ describe("skills", () => {
     expect(executeSkill(dexState, skills["arrow-rain"], rainDamageProbe(), 3000).damage)
       .toBeGreaterThan(executeSkill(neutralState, skills["arrow-rain"], rainDamageProbe(), 3000).damage);
   });
+
+  it("defines every Thief base skill in JSON with melee, poison, mobility, loot, and crit roles", () => {
+    const thiefSkills = getThiefSkills();
+
+    expect(thiefSkills.map((skill) => skill.id)).toEqual([
+      "quick-stab",
+      "backstep",
+      "dodge-training",
+      "poison-blade",
+      "steal-chance",
+      "shadow-walk",
+      "backstab",
+      "dirty-fighting",
+    ]);
+    expect(thiefSkills.every((skill) => skill.classId === "thief")).toBe(true);
+    expect(thiefSkills.filter((skill) => skill.type === "passive").map((skill) => skill.id)).toEqual([
+      "dodge-training",
+      "steal-chance",
+      "dirty-fighting",
+    ]);
+    expect(thiefSkills.filter((skill) => skill.targetingMode === "enemy").every((skill) => skill.range <= 68)).toBe(true);
+    expect(thiefSkills.filter((skill) => skill.targetingMode === "enemy").every((skill) => skill.recoveryTime <= 220)).toBe(true);
+    expect(thiefSkills.find((skill) => skill.id === "poison-blade")?.statusEffects).toEqual(["poison"]);
+    expect(thiefSkills.find((skill) => skill.id === "backstep")?.buff?.derivedStats).toMatchObject({
+      moveSpeed: 24,
+      dodge: 12,
+    });
+    expect(thiefSkills.find((skill) => skill.id === "steal-chance")?.passiveModifiers).toMatchObject({
+      baseStats: { luk: 1 },
+      derivedStats: { weightLimit: 12 },
+    });
+    expect(thiefClass.startingSkillIds).toEqual(["quick-stab"]);
+  });
+
+  it("executes Thief fast melee, poison, mobility, and shadow stance skills from JSON", () => {
+    const skills = getThiefSkillMap();
+    const state = createCharacterGameState("Nyx", thiefClass);
+    state.playerProfile.level = 10;
+    state.character.stats.sp = 50;
+    state.character.skills.learned.push(
+      { id: "backstep", level: 1 },
+      { id: "poison-blade", level: 1 },
+      { id: "shadow-walk", level: 1 },
+      { id: "backstab", level: 1 },
+    );
+    let enemyHp = 100;
+    const effects: string[] = [];
+    const target = {
+      kind: "enemy" as const,
+      id: "green-jelly",
+      distance: 52,
+      hp: enemyHp,
+      applyDamage: (damage: number) => {
+        enemyHp -= damage;
+      },
+      applyStatusEffect: (effectId: string) => effects.push(effectId),
+    };
+
+    expect(executeSkill(state, skills["quick-stab"], target, 1000).success).toBe(true);
+    expect(executeSkill(state, skills["poison-blade"], target, 3000).success).toBe(true);
+    expect(executeSkill(state, skills["backstab"], target, 5000).success).toBe(true);
+    expect(enemyHp).toBeLessThan(100);
+    expect(effects).toEqual(["poison", "marked"]);
+
+    expect(executeSkill(state, skills["backstep"], undefined, 8000).success).toBe(true);
+    expect(state.character.statBuffs.find((buff) => buff.sourceSkillId === "backstep")).toMatchObject({
+      derivedStats: { moveSpeed: 24, dodge: 12 },
+    });
+
+    expect(executeSkill(state, skills["shadow-walk"], undefined, 10000).success).toBe(true);
+    expect(state.character.skills.activeToggleIds).toContain("shadow-walk");
+    expect(state.character.statBuffs.find((buff) => buff.sourceSkillId === "shadow-walk")).toMatchObject({
+      derivedStats: { moveSpeed: 16, dodge: 8, hit: -4 },
+    });
+    expect(state.character.stats.sp).toBe(31);
+  });
+
+  it("applies Thief passive loot, evasion, crit stats and AGI scaling for dagger skills", () => {
+    const skills = getThiefSkillMap();
+    const state = createCharacterGameState("Nyx", thiefClass);
+    state.character.skills.learned.push(
+      { id: "dodge-training", level: 1 },
+      { id: "steal-chance", level: 1 },
+      { id: "dirty-fighting", level: 1 },
+    );
+    const before = calculateDerivedStats(state, thiefClass, getItem);
+
+    applyPassiveSkills(state, Object.values(skills));
+    const after = calculateDerivedStats(state, thiefClass, getItem);
+
+    expect(after.dodge).toBeGreaterThan(before.dodge);
+    expect(after.moveSpeed).toBeGreaterThan(before.moveSpeed);
+    expect(after.weightLimit).toBeGreaterThan(before.weightLimit);
+    expect(after.physicalAttack).toBeGreaterThan(before.physicalAttack);
+    expect(after.attackSpeed).toBeGreaterThan(before.attackSpeed);
+    expect(after.crit).toBeGreaterThan(before.crit);
+
+    const agiState = createCharacterGameState("Nyx", thiefClass);
+    const neutralState = createCharacterGameState("Nyx", thiefClass);
+    agiState.character.allocatedStats.agi = 5;
+    agiState.character.skills.learned.push({ id: "backstab", level: 1 });
+    neutralState.character.skills.learned.push({ id: "backstab", level: 1 });
+
+    expect(executeSkill(agiState, skills["quick-stab"], damageProbe(), 1000).damage)
+      .toBeGreaterThan(executeSkill(neutralState, skills["quick-stab"], damageProbe(), 1000).damage);
+    expect(executeSkill(agiState, skills["backstab"], damageProbe(["marked"]), 3000).damage)
+      .toBeGreaterThan(executeSkill(neutralState, skills["backstab"], damageProbe(["marked"]), 3000).damage);
+  });
 });
 
 function getSwordsmanSkills(): SkillDefinition[] {
@@ -545,6 +653,16 @@ function getArcherSkills(): SkillDefinition[] {
 
 function getArcherSkillMap(): Record<string, SkillDefinition> {
   return Object.fromEntries(getArcherSkills().map((skill) => [skill.id, skill]));
+}
+
+function getThiefSkills(): SkillDefinition[] {
+  const skills = JSON.parse(readFileSync(new URL("../../../public/assets/data/skills.json", import.meta.url), "utf8")) as SkillDefinition[];
+
+  return skills.filter((skill) => skill.classId === "thief");
+}
+
+function getThiefSkillMap(): Record<string, SkillDefinition> {
+  return Object.fromEntries(getThiefSkills().map((skill) => [skill.id, skill]));
 }
 
 function damageProbe(effects?: string[]) {
@@ -670,6 +788,32 @@ const archerClass: ClassDefinition = {
   allowedWeaponTypes: ["bow"],
   startingSkillIds: ["pinning-shot"],
   startingItemIds: ["shortbow"],
+  advancedClassOptions: [],
+};
+
+const thiefClass: ClassDefinition = {
+  id: "thief",
+  name: "Thief",
+  description: "",
+  roleSummary: "",
+  recommendedStats: [],
+  difficultyRating: "Normal",
+  baseStats: {
+    hp: 24,
+    sp: 14,
+    attack: 7,
+    defense: 2,
+  },
+  growthRates: {
+    hp: 3,
+    sp: 4,
+    attack: 4,
+    defense: 2,
+  },
+  startingWeaponId: "practice-daggers",
+  allowedWeaponTypes: ["dagger"],
+  startingSkillIds: ["quick-stab"],
+  startingItemIds: ["practice-daggers"],
   advancedClassOptions: [],
 };
 
