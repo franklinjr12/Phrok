@@ -78,6 +78,7 @@ type EnemyRuntime = {
   zoneId: string;
   home: Phaser.Math.Vector2;
   damagedByPlayer: boolean;
+  assistedByAlly: boolean;
   elapsedInCombatMs: number;
   attackTimerMs: number;
   castTimerMs: number;
@@ -90,6 +91,8 @@ export class WorldScene extends Phaser.Scene {
   private enemyRuntimes: EnemyRuntime[] = [];
   private spawnZones: SpawnZoneRuntime[] = [];
   private clickMarker?: Phaser.GameObjects.Arc;
+  private assistDebugGraphics?: Phaser.GameObjects.Graphics;
+  private assistDebugVisible = false;
   private collisionMap?: GridCollisionMap;
   private state?: GameState;
   private dataRegistry?: DataRegistry;
@@ -140,6 +143,8 @@ export class WorldScene extends Phaser.Scene {
     this.spawnZones = [];
     this.enemy = undefined;
     this.attackTarget = undefined;
+    this.assistDebugGraphics = undefined;
+    this.assistDebugVisible = false;
     this.pendingNpcInteraction = undefined;
     this.isDialogueOpen = false;
     const map = dataRegistry.getMap(state.currentMapId);
@@ -222,12 +227,14 @@ export class WorldScene extends Phaser.Scene {
     this.unsubscribeHotbarActionRequested = eventBus.on("hotbarActionRequested", ({ slot }) => {
       this.useHotbarSlot(slot);
     });
+    this.input.keyboard?.on("keydown-F9", this.toggleAssistDebugOverlay, this);
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
       this.unsubscribeDialogueClosed?.();
       this.unsubscribeEquipmentChanged?.();
       this.unsubscribeStatsChanged?.();
       this.unsubscribeStatResetRequested?.();
       this.unsubscribeHotbarActionRequested?.();
+      this.input.keyboard?.off("keydown-F9", this.toggleAssistDebugOverlay, this);
       this.input.off("pointerdown", this.handlePointerDown, this);
     });
 
@@ -289,6 +296,8 @@ export class WorldScene extends Phaser.Scene {
     this.game.canvas.dataset.enemyAggroRange = primaryEnemy ? String(primaryEnemy.aggroRange) : "";
     this.game.canvas.dataset.enemyLeashDistance = primaryEnemy ? String(primaryEnemy.leashDistance) : "";
     this.game.canvas.dataset.enemyAssistRadius = primaryEnemy ? String(primaryEnemy.assistRadius) : "";
+    this.game.canvas.dataset.enemyAssistedCount = "0";
+    this.game.canvas.dataset.debugAssistRadius = "hidden";
     this.game.canvas.dataset.bossUi = "hidden";
     this.game.canvas.dataset.treasureSpotCount = String(this.countObjectsByType(tilemap, "treasure"));
     this.game.canvas.dataset.lastAutosaveSlot = this.lastAutosaveSlot;
@@ -316,6 +325,7 @@ export class WorldScene extends Phaser.Scene {
     this.updateNpcInteraction();
     this.updateEnemyAi(delta);
     this.updateCombat(delta);
+    this.renderAssistDebugOverlay();
     this.updateSpawnZones(delta);
     this.updateEnemyStatusEffects();
     this.updateMapTransitions();
@@ -808,6 +818,7 @@ export class WorldScene extends Phaser.Scene {
       const runtime = this.getEnemyRuntime(enemy);
       if (runtime) {
         runtime.damagedByPlayer = true;
+        runtime.assistedByAlly = false;
         runtime.elapsedInCombatMs = 0;
       }
       this.callNearbyAssist(enemy);
@@ -821,6 +832,7 @@ export class WorldScene extends Phaser.Scene {
 
     if (runtime) {
       runtime.damagedByPlayer = false;
+      runtime.assistedByAlly = false;
       runtime.elapsedInCombatMs = 0;
     }
 
@@ -854,10 +866,13 @@ export class WorldScene extends Phaser.Scene {
       );
 
       if (distance <= runtime.enemy.assistRadius) {
-        runtime.damagedByPlayer = true;
+        runtime.assistedByAlly = true;
+        runtime.elapsedInCombatMs = 0;
         this.game.canvas.dataset.lastAssistCall = `${source.id}:${runtime.enemy.id}`;
       }
     }
+
+    this.syncAssistDataset();
   }
 
   private rewardEnemyKill(enemy: EnemyEntity): void {
@@ -1010,6 +1025,8 @@ export class WorldScene extends Phaser.Scene {
 
       if (!enemy.isAlive) {
         enemy.behaviorMode = "dead";
+        runtime.damagedByPlayer = false;
+        runtime.assistedByAlly = false;
         continue;
       }
 
@@ -1018,7 +1035,11 @@ export class WorldScene extends Phaser.Scene {
         continue;
       }
 
-      const inCombat = runtime.damagedByPlayer || this.attackTarget === enemy || enemy.behaviorMode === "chasing" || enemy.behaviorMode === "attacking";
+      const inCombat = runtime.damagedByPlayer
+        || runtime.assistedByAlly
+        || this.attackTarget === enemy
+        || enemy.behaviorMode === "chasing"
+        || enemy.behaviorMode === "attacking";
       runtime.elapsedInCombatMs = inCombat ? runtime.elapsedInCombatMs + deltaMs : 0;
       runtime.castTimerMs += deltaMs;
 
@@ -1040,6 +1061,7 @@ export class WorldScene extends Phaser.Scene {
         position: enemy.position,
         playerPosition: this.player.position,
         damagedByPlayer: runtime.damagedByPlayer || this.attackTarget === enemy,
+        assistedByAlly: runtime.assistedByAlly,
         allyInCombat,
         elapsedInCombatMs: runtime.elapsedInCombatMs,
         aggroRange: enemy.aggroRange,
@@ -1065,6 +1087,7 @@ export class WorldScene extends Phaser.Scene {
     if (intent === "idle") {
       enemy.behaviorMode = "idle";
       runtime.damagedByPlayer = false;
+      runtime.assistedByAlly = false;
       this.stopEnemy(enemy);
       return;
     }
@@ -1072,6 +1095,7 @@ export class WorldScene extends Phaser.Scene {
     if (intent === "return") {
       enemy.behaviorMode = "returning";
       runtime.damagedByPlayer = false;
+      runtime.assistedByAlly = false;
       this.moveEnemyToward(enemy, runtime.home, 54);
       this.game.canvas.dataset.lastEnemyLeash = enemy.id;
       return;
@@ -1189,6 +1213,7 @@ export class WorldScene extends Phaser.Scene {
       this.game.canvas.dataset.enemyCombatState = "";
       this.game.canvas.dataset.enemySelected = "false";
       this.game.canvas.dataset.enemyAlive = "false";
+      this.syncAssistDataset();
       return;
     }
 
@@ -1205,6 +1230,50 @@ export class WorldScene extends Phaser.Scene {
     this.game.canvas.dataset.enemyStatusEffects = this.dataRegistry
       ? getStatusSummary(this.enemy.statusEffects, (id) => this.dataRegistry!.getStatusEffect(id))
       : "";
+    this.syncAssistDataset();
+  }
+
+  private syncAssistDataset(): void {
+    const assistedEnemies = this.enemyRuntimes.filter((runtime) => runtime.enemy.isAlive && runtime.assistedByAlly);
+
+    this.game.canvas.dataset.enemyAssistedCount = String(assistedEnemies.length);
+    this.game.canvas.dataset.enemyAssistedIds = assistedEnemies.map((runtime) => runtime.enemy.id).join("|");
+  }
+
+  private toggleAssistDebugOverlay(): void {
+    this.assistDebugVisible = !this.assistDebugVisible;
+    this.game.canvas.dataset.debugAssistRadius = this.assistDebugVisible
+      ? `visible:${this.getDebugAssistRadiusCount()}`
+      : "hidden";
+    this.renderAssistDebugOverlay();
+  }
+
+  private renderAssistDebugOverlay(): void {
+    if (!this.assistDebugVisible) {
+      this.assistDebugGraphics?.clear();
+      return;
+    }
+
+    const graphics = this.assistDebugGraphics ?? this.add.graphics().setDepth(12);
+    this.assistDebugGraphics = graphics;
+    graphics.clear();
+    graphics.lineStyle(2, 0x38bdf8, 0.85);
+    graphics.fillStyle(0x38bdf8, 0.08);
+
+    for (const runtime of this.enemyRuntimes) {
+      if (!runtime.enemy.isAlive || runtime.enemy.behavior !== "assist") {
+        continue;
+      }
+
+      graphics.fillCircle(runtime.enemy.sprite.x, runtime.enemy.sprite.y, runtime.enemy.assistRadius);
+      graphics.strokeCircle(runtime.enemy.sprite.x, runtime.enemy.sprite.y, runtime.enemy.assistRadius);
+    }
+
+    this.game.canvas.dataset.debugAssistRadius = `visible:${this.getDebugAssistRadiusCount()}`;
+  }
+
+  private getDebugAssistRadiusCount(): number {
+    return this.enemyRuntimes.filter((runtime) => runtime.enemy.isAlive && runtime.enemy.behavior === "assist").length;
   }
 
   private getEnemyTraitDataset(enemy: EnemyEntity): string {
@@ -1399,6 +1468,7 @@ export class WorldScene extends Phaser.Scene {
       zoneId: zone.id,
       home: spawnPoint.clone(),
       damagedByPlayer: false,
+      assistedByAlly: false,
       elapsedInCombatMs: 0,
       attackTimerMs: enemyAttackCooldownMs,
       castTimerMs: enemy.castCooldownMs,

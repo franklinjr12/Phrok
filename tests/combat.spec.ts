@@ -126,3 +126,80 @@ test("aggressive enemies detect, chase, and attack without being clicked", async
   await expect.poll(async () => await canvas.getAttribute("data-enemy-position")).not.toBe(initialPosition);
   await expect.poll(async () => await canvas.getAttribute("data-player-hp"), { timeout: 6000 }).not.toBe("30/30");
 });
+
+test("assist enemies locally join when a nearby ally is attacked", async ({ page }) => {
+  await page.route("**/assets/data/monsters.json", async (route) => {
+    const response = await route.fetch();
+    const monsters = await response.json() as Array<Record<string, unknown>>;
+
+    await route.fulfill({
+      response,
+      json: monsters.map((monster) => monster.id === "green-jelly"
+        ? {
+          ...monster,
+          behavior: "assist",
+          hp: 30,
+          attack: 1,
+          aggroRange: 0,
+          assistRadius: 64,
+          leashDistance: 280,
+          leashTimeoutMs: 7000,
+        }
+        : monster),
+    });
+  });
+  await page.route("**/assets/maps/crownfield-meadows.json", async (route) => {
+    const response = await route.fetch();
+    const map = await response.json() as {
+      layers: Array<{
+        name?: string;
+        objects?: Array<Record<string, unknown>>;
+      }>;
+    };
+    const objectLayer = map.layers.find((layer) => layer.name === "Objects");
+    const jellyGrove = objectLayer?.objects?.find((object) => object.name === "JellyGrove");
+
+    if (jellyGrove) {
+      jellyGrove.x = 528;
+      jellyGrove.y = 300;
+      jellyGrove.width = 32;
+      jellyGrove.height = 32;
+      jellyGrove.properties = [
+        { name: "monsterId", type: "string", value: "green-jelly" },
+        { name: "maxCount", type: "int", value: 2 },
+      ];
+    }
+
+    objectLayer?.objects?.push({
+      id: 99,
+      name: "FarJellyGrove",
+      type: "monsterSpawn",
+      visible: true,
+      x: 704,
+      y: 464,
+      width: 32,
+      height: 32,
+      rotation: 0,
+      properties: [
+        { name: "monsterId", type: "string", value: "green-jelly" },
+        { name: "maxCount", type: "int", value: 1 },
+      ],
+    });
+
+    await route.fulfill({ response, json: map });
+  });
+  await startApp(page);
+
+  const canvas = await enterMeadows(page);
+  await expect(canvas).toHaveAttribute("data-enemy-entity-count", "3");
+  await expect(canvas).toHaveAttribute("data-enemy-behavior", "assist");
+  await expect(canvas).toHaveAttribute("data-enemy-assist-radius", "64");
+  await expect(canvas).toHaveAttribute("data-enemy-assisted-count", "0");
+
+  await page.keyboard.press("F9");
+  await expect(canvas).toHaveAttribute("data-debug-assist-radius", "visible:3");
+
+  await canvas.click({ position: { x: 528, y: 300 } });
+  await expect.poll(async () => await canvas.getAttribute("data-enemy-assisted-count"), { timeout: 5000 }).toBe("1");
+  await expect(canvas).toHaveAttribute("data-last-assist-call", "green-jelly:green-jelly");
+});

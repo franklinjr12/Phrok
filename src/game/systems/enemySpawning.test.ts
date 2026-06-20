@@ -50,6 +50,7 @@ describe("enemy AI intent", () => {
     position: { x: 0, y: 0 },
     playerPosition: { x: 40, y: 0 },
     damagedByPlayer: false,
+    assistedByAlly: false,
     allyInCombat: false,
     elapsedInCombatMs: 0,
     aggroRange: 80,
@@ -87,6 +88,7 @@ describe("enemy AI intent", () => {
     expect(decideEnemyAiIntent({ ...baseState, behavior: "aggressive", playerPosition: { x: 120, y: 0 } })).toBe("idle");
     expect(decideEnemyAiIntent({ ...baseState, behavior: "aggressive" })).toBe("attack");
     expect(decideEnemyAiIntent({ ...baseState, behavior: "assist", playerPosition: { x: 160, y: 0 }, allyInCombat: true })).toBe("chase");
+    expect(decideEnemyAiIntent({ ...baseState, behavior: "assist", playerPosition: { x: 160, y: 0 }, assistedByAlly: true })).toBe("chase");
     expect(decideEnemyAiIntent({ ...baseState, behavior: "caster" })).toBe("cast");
     expect(decideEnemyAiIntent({ ...baseState, behavior: "caster", silenced: true })).toBe("attack");
   });
