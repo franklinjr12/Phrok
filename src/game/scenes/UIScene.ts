@@ -75,6 +75,12 @@ export class UIScene extends Phaser.Scene {
   private targetFrame?: Phaser.GameObjects.Rectangle;
   private targetNameText?: Phaser.GameObjects.Text;
   private targetHpText?: Phaser.GameObjects.Text;
+  private bossFrame?: Phaser.GameObjects.Rectangle;
+  private bossHpBarBackground?: Phaser.GameObjects.Rectangle;
+  private bossHpBarFill?: Phaser.GameObjects.Rectangle;
+  private bossNameText?: Phaser.GameObjects.Text;
+  private bossHpText?: Phaser.GameObjects.Text;
+  private bossPhaseText?: Phaser.GameObjects.Text;
   private mapNameText?: Phaser.GameObjects.Text;
   private activePanel: PanelMode | null = null;
   private selectedInventoryIndex = 0;
@@ -101,6 +107,7 @@ export class UIScene extends Phaser.Scene {
     this.createMapLabel(dataRegistry.getMap(state.currentMapId).name);
     this.syncXpBar(state, dataRegistry);
     this.createTargetFrame();
+    this.createBossFrame();
     this.registerKeyboard();
     this.registerEvents(state, dataRegistry);
   }
@@ -228,19 +235,29 @@ export class UIScene extends Phaser.Scene {
       this.game.canvas.dataset.lastLootPickup = kind === "gold" ? `gold:${quantity}` : `${itemId}:${quantity}`;
     });
 
-    this.unsubscribeEnemyHealth = eventBus.on("enemyHealthChanged", ({ enemyId, name, hp, maxHp }) => {
+    this.unsubscribeEnemyHealth = eventBus.on("enemyHealthChanged", ({ enemyId, name, hp, maxHp, boss, phase }) => {
       if (this.game.canvas.dataset.targetEnemyId === enemyId) {
         this.setTargetFrame(enemyId, name, hp, maxHp);
       }
+
+      if (boss) {
+        this.setBossFrame(name, hp, maxHp, phase ?? 1);
+      }
     });
 
-    this.unsubscribeEnemyTarget = eventBus.on("enemyTargetChanged", ({ enemyId, name, hp, maxHp }) => {
+    this.unsubscribeEnemyTarget = eventBus.on("enemyTargetChanged", ({ enemyId, name, hp, maxHp, boss, phase }) => {
       if (!enemyId) {
         this.clearTargetFrame();
+        this.clearBossFrame();
         return;
       }
 
       this.setTargetFrame(enemyId, name, hp, maxHp);
+      if (boss) {
+        this.setBossFrame(name, hp, maxHp, phase ?? 1);
+      } else {
+        this.clearBossFrame();
+      }
     });
 
     this.unsubscribeMapChanged = eventBus.on("mapChanged", ({ mapId }) => {
@@ -920,6 +937,51 @@ export class UIScene extends Phaser.Scene {
     this.clearTargetFrame();
   }
 
+  private createBossFrame(): void {
+    const centerX = Number(this.scale.width || 800) / 2;
+
+    this.bossFrame = this.add.rectangle(centerX, 86, 430, 54, 0x1f1115, 0.88)
+      .setStrokeStyle(2, 0xf43f5e, 0.95)
+      .setScrollFactor(0)
+      .setDepth(hudDepth)
+      .setVisible(false);
+    this.bossNameText = this.add.text(centerX - 204, 64, "", {
+      color: "#fecdd3",
+      fontFamily: "Arial, sans-serif",
+      fontSize: "15px",
+    })
+      .setScrollFactor(0)
+      .setDepth(hudDepth + 1)
+      .setVisible(false);
+    this.bossPhaseText = this.add.text(centerX + 134, 64, "", {
+      color: "#fde68a",
+      fontFamily: "Arial, sans-serif",
+      fontSize: "13px",
+    })
+      .setScrollFactor(0)
+      .setDepth(hudDepth + 1)
+      .setVisible(false);
+    this.bossHpBarBackground = this.add.rectangle(centerX - 204, 94, 408, 10, 0x111827, 0.95)
+      .setOrigin(0, 0.5)
+      .setScrollFactor(0)
+      .setDepth(hudDepth + 1)
+      .setVisible(false);
+    this.bossHpBarFill = this.add.rectangle(centerX - 204, 94, 1, 8, 0xf43f5e, 1)
+      .setOrigin(0, 0.5)
+      .setScrollFactor(0)
+      .setDepth(hudDepth + 2)
+      .setVisible(false);
+    this.bossHpText = this.add.text(centerX - 20, 100, "", {
+      color: "#f8fafc",
+      fontFamily: "Arial, sans-serif",
+      fontSize: "12px",
+    })
+      .setScrollFactor(0)
+      .setDepth(hudDepth + 2)
+      .setVisible(false);
+    this.clearBossFrame();
+  }
+
   private createMapLabel(mapName: string): void {
     this.mapNameText = this.add.text(348, 18, mapName, {
       color: "#f8fafc",
@@ -949,6 +1011,36 @@ export class UIScene extends Phaser.Scene {
     this.game.canvas.dataset.targetEnemyId = "";
     this.game.canvas.dataset.targetEnemyName = "";
     this.game.canvas.dataset.targetEnemyHp = "";
+  }
+
+  private setBossFrame(name: string, hp: number, maxHp: number, phase: number): void {
+    const width = Math.max(0, Math.round(408 * (hp / maxHp)));
+
+    this.bossFrame?.setVisible(true);
+    this.bossNameText?.setText(name).setVisible(true);
+    this.bossPhaseText?.setText(`Phase ${phase}`).setVisible(true);
+    this.bossHpBarBackground?.setVisible(true);
+    this.bossHpBarFill?.setDisplaySize(width, 8).setVisible(true);
+    this.bossHpText?.setText(`HP ${hp}/${maxHp}`).setVisible(true);
+    this.game.canvas.dataset.bossUi = "visible";
+    this.game.canvas.dataset.bossUiName = name;
+    this.game.canvas.dataset.bossUiHp = `${hp}/${maxHp}`;
+    this.game.canvas.dataset.bossUiPhase = String(phase);
+    this.game.canvas.dataset.bossUiBarWidth = String(width);
+  }
+
+  private clearBossFrame(): void {
+    this.bossFrame?.setVisible(false);
+    this.bossNameText?.setVisible(false);
+    this.bossPhaseText?.setVisible(false);
+    this.bossHpBarBackground?.setVisible(false);
+    this.bossHpBarFill?.setVisible(false);
+    this.bossHpText?.setVisible(false);
+    this.game.canvas.dataset.bossUi = "hidden";
+    this.game.canvas.dataset.bossUiName = "";
+    this.game.canvas.dataset.bossUiHp = "";
+    this.game.canvas.dataset.bossUiPhase = "";
+    this.game.canvas.dataset.bossUiBarWidth = "0";
   }
 
   private syncPlayerStats(state: GameState, dataRegistry: DataRegistry): void {

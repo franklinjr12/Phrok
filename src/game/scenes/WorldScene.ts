@@ -51,6 +51,8 @@ const playerAttackRange = 62;
 const playerAttackCooldownMs = 850;
 const enemyAttackCooldownMs = 1250;
 const enemyCastWindupMs = 700;
+const playerAttackKnockbackDistance = 18;
+const bossRewardGold = 25;
 
 type PrototypeTilemapLayer = Phaser.Tilemaps.TilemapLayer | Phaser.Tilemaps.TilemapGPULayer;
 type WorldSceneData = {
@@ -310,6 +312,16 @@ export class WorldScene extends Phaser.Scene {
     this.game.canvas.dataset.enemyAssistedCount = "0";
     this.game.canvas.dataset.debugAssistRadius = "hidden";
     this.game.canvas.dataset.bossUi = "hidden";
+    this.game.canvas.dataset.bossProtocol = primaryEnemy?.bossProtocolEnabled ? "enabled" : "disabled";
+    this.game.canvas.dataset.bossPhase = primaryEnemy?.bossProtocolEnabled ? String(primaryEnemy.bossPhase) : "";
+    this.game.canvas.dataset.bossHp = primaryEnemy?.bossProtocolEnabled ? `${primaryEnemy.hp}/${primaryEnemy.maxHp}` : "";
+    this.game.canvas.dataset.bossControlResistance = primaryEnemy?.bossProtocolEnabled ? String(primaryEnemy.getControlDurationMultiplier()) : "";
+    this.game.canvas.dataset.bossKnockbackResistance = primaryEnemy?.bossProtocolEnabled ? String(primaryEnemy.getKnockbackDistance(100)) : "";
+    this.game.canvas.dataset.lastBossControlResist = "";
+    this.game.canvas.dataset.lastBossKnockbackResist = "";
+    this.game.canvas.dataset.lastBossStealthDetection = "";
+    this.game.canvas.dataset.lastBossPhase = "";
+    this.game.canvas.dataset.lastBossReward = "";
     this.game.canvas.dataset.treasureSpotCount = String(this.countObjectsByType(tilemap, "treasure"));
     this.game.canvas.dataset.lastAutosaveSlot = this.lastAutosaveSlot;
     this.game.canvas.dataset.lastAutosaveMap = this.lastAutosaveMap;
@@ -445,7 +457,10 @@ export class WorldScene extends Phaser.Scene {
       name: enemy.name,
       hp: enemy.hp,
       maxHp: enemy.maxHp,
+      boss: enemy.bossProtocolEnabled,
+      phase: enemy.bossPhase,
     });
+    this.syncBossProtocolDataset(enemy);
   }
 
   private clearTarget(): void {
@@ -460,6 +475,7 @@ export class WorldScene extends Phaser.Scene {
       hp: 0,
       maxHp: 0,
     });
+    this.game.canvas.dataset.bossUi = "hidden";
   }
 
   private interactWithNpc(npc: NpcEntity): void {
@@ -635,6 +651,8 @@ export class WorldScene extends Phaser.Scene {
       name: enemy.name,
       hp: enemy.hp,
       maxHp: enemy.maxHp,
+      boss: enemy.bossProtocolEnabled,
+      phase: enemy.bossPhase,
     });
 
     if (!enemy.isAlive) {
@@ -687,6 +705,8 @@ export class WorldScene extends Phaser.Scene {
         name: this.attackTarget.name,
         hp: this.attackTarget.hp,
         maxHp: this.attackTarget.maxHp,
+        boss: this.attackTarget.bossProtocolEnabled,
+        phase: this.attackTarget.bossPhase,
       });
 
       if (!this.attackTarget.isAlive) {
@@ -726,13 +746,12 @@ export class WorldScene extends Phaser.Scene {
       hp: enemy.hp,
       applyDamage: (damage: number) => this.damageEnemy(enemy, damage),
       applyStatusEffect: (effectId: string) => {
-        applyStatusEffect(enemy.statusEffects, this.dataRegistry!.getStatusEffect(effectId), this.state!.character.id);
+        const applied = this.applyStatusEffectToEnemy(enemy, effectId);
         const runtime = this.getEnemyRuntime(enemy);
         if (runtime) {
           runtime.damagedByPlayer = true;
         }
-        emitStatusEffectsChanged("enemy", enemy.id, enemy.statusEffects);
-        this.game.canvas.dataset.lastSkillStatusEffect = `${enemy.id}:${effectId}`;
+        this.game.canvas.dataset.lastSkillStatusEffect = `${enemy.id}:${effectId}:${applied ? "applied" : "resisted"}`;
         this.syncEnemyDataset();
       },
     };
@@ -789,6 +808,8 @@ export class WorldScene extends Phaser.Scene {
           name: enemy.name,
           hp: enemy.hp,
           maxHp: enemy.maxHp,
+          boss: enemy.bossProtocolEnabled,
+          phase: enemy.bossPhase,
         });
       }
 
@@ -817,7 +838,7 @@ export class WorldScene extends Phaser.Scene {
     enemy: EnemyEntity,
     controlEffect: "freeze" | "stun" | "silence" | "blind" | "slow",
   ): boolean {
-    if (enemy.boss && (controlEffect === "freeze" || controlEffect === "stun")) {
+    if (enemy.bossProtocolEnabled) {
       this.game.canvas.dataset.lastBossControlResist = `${enemy.id}:${controlEffect}`;
       return false;
     }
@@ -840,7 +861,63 @@ export class WorldScene extends Phaser.Scene {
       this.callNearbyAssist(enemy);
     }
 
+    const previousPhase = enemy.bossPhase;
     enemy.takeDamage(amount);
+    this.applyPlayerKnockback(enemy, fromPlayer ? playerAttackKnockbackDistance : 0);
+    this.handleBossPhaseChange(enemy, previousPhase);
+  }
+
+  private applyStatusEffectToEnemy(enemy: EnemyEntity, effectId: string): boolean {
+    if (!this.dataRegistry || !this.state) {
+      return false;
+    }
+
+    const definition = this.dataRegistry.getStatusEffect(effectId);
+
+    if (enemy.bossProtocolEnabled && definition.type === "control") {
+      this.game.canvas.dataset.lastBossControlResist = `${enemy.id}:${definition.controlEffect ?? effectId}`;
+      emitStatusEffectsChanged("enemy", enemy.id, enemy.statusEffects);
+      return false;
+    }
+
+    applyStatusEffect(enemy.statusEffects, definition, this.state.character.id);
+    emitStatusEffectsChanged("enemy", enemy.id, enemy.statusEffects);
+    return true;
+  }
+
+  private applyPlayerKnockback(enemy: EnemyEntity, distance: number): void {
+    if (!this.player || !enemy.isAlive || !enemy.bossProtocolEnabled || distance <= 0) {
+      return;
+    }
+
+    const resistedDistance = enemy.getKnockbackDistance(distance);
+    this.game.canvas.dataset.lastBossKnockbackResist = `${enemy.id}:${distance}->${resistedDistance.toFixed(1)}`;
+
+    if (resistedDistance < 4) {
+      return;
+    }
+
+    const body = enemy.sprite.body as Phaser.Physics.Arcade.Body | null;
+    const direction = new Phaser.Math.Vector2(enemy.sprite.x - this.player.sprite.x, enemy.sprite.y - this.player.sprite.y);
+
+    if (direction.length() <= 1) {
+      direction.set(1, 0);
+    }
+
+    direction.normalize();
+    body?.reset(enemy.sprite.x + direction.x * resistedDistance, enemy.sprite.y + direction.y * resistedDistance);
+  }
+
+  private handleBossPhaseChange(enemy: EnemyEntity, previousPhase: number): void {
+    if (!enemy.bossProtocolEnabled) {
+      return;
+    }
+
+    this.syncBossProtocolDataset(enemy);
+
+    if (enemy.bossPhase !== previousPhase) {
+      this.game.canvas.dataset.lastBossPhase = `${enemy.id}:${previousPhase}->${enemy.bossPhase}`;
+    }
   }
 
   private handleEnemyDefeated(enemy: EnemyEntity): void {
@@ -856,7 +933,6 @@ export class WorldScene extends Phaser.Scene {
 
     if (enemy.boss) {
       this.game.canvas.dataset.bossUi = "hidden";
-      this.game.canvas.dataset.lastBossReward = enemy.id;
     }
   }
 
@@ -920,6 +996,10 @@ export class WorldScene extends Phaser.Scene {
     const drops = generateLootDrops(dropTable, dataRegistry, Math.random, {
       quality: enemy.boss ? "boss" : enemy.elite ? "elite" : "normal",
     });
+    if (enemy.bossProtocolEnabled) {
+      drops.push({ kind: "gold", quantity: bossRewardGold });
+      this.game.canvas.dataset.lastBossReward = `${enemy.id}:gold:${bossRewardGold}`;
+    }
     drops.forEach((drop, index) => this.spawnLootDrop(drop, enemy.sprite.x + index * 28, enemy.sprite.y + 18));
   }
 
@@ -1077,6 +1157,20 @@ export class WorldScene extends Phaser.Scene {
           enemy.sprite.y,
         ) <= enemy.assistRadius
       ));
+      const playerIsStealthed = this.hasPlayerStealth();
+      const distanceToPlayer = Phaser.Math.Distance.Between(
+        enemy.sprite.x,
+        enemy.sprite.y,
+        this.player.sprite.x,
+        this.player.sprite.y,
+      );
+      const bossDetectedStealth = playerIsStealthed && enemy.detectsStealth(distanceToPlayer, enemy.aggroRange);
+      const aggroRange = playerIsStealthed && !bossDetectedStealth ? 0 : enemy.aggroRange;
+
+      if (bossDetectedStealth) {
+        this.game.canvas.dataset.lastBossStealthDetection = `${enemy.id}:${Math.round(distanceToPlayer)}`;
+      }
+
       const intent = decideEnemyAiIntent({
         behavior: enemy.behavior,
         mode: enemy.behaviorMode,
@@ -1087,7 +1181,7 @@ export class WorldScene extends Phaser.Scene {
         assistedByAlly: runtime.assistedByAlly,
         allyInCombat,
         elapsedInCombatMs: runtime.elapsedInCombatMs,
-        aggroRange: enemy.aggroRange,
+        aggroRange,
         attackRange: enemy.attackRange,
         leashDistance: enemy.leashDistance,
         leashTimeoutMs: enemy.leashTimeoutMs,
@@ -1313,6 +1407,9 @@ export class WorldScene extends Phaser.Scene {
       this.game.canvas.dataset.enemyVisualMarker = "none";
       this.game.canvas.dataset.enemyRespawnMs = "";
       this.game.canvas.dataset.enemyDamage = "";
+      this.game.canvas.dataset.bossProtocol = "disabled";
+      this.game.canvas.dataset.bossPhase = "";
+      this.game.canvas.dataset.bossHp = "";
       this.syncAssistDataset();
       return;
     }
@@ -1335,8 +1432,38 @@ export class WorldScene extends Phaser.Scene {
     this.game.canvas.dataset.enemyStatusEffects = this.dataRegistry
       ? getStatusSummary(this.enemy.statusEffects, (id) => this.dataRegistry!.getStatusEffect(id))
       : "";
+    this.syncBossProtocolDataset(this.enemy);
     this.syncCasterDataset(this.enemy);
     this.syncAssistDataset();
+  }
+
+  private syncBossProtocolDataset(enemy: EnemyEntity): void {
+    if (!enemy.bossProtocolEnabled) {
+      this.game.canvas.dataset.bossProtocol = "disabled";
+      this.game.canvas.dataset.bossPhase = "";
+      this.game.canvas.dataset.bossHp = "";
+      this.game.canvas.dataset.bossControlResistance = "";
+      this.game.canvas.dataset.bossKnockbackResistance = "";
+      return;
+    }
+
+    this.game.canvas.dataset.bossProtocol = "enabled";
+    this.game.canvas.dataset.bossUi = enemy.isAlive && enemy.targetingState.selected ? "visible" : "hidden";
+    this.game.canvas.dataset.bossPhase = String(enemy.bossPhase);
+    this.game.canvas.dataset.bossHp = `${enemy.hp}/${enemy.maxHp}`;
+    this.game.canvas.dataset.bossControlResistance = String(enemy.getControlDurationMultiplier());
+    this.game.canvas.dataset.bossKnockbackResistance = String(enemy.getKnockbackDistance(100));
+  }
+
+  private hasPlayerStealth(): boolean {
+    if (!this.state || !this.dataRegistry) {
+      return false;
+    }
+
+    return this.state.character.statusEffects.some((effect) => {
+      const definition = this.dataRegistry!.getStatusEffect(effect.id);
+      return effect.id === "stealth" || definition.name.toLowerCase().includes("stealth");
+    });
   }
 
   private syncCasterDataset(enemy: EnemyEntity): void {

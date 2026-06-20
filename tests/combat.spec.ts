@@ -393,3 +393,76 @@ test("elite enemies show markers, hit harder, drop better loot, and respawn slow
   await expect(canvas).toHaveAttribute("data-pending-loot-count", "2");
   await expect(canvas).toHaveAttribute("data-last-loot-drop", /gold:([6-9]|10)/);
 });
+
+test("boss enemies use boss protocol, show boss UI, resist control, phase, and drop boss rewards", async ({ page }) => {
+  await page.route("**/assets/data/monsters.json", async (route) => {
+    const response = await route.fetch();
+    const monsters = await response.json() as Array<Record<string, unknown>>;
+
+    await route.fulfill({
+      response,
+      json: monsters.map((monster) => monster.id === "green-jelly"
+        ? {
+          ...monster,
+          name: "Crowned Jelly",
+          hp: 40,
+          attack: 1,
+          defense: 0,
+          behavior: "aggressive",
+          boss: true,
+          leashDistance: 240,
+        }
+        : monster),
+    });
+  });
+  await page.route("**/assets/data/skills.json", async (route) => {
+    const response = await route.fetch();
+    const skills = await response.json() as Array<Record<string, unknown>>;
+
+    await route.fulfill({
+      response,
+      json: skills.map((skill) => skill.id === "power-slash"
+        ? {
+          ...skill,
+          cooldown: 100,
+        }
+        : skill),
+    });
+  });
+  await startApp(page);
+
+  const canvas = await enterMeadows(page);
+  await expect(canvas).toHaveAttribute("data-enemy-traits", "boss");
+  await expect(canvas).toHaveAttribute("data-enemy-visual-marker", "boss-label");
+  await expect(canvas).toHaveAttribute("data-boss-protocol", "enabled");
+  await expect(canvas).toHaveAttribute("data-enemy-leash-distance", "420");
+  await expect(canvas).toHaveAttribute("data-boss-phase", "1");
+  await expect(canvas).toHaveAttribute("data-boss-hp", "96/96");
+
+  await canvas.click({ position: { x: 528, y: 300 } });
+  await expect(canvas).toHaveAttribute("data-boss-ui", "visible");
+  await expect(canvas).toHaveAttribute("data-boss-ui-name", "Crowned Jelly");
+  await expect(canvas).toHaveAttribute("data-boss-ui-phase", "1");
+
+  await expect.poll(async () => {
+    await page.keyboard.press("Digit1");
+    return await canvas.getAttribute("data-last-skill-status-effect");
+  }, { timeout: 7000 }).toBe("green-jelly:stun:resisted");
+  await expect(canvas).toHaveAttribute("data-enemy-status-effects", /armor-break:Armor Break/);
+  await expect(canvas).not.toHaveAttribute("data-enemy-status-effects", /stun:Stun/);
+  await expect(canvas).toHaveAttribute("data-last-boss-knockback-resist", "green-jelly:18->1.8");
+  await expect.poll(async () => {
+    await page.keyboard.press("Digit1");
+    return await canvas.getAttribute("data-boss-phase");
+  }, { timeout: 7000 }).toBe("2");
+  await expect(canvas).toHaveAttribute("data-last-boss-phase", "green-jelly:1->2");
+
+  await expect.poll(async () => {
+    await page.keyboard.press("Digit1");
+    return await canvas.getAttribute("data-enemy-alive");
+  }, { timeout: 7000 }).toBe("false");
+  await expect(canvas).toHaveAttribute("data-boss-ui", "hidden");
+  await expect(canvas).toHaveAttribute("data-last-boss-reward", "green-jelly:gold:25");
+  await expect(canvas).toHaveAttribute("data-pending-loot-count", "3");
+  await expect(canvas).toHaveAttribute("data-last-loot-drop", "gold:25");
+});

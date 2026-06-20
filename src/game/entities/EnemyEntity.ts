@@ -7,6 +7,14 @@ export const EnemyTextureKeys = {
 } as const;
 
 export type EnemyBehaviorMode = "idle" | "chasing" | "attacking" | "casting" | "returning" | "dead";
+export type BossPhase = 1 | 2 | 3;
+
+export const bossProtocol = {
+  controlResistance: 0.85,
+  knockbackResistance: 0.9,
+  stealthDetectionRangeMultiplier: 1.5,
+  leashAreaMultiplier: 1.75,
+} as const;
 
 export interface EnemyTargetingState {
   selected: boolean;
@@ -23,6 +31,8 @@ export class EnemyEntity {
   readonly attackRange: number;
   readonly leashDistance: number;
   readonly leashTimeoutMs: number;
+  readonly baseLeashDistance: number;
+  readonly bossProtocolEnabled: boolean;
   readonly assistRadius: number;
   readonly castRange: number;
   readonly castCooldownMs: number;
@@ -36,6 +46,7 @@ export class EnemyEntity {
   readonly sprite: Phaser.Physics.Arcade.Sprite;
 
   hp: number;
+  bossPhase: BossPhase = 1;
   statusEffects: ActiveStatusEffect[] = [];
   behaviorMode: EnemyBehaviorMode = "idle";
   targetingState: EnemyTargetingState = {
@@ -58,7 +69,11 @@ export class EnemyEntity {
     this.behavior = monster.behavior;
     this.aggroRange = monster.aggroRange;
     this.attackRange = monster.attackRange;
-    this.leashDistance = monster.leashDistance;
+    this.baseLeashDistance = monster.leashDistance;
+    this.bossProtocolEnabled = monster.boss;
+    this.leashDistance = monster.boss
+      ? Math.ceil(monster.leashDistance * bossProtocol.leashAreaMultiplier)
+      : monster.leashDistance;
     this.leashTimeoutMs = monster.leashTimeoutMs;
     this.assistRadius = monster.assistRadius;
     this.castRange = monster.castRange;
@@ -132,6 +147,7 @@ export class EnemyEntity {
 
   takeDamage(amount: number): void {
     this.hp = Math.max(0, this.hp - amount);
+    this.bossPhase = this.getBossPhase();
 
     if (this.hp === 0) {
       this.die();
@@ -171,6 +187,20 @@ export class EnemyEntity {
     this.syncVisuals();
   }
 
+  getControlDurationMultiplier(): number {
+    return this.bossProtocolEnabled ? 1 - bossProtocol.controlResistance : 1;
+  }
+
+  getKnockbackDistance(distance: number): number {
+    return this.bossProtocolEnabled
+      ? distance * (1 - bossProtocol.knockbackResistance)
+      : distance;
+  }
+
+  detectsStealth(distanceToTarget: number, baseDetectionRange: number): boolean {
+    return this.bossProtocolEnabled && distanceToTarget <= baseDetectionRange * bossProtocol.stealthDetectionRangeMultiplier;
+  }
+
   private die(): void {
     this.behaviorMode = "dead";
     this.targetingState = {
@@ -194,5 +224,23 @@ export class EnemyEntity {
     this.castBarFill.setPosition(this.sprite.x - 22, this.sprite.y - 44);
     this.traitMarker?.setPosition(this.sprite.x, this.sprite.y - 52);
     this.hpBarFill.displayWidth = Math.max(0, 42 * (this.hp / this.maxHp));
+  }
+
+  private getBossPhase(): BossPhase {
+    if (!this.bossProtocolEnabled) {
+      return 1;
+    }
+
+    const hpRatio = this.hp / this.maxHp;
+
+    if (hpRatio <= 0.25) {
+      return 3;
+    }
+
+    if (hpRatio <= 0.5) {
+      return 2;
+    }
+
+    return 1;
   }
 }
