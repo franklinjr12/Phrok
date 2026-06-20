@@ -13,6 +13,7 @@ export interface GameEventMap {
     sp: number;
     maxSp: number;
   };
+  advancedClassUnlocked: { level: number };
   inventoryChanged: { inventory: InventoryState };
   equipmentChanged: { slot: string; itemId: string | null };
   statsChanged: { stat?: BaseStatKey; derivedStats: DerivedStats; statPoints: number };
@@ -24,6 +25,7 @@ export interface GameEventMap {
   hotbarChanged: { hotbar: HotbarSlotState[] };
   hotbarUsed: { slot: number; type: "skill" | "item"; id: string; success: boolean };
   hotbarActionRequested: { slot: number };
+  advancedClassChosen: { id: string; name: string };
   statusEffectsChanged: {
     targetKind: "player" | "enemy";
     targetId: string;

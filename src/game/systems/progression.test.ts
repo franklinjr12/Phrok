@@ -33,4 +33,18 @@ describe("progression", () => {
     expect(state.character.stats.sp).toBe(28);
     expect(levelUps).toEqual([2, 3]);
   });
+
+  it("emits an advanced class unlock when reaching level 40", () => {
+    const state = createNewGameState();
+    const unlocks: number[] = [];
+    eventBus.on("advancedClassUnlocked", ({ level }) => unlocks.push(level));
+
+    awardXp(state, {
+      id: "standard",
+      levels: Object.fromEntries(Array.from({ length: 40 }, (_, index) => [String(index + 1), index * 5])),
+    }, 195);
+
+    expect(state.playerProfile.level).toBe(40);
+    expect(unlocks).toEqual([40]);
+  });
 });

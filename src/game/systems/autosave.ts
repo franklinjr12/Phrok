@@ -156,6 +156,7 @@ function normalizeCharacter(rawCharacter: unknown, fallback: GameState["characte
   return {
     id: stringValue(source.id, fallback.id),
     archetype: stringValue(source.archetype, fallback.archetype),
+    advancedClass: normalizeAdvancedClass(source.advancedClass),
     stats: {
       hp: numberValue(sourceStats.hp, fallbackStats.hp),
       maxHp: numberValue(sourceStats.maxHp, fallbackStats.maxHp),
@@ -178,6 +179,29 @@ function normalizeCharacter(rawCharacter: unknown, fallback: GameState["characte
     skillIds: stringArray(source.skillIds, fallback.skillIds),
     skills: normalizeSkillState(source.skills, fallback.skills, stringArray(source.skillIds, fallback.skillIds)),
     hotbar: normalizeHotbar(source.hotbar, fallback.hotbar, stringArray(source.skillIds, fallback.skillIds)),
+  };
+}
+
+function normalizeAdvancedClass(rawAdvancedClass: unknown): GameState["character"]["advancedClass"] {
+  const source = isRecord(rawAdvancedClass) ? rawAdvancedClass : null;
+
+  if (!source) {
+    return null;
+  }
+
+  const id = stringValue(source.id, "");
+  const name = stringValue(source.name, "");
+  const baseClassId = stringValue(source.baseClassId, "");
+
+  if (!id || !name || !baseClassId) {
+    return null;
+  }
+
+  return {
+    id,
+    name,
+    baseClassId,
+    unlockedAtLevel: Math.max(1, numberValue(source.unlockedAtLevel, 40)),
   };
 }
 

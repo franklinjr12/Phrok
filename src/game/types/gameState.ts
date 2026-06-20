@@ -75,6 +75,7 @@ export interface SkillState {
 export interface CharacterData {
   id: string;
   archetype: string;
+  advancedClass: AdvancedClassState | null;
   stats: CharacterStats;
   baseStats: BaseStats;
   allocatedStats: BaseStats;
@@ -83,6 +84,13 @@ export interface CharacterData {
   skillIds: string[];
   skills: SkillState;
   hotbar: HotbarSlotState[];
+}
+
+export interface AdvancedClassState {
+  id: string;
+  name: string;
+  baseClassId: string;
+  unlockedAtLevel: number;
 }
 
 export interface InventoryItem {

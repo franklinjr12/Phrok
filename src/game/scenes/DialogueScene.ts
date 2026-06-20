@@ -1,7 +1,11 @@
 import Phaser from "phaser";
 import { SceneKeys } from "../constants/sceneKeys";
+import { RegistryKeys } from "../constants/registryKeys";
+import { chooseAdvancedClass } from "../systems/advancedClasses";
 import { eventBus } from "../systems/eventBus";
+import type { DataRegistry } from "../data/dataRegistry";
 import type { DialogueChoiceDefinition } from "../types/dataDefinitions";
+import type { GameState } from "../types/gameState";
 
 export type DialogueSceneData = {
   npcId: string;
@@ -99,6 +103,30 @@ export class DialogueScene extends Phaser.Scene {
     if (choiceId === "reset-stats") {
       this.game.canvas.dataset.statResetPrompt = "confirm:50";
       eventBus.emit("statResetRequested", { cost: 50 });
+      return;
+    }
+
+    const advancedClassPrefix = "choose-advanced-class:";
+
+    if (choiceId.startsWith(advancedClassPrefix)) {
+      const state = this.registry.get(RegistryKeys.GameState) as GameState | undefined;
+      const dataRegistry = this.registry.get(RegistryKeys.DataRegistry) as DataRegistry | undefined;
+      const specializationName = choiceId.slice(advancedClassPrefix.length);
+
+      if (!state || !dataRegistry) {
+        this.game.canvas.dataset.lastAdvancedClassChoice = "failed:missing-state";
+        return;
+      }
+
+      const result = chooseAdvancedClass(state, dataRegistry.getClass(state.character.archetype), specializationName);
+      this.game.canvas.dataset.lastAdvancedClassChoice = result.success
+        ? `success:${result.id}`
+        : `failed:${result.reason}`;
+
+      if (result.success) {
+        eventBus.emit("advancedClassChosen", { id: result.id, name: result.name });
+        this.close();
+      }
     }
   }
 

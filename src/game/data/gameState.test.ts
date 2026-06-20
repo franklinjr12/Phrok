@@ -23,6 +23,7 @@ describe("createNewGameState", () => {
       maxSp: 24,
     });
     expect(state.character.archetype).toBe("swordsman");
+    expect(state.character.advancedClass).toBeNull();
     expect(state.character.baseStats).toEqual({ str: 8, agi: 5, vit: 7, int: 3, dex: 5, luk: 4 });
     expect(state.character.allocatedStats).toEqual({ str: 0, agi: 0, vit: 0, int: 0, dex: 0, luk: 0 });
     expect(state.character.skillIds).toEqual(["power-slash"]);
@@ -62,6 +63,7 @@ describe("createNewGameState", () => {
 
     expect(state.playerProfile.name).toBe("Mira");
     expect(state.character.archetype).toBe("mage");
+    expect(state.character.advancedClass).toBeNull();
     expect(state.character.skillIds).toEqual(["fire-bolt"]);
     expect(state.character.skills.learned).toEqual([{ id: "fire-bolt", level: 1 }]);
     expect(state.character.hotbar[0]).toEqual({ slot: 1, type: "skill", id: "fire-bolt" });

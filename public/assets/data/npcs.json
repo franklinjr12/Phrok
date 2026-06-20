@@ -70,5 +70,13 @@
     "interactionRadius": 72,
     "dialogueId": "meadow-keeper-greeting",
     "serviceType": "guide"
+  },
+  {
+    "id": "advanced-class-mentor",
+    "name": "Iria Crossroad",
+    "mapId": "crownfield-town",
+    "interactionRadius": 72,
+    "dialogueId": "advanced-class-mentor-greeting",
+    "serviceType": "advanced-class"
   }
 ]

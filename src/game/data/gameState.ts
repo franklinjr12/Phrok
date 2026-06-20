@@ -23,6 +23,7 @@ export function createNewGameState(): GameState {
     character: {
       id: "player",
       archetype: "swordsman",
+      advancedClass: null,
       stats: {
         hp: 73,
         maxHp: 73,
@@ -81,6 +82,7 @@ export function createCharacterGameState(name: string, playerClass: ClassDefinit
 
   state.playerProfile.name = characterName;
   state.character.archetype = playerClass.id;
+  state.character.advancedClass = null;
   state.character.baseStats = createClassBaseStats(playerClass);
   state.character.allocatedStats = createEmptyBaseStats();
   state.character.statBuffs = [];

@@ -15,6 +15,7 @@ import { addGold, addInventoryItem } from "../systems/inventory";
 import { generateLootDrops, type LootDrop } from "../systems/lootDrops";
 import { awardXp, getLevelXpThreshold } from "../systems/progression";
 import { autosaveSlot, writeAutosave, writeSaveSlot } from "../systems/autosave";
+import { isAdvancedClassServiceAvailable } from "../systems/advancedClasses";
 import { getEquipmentStats } from "../systems/equipment";
 import {
   decideEnemyAiIntent,
@@ -187,6 +188,7 @@ export class WorldScene extends Phaser.Scene {
       fontSize: "24px",
     }).setOrigin(0.5);
     this.createObjectMarkers(tilemap);
+    this.createAdvancedClassNpcIfAvailable();
 
     this.player = new PlayerEntity(this, state.character, spawnPoint);
     applyPassiveSkills(state, dataRegistry.getSkills());
@@ -282,7 +284,7 @@ export class WorldScene extends Phaser.Scene {
     this.game.canvas.dataset.spawnPoint = `${spawnPoint.x},${spawnPoint.y}`;
     this.game.canvas.dataset.spawnName = this.spawnName;
     this.game.canvas.dataset.currentSaveSlot = String(state.currentSaveSlot ?? "");
-    this.game.canvas.dataset.npcCount = String(map.npcIds.length);
+    this.game.canvas.dataset.npcCount = String(this.npcs.length);
     this.game.canvas.dataset.npcEntityCount = String(this.npcs.length);
     this.game.canvas.dataset.npcNames = this.npcs.map((npc) => npc.name).join("|");
     this.game.canvas.dataset.npcServiceTypes = this.npcs.map((npc) => npc.serviceType).join("|");
@@ -545,13 +547,20 @@ export class WorldScene extends Phaser.Scene {
     }
 
     const dialogue = dataRegistry.getDialogue(npc.dialogueId);
+    const choices = npc.serviceType === "advanced-class" && this.state
+      ? dataRegistry.getClass(this.state.character.archetype).advancedClassOptions.map((option) => ({
+        id: `choose-advanced-class:${option}`,
+        label: option,
+        disabled: !isAdvancedClassServiceAvailable(this.state!),
+      }))
+      : dialogue.choices;
     const sceneData: DialogueSceneData = {
       npcId: npc.id,
       npcName: npc.name,
       dialogueId: dialogue.id,
       serviceType: npc.serviceType,
       lines: dialogue.lines,
-      choices: dialogue.choices,
+      choices,
     };
 
     this.pendingNpcInteraction = undefined;
@@ -1778,6 +1787,22 @@ export class WorldScene extends Phaser.Scene {
     }
 
     this.npcs.push(new NpcEntity(this, this.dataRegistry.getNpc(npcId), { x, y }));
+  }
+
+  private createAdvancedClassNpcIfAvailable(): void {
+    if (!this.state || !this.dataRegistry || this.state.currentMapId !== "crownfield-town") {
+      return;
+    }
+
+    if (!isAdvancedClassServiceAvailable(this.state)) {
+      return;
+    }
+
+    this.npcs.push(new NpcEntity(
+      this,
+      this.dataRegistry.getNpc("advanced-class-mentor"),
+      { x: 304, y: 336 },
+    ));
   }
 
   private createPortalMarker(object: Phaser.Types.Tilemaps.TiledObject): void {

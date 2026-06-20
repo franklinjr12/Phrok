@@ -28,6 +28,7 @@ describe("autosave", () => {
         skills: {
           learned: [{ id: "power-slash", level: 1 }],
         },
+        advancedClass: null,
         hotbar: [
           { slot: 1, type: "skill", id: "power-slash" },
           { slot: 2, type: "item", id: "minor-health-potion" },
@@ -73,6 +74,12 @@ describe("autosave", () => {
       character: {
         id: "player",
         archetype: "mage",
+        advancedClass: {
+          id: "elementalist",
+          name: "Elementalist",
+          baseClassId: "mage",
+          unlockedAtLevel: 40,
+        },
         stats: {
           hp: 22,
           maxHp: 22,
@@ -119,6 +126,12 @@ describe("autosave", () => {
           skills: {
             learned: [{ id: "fire-bolt", level: 2 }],
             cooldowns: { "fire-bolt": 123 },
+          },
+          advancedClass: {
+            id: "elementalist",
+            name: "Elementalist",
+            baseClassId: "mage",
+            unlockedAtLevel: 40,
           },
           hotbar: [{ slot: 1, type: "skill", id: "fire-bolt" }],
         },

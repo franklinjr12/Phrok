@@ -1,4 +1,5 @@
 import { eventBus } from "./eventBus";
+import { advancedClassUnlockLevel } from "./advancedClasses";
 import type { XpTableDefinition } from "../types/dataDefinitions";
 import type { GameState } from "../types/gameState";
 
@@ -46,6 +47,9 @@ export function awardXp(state: GameState, xpTable: XpTableDefinition, amount: nu
       sp: state.character.stats.sp,
       maxSp: state.character.stats.maxSp,
     });
+    if (nextLevel === advancedClassUnlockLevel) {
+      eventBus.emit("advancedClassUnlocked", { level: nextLevel });
+    }
   }
 
   const result = {

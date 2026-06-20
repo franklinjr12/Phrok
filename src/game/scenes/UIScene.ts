@@ -24,6 +24,7 @@ import { writeSaveSlot } from "../systems/autosave";
 import { eventBus } from "../systems/eventBus";
 import { removeInventoryItem } from "../systems/inventory";
 import { allocateSkillPoint, assignHotbarAction, getLearnedSkillLevel, hotbarSlotCount } from "../systems/skills";
+import { advancedClassUnlockLevel, getUnlockedSkillTreeIds, isAdvancedClassServiceAvailable } from "../systems/advancedClasses";
 import { getStatusSummary } from "../systems/statusEffects";
 import type { DataRegistry } from "../data/dataRegistry";
 import type { ItemDefinition, SkillDefinition } from "../types/dataDefinitions";
@@ -48,6 +49,8 @@ export class UIScene extends Phaser.Scene {
   private unsubscribeSp?: () => void;
   private unsubscribeXp?: () => void;
   private unsubscribeLevelUp?: () => void;
+  private unsubscribeAdvancedClassUnlocked?: () => void;
+  private unsubscribeAdvancedClassChosen?: () => void;
   private unsubscribeInventory?: () => void;
   private unsubscribeEquipment?: () => void;
   private unsubscribeStats?: () => void;
@@ -82,6 +85,7 @@ export class UIScene extends Phaser.Scene {
   private bossHpText?: Phaser.GameObjects.Text;
   private bossPhaseText?: Phaser.GameObjects.Text;
   private mapNameText?: Phaser.GameObjects.Text;
+  private advancedClassNotificationText?: Phaser.GameObjects.Text;
   private activePanel: PanelMode | null = null;
   private selectedInventoryIndex = 0;
   private selectedEquipmentSlot: EquipmentSlot = "weapon";
@@ -104,6 +108,7 @@ export class UIScene extends Phaser.Scene {
     this.game.canvas.dataset.gameplayInputBlocked = "false";
     this.syncPlayerStats(state, dataRegistry);
     this.createHud(state, dataRegistry);
+    this.createAdvancedClassNotification(state);
     this.createMapLabel(dataRegistry.getMap(state.currentMapId).name);
     this.syncXpBar(state, dataRegistry);
     this.createTargetFrame();
@@ -133,6 +138,8 @@ export class UIScene extends Phaser.Scene {
       this.unsubscribeSp?.();
       this.unsubscribeXp?.();
       this.unsubscribeLevelUp?.();
+      this.unsubscribeAdvancedClassUnlocked?.();
+      this.unsubscribeAdvancedClassChosen?.();
       this.unsubscribeInventory?.();
       this.unsubscribeEquipment?.();
       this.unsubscribeStats?.();
@@ -177,7 +184,23 @@ export class UIScene extends Phaser.Scene {
       this.hpText?.setText(`HP ${hp}/${maxHp}`);
       this.spText?.setText(`SP ${sp}/${maxSp}`);
       this.levelText?.setText(`Lv ${level}`);
+      this.syncAdvancedClassDataset(state, dataRegistry);
+      if (level >= advancedClassUnlockLevel && !state.character.advancedClass) {
+        this.showAdvancedClassNotification();
+      }
       this.syncXpBar(state, dataRegistry);
+    });
+
+    this.unsubscribeAdvancedClassUnlocked = eventBus.on("advancedClassUnlocked", () => {
+      this.syncAdvancedClassDataset(state, dataRegistry);
+      this.showAdvancedClassNotification();
+    });
+
+    this.unsubscribeAdvancedClassChosen = eventBus.on("advancedClassChosen", () => {
+      this.syncAdvancedClassDataset(state, dataRegistry);
+      this.syncSkillDataset(state, dataRegistry);
+      this.hideAdvancedClassNotification();
+      this.refreshOpenPanel();
     });
 
     this.unsubscribeInventory = eventBus.on("inventoryChanged", ({ inventory }) => {
@@ -505,16 +528,21 @@ export class UIScene extends Phaser.Scene {
   }
 
   private renderSkillPanel(state: GameState, dataRegistry: DataRegistry): void {
-    const classSkills = dataRegistry.getSkillsByClass(state.character.archetype);
+    const classSkills = this.getVisibleSkillTreeSkills(state, dataRegistry);
     const selectedSkill = classSkills[this.clampSelectedSkillIndex(classSkills)] ?? null;
+    const skillTreeIds = getUnlockedSkillTreeIds(state);
+    const classLabel = [
+      dataRegistry.getClass(state.character.archetype).name,
+      state.character.advancedClass?.name ?? "",
+    ].filter((entry) => entry.length > 0).join(" / ");
 
     this.addPanelRectangle(70, 60, 660, 470, panelFill, 0.95)
       .setOrigin(0)
       .setStrokeStyle(2, panelStroke, 0.92);
     this.addPanelText(96, 84, "Skills", 24, "#f8fafc");
-    this.addPanelText(96, 120, `Class ${dataRegistry.getClass(state.character.archetype).name}   Skill Points ${state.playerProfile.skillPoints}`, 15, "#fde68a");
+    this.addPanelText(96, 120, `Class ${classLabel}   Skill Points ${state.playerProfile.skillPoints}`, 15, "#fde68a");
     this.game.canvas.dataset.skillPanel = "visible";
-    this.game.canvas.dataset.skillGroups = state.character.archetype;
+    this.game.canvas.dataset.skillGroups = skillTreeIds.join("|");
     this.game.canvas.dataset.skillPanelPoints = String(state.playerProfile.skillPoints);
 
     classSkills.forEach((skill, index) => {
@@ -550,6 +578,11 @@ export class UIScene extends Phaser.Scene {
       this.game.canvas.dataset.selectedSkillLevel = String(level);
       this.game.canvas.dataset.selectedSkillLocked = String(!this.isSkillUnlocked(state, selectedSkill));
       this.game.canvas.dataset.selectedSkillTooltip = `${selectedSkill.type}|${selectedSkill.targetingMode}|${effectText}|${this.getSkillRequirementText(state, selectedSkill)}`;
+    } else {
+      this.game.canvas.dataset.selectedSkill = "";
+      this.game.canvas.dataset.selectedSkillLevel = "";
+      this.game.canvas.dataset.selectedSkillLocked = "";
+      this.game.canvas.dataset.selectedSkillTooltip = "";
     }
 
     this.addPanelButton(456, 420, 86, 34, "Level", () => this.levelSelectedSkill());
@@ -1061,6 +1094,7 @@ export class UIScene extends Phaser.Scene {
     this.game.canvas.dataset.playerStatPoints = String(state.playerProfile.statPoints);
     this.game.canvas.dataset.playerSkillPoints = String(state.playerProfile.skillPoints);
     this.game.canvas.dataset.playerClass = playerClass.id;
+    this.syncAdvancedClassDataset(state, dataRegistry);
     this.game.canvas.dataset.inventoryItem = firstInventoryItem?.id ?? "";
     this.game.canvas.dataset.inventoryItemName = firstInventoryItem?.name ?? "";
     this.game.canvas.dataset.inventoryGold = String(state.inventory.gold);
@@ -1075,7 +1109,7 @@ export class UIScene extends Phaser.Scene {
   }
 
   private syncSkillDataset(state: GameState, dataRegistry: DataRegistry): void {
-    const classSkills = dataRegistry.getSkillsByClass(state.character.archetype);
+    const classSkills = this.getVisibleSkillTreeSkills(state, dataRegistry);
 
     this.game.canvas.dataset.learnedSkills = state.character.skills.learned
       .map((entry) => `${entry.id}:${entry.level}`)
@@ -1092,6 +1126,19 @@ export class UIScene extends Phaser.Scene {
     this.game.canvas.dataset.hotbarAssignments = state.character.hotbar
       .map((entry) => `${entry.slot}:${entry.type}:${entry.id}`)
       .join("|");
+  }
+
+  private syncAdvancedClassDataset(state: GameState, dataRegistry: DataRegistry): void {
+    const baseClass = dataRegistry.getClass(state.character.archetype);
+    const advancedClass = state.character.advancedClass;
+
+    this.game.canvas.dataset.advancedClassUnlockLevel = String(advancedClassUnlockLevel);
+    this.game.canvas.dataset.advancedClassEligible = String(state.playerProfile.level >= advancedClassUnlockLevel);
+    this.game.canvas.dataset.advancedClassService = isAdvancedClassServiceAvailable(state) ? "available" : "unavailable";
+    this.game.canvas.dataset.advancedClassOptions = baseClass.advancedClassOptions.join("|");
+    this.game.canvas.dataset.playerAdvancedClass = advancedClass?.id ?? "";
+    this.game.canvas.dataset.playerAdvancedClassName = advancedClass?.name ?? "";
+    this.game.canvas.dataset.advancedSkillTree = advancedClass ? `${advancedClass.id}:unlocked` : "locked";
   }
 
   private syncEquipmentDataset(state: GameState, dataRegistry: DataRegistry): void {
@@ -1187,7 +1234,7 @@ export class UIScene extends Phaser.Scene {
       return;
     }
 
-    const skill = this.dataRegistry.getSkillsByClass(this.state.character.archetype)[this.selectedSkillIndex];
+    const skill = this.getVisibleSkillTreeSkills(this.state, this.dataRegistry)[this.selectedSkillIndex];
     const allocated = skill ? allocateSkillPoint(this.state, skill) : false;
     this.game.canvas.dataset.lastSkillAllocation = allocated && skill
       ? `${skill.id}:${getLearnedSkillLevel(this.state, skill.id)}`
@@ -1201,7 +1248,7 @@ export class UIScene extends Phaser.Scene {
       return;
     }
 
-    const skill = this.dataRegistry.getSkillsByClass(this.state.character.archetype)[this.selectedSkillIndex];
+    const skill = this.getVisibleSkillTreeSkills(this.state, this.dataRegistry)[this.selectedSkillIndex];
 
     if (!skill || getLearnedSkillLevel(this.state, skill.id) <= 0) {
       this.game.canvas.dataset.lastHotbarAssignment = "failed";
@@ -1260,6 +1307,39 @@ export class UIScene extends Phaser.Scene {
       `moveSpeed:${stats.moveSpeed}`,
       `weightLimit:${stats.weightLimit}`,
     ].join("|");
+  }
+
+  private createAdvancedClassNotification(state: GameState): void {
+    this.advancedClassNotificationText = this.add.text(348, 48, "Advanced class service available", {
+      color: "#fef3c7",
+      fontFamily: "Arial, sans-serif",
+      fontSize: "15px",
+      backgroundColor: "#78350f",
+      padding: { x: 10, y: 6 },
+    })
+      .setScrollFactor(0)
+      .setDepth(hudDepth + 2)
+      .setVisible(false);
+
+    if (isAdvancedClassServiceAvailable(state)) {
+      this.showAdvancedClassNotification();
+    } else {
+      this.game.canvas.dataset.advancedClassNotification = "hidden";
+    }
+  }
+
+  private showAdvancedClassNotification(): void {
+    this.advancedClassNotificationText?.setVisible(true);
+    this.game.canvas.dataset.advancedClassNotification = "visible";
+  }
+
+  private hideAdvancedClassNotification(): void {
+    this.advancedClassNotificationText?.setVisible(false);
+    this.game.canvas.dataset.advancedClassNotification = "hidden";
+  }
+
+  private getVisibleSkillTreeSkills(state: GameState, dataRegistry: DataRegistry): SkillDefinition[] {
+    return getUnlockedSkillTreeIds(state).flatMap((classId) => dataRegistry.getSkillsByClass(classId));
   }
 
   private syncSelectedInventoryDataset(item: ItemDefinition | null, quantity: number | null, source: string | null): void {

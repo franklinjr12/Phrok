@@ -69,5 +69,12 @@
       "Stay near the road if the grass starts moving against the wind."
     ],
     "choices": [{ "id": "ask-meadow", "label": "Ask about the meadow", "disabled": true }]
+  },
+  {
+    "id": "advanced-class-mentor-greeting",
+    "lines": [
+      "Your foundation is ready. Choose the discipline that will carry you past level 40."
+    ],
+    "choices": []
   }
 ]
