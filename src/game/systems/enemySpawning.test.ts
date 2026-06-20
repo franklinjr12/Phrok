@@ -91,6 +91,21 @@ describe("enemy AI intent", () => {
     expect(decideEnemyAiIntent({ ...baseState, behavior: "caster", silenced: true })).toBe("attack");
   });
 
+  it("keeps aggressive enemies chasing after initial detection until they leash", () => {
+    expect(decideEnemyAiIntent({
+      ...baseState,
+      behavior: "aggressive",
+      mode: "chasing",
+      playerPosition: { x: 140, y: 0 },
+    })).toBe("chase");
+    expect(decideEnemyAiIntent({
+      ...baseState,
+      behavior: "aggressive",
+      mode: "attacking",
+      playerPosition: { x: 140, y: 0 },
+    })).toBe("chase");
+  });
+
   it("returns enemies home after leash distance or timeout", () => {
     expect(decideEnemyAiIntent({
       ...baseState,

@@ -101,8 +101,10 @@ export function decideEnemyAiIntent(state: EnemyAiState): EnemyAiIntent {
     return "return";
   }
 
+  const isActivelyEngaged = state.mode === "chasing" || state.mode === "attacking" || state.mode === "casting";
   const hasAggro = state.damagedByPlayer
-    || ((state.behavior === "aggressive" || state.behavior === "caster") && distanceToPlayer <= state.aggroRange)
+    || (state.behavior === "aggressive" && (distanceToPlayer <= state.aggroRange || isActivelyEngaged))
+    || (state.behavior === "caster" && distanceToPlayer <= state.aggroRange)
     || (state.behavior === "assist" && (distanceToPlayer <= state.aggroRange || state.allyInCombat));
 
   if (!hasAggro) {

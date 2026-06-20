@@ -74,3 +74,55 @@ test("hotbar skill key fails without target and executes against selected enemie
   await expect.poll(async () => await canvas.getAttribute("data-last-skill-use")).toMatch(/1:power-slash:(success|failed:(out-of-range|cooldown))/);
   await expect(canvas).toHaveAttribute("data-skill-cooldowns", /power-slash:|^$/);
 });
+
+test("aggressive enemies detect, chase, and attack without being clicked", async ({ page }) => {
+  await page.route("**/assets/data/monsters.json", async (route) => {
+    const response = await route.fetch();
+    const monsters = await response.json() as Array<Record<string, unknown>>;
+
+    await route.fulfill({
+      response,
+      json: monsters.map((monster) => monster.id === "green-jelly"
+        ? {
+          ...monster,
+          behavior: "aggressive",
+          attack: 5,
+          aggroRange: 240,
+          leashDistance: 360,
+          leashTimeoutMs: 7000,
+        }
+        : monster),
+    });
+  });
+  await page.route("**/assets/maps/crownfield-meadows.json", async (route) => {
+    const response = await route.fetch();
+    const map = await response.json() as {
+      layers: Array<{
+        name?: string;
+        objects?: Array<Record<string, unknown>>;
+      }>;
+    };
+    const objectLayer = map.layers.find((layer) => layer.name === "Objects");
+    const jellyGrove = objectLayer?.objects?.find((object) => object.name === "JellyGrove");
+
+    if (jellyGrove) {
+      jellyGrove.x = 240;
+      jellyGrove.y = 304;
+      jellyGrove.width = 32;
+      jellyGrove.height = 32;
+    }
+
+    await route.fulfill({ response, json: map });
+  });
+  await startApp(page);
+
+  const canvas = await enterMeadows(page);
+  await expect(canvas).toHaveAttribute("data-enemy-behavior", "aggressive");
+  await expect(canvas).toHaveAttribute("data-enemy-selected", "false");
+
+  const initialPosition = await canvas.getAttribute("data-enemy-position");
+
+  await expect.poll(async () => await canvas.getAttribute("data-enemy-combat-state"), { timeout: 4000 }).toMatch(/chasing|attacking/);
+  await expect.poll(async () => await canvas.getAttribute("data-enemy-position")).not.toBe(initialPosition);
+  await expect.poll(async () => await canvas.getAttribute("data-player-hp"), { timeout: 6000 }).not.toBe("30/30");
+});
