@@ -79,13 +79,13 @@ describe("autosave", () => {
           sp: 18,
           maxSp: 18,
         },
-        skillIds: ["ember-bolt"],
+        skillIds: ["fire-bolt"],
         skills: {
-          learned: [{ id: "ember-bolt", level: 2 }],
-          cooldowns: { "ember-bolt": 123 },
+          learned: [{ id: "fire-bolt", level: 2 }],
+          cooldowns: { "fire-bolt": 123 },
           activeToggleIds: [],
         },
-        hotbar: [{ slot: 1, type: "skill", id: "ember-bolt" }],
+        hotbar: [{ slot: 1, type: "skill", id: "fire-bolt" }],
       },
       inventory: {
         items: [{ id: "apprentice-staff", quantity: 1 }],
@@ -117,10 +117,10 @@ describe("autosave", () => {
         },
         character: {
           skills: {
-            learned: [{ id: "ember-bolt", level: 2 }],
-            cooldowns: { "ember-bolt": 123 },
+            learned: [{ id: "fire-bolt", level: 2 }],
+            cooldowns: { "fire-bolt": 123 },
           },
-          hotbar: [{ slot: 1, type: "skill", id: "ember-bolt" }],
+          hotbar: [{ slot: 1, type: "skill", id: "fire-bolt" }],
         },
       },
     });

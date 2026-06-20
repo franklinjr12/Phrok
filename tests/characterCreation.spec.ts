@@ -91,8 +91,8 @@ test("character creation accepts name input and class selection", async ({ page 
   await expect(canvas).toHaveAttribute("data-recommended-stats", "SP|Attack|HP");
   await expect(canvas).toHaveAttribute("data-starting-weapon", "apprentice-staff");
   await expect(canvas).toHaveAttribute("data-starting-weapon-name", "Apprentice Staff");
-  await expect(canvas).toHaveAttribute("data-starting-skill", "ember-bolt");
-  await expect(canvas).toHaveAttribute("data-starting-skill-name", "Ember Bolt");
+  await expect(canvas).toHaveAttribute("data-starting-skill", "fire-bolt");
+  await expect(canvas).toHaveAttribute("data-starting-skill-name", "Fire Bolt");
   await expect(canvas).toHaveAttribute("data-difficulty-rating", "Hard");
   await expect(canvas).toHaveAttribute("data-advanced-class-options", "Elementalist|Chronomancer");
 
@@ -104,6 +104,6 @@ test("character creation accepts name input and class selection", async ({ page 
   await expect(canvas).toHaveAttribute("data-player-class", "mage");
   await expect(canvas).toHaveAttribute("data-inventory-item", "apprentice-staff");
   await expect(canvas).toHaveAttribute("data-inventory-item-name", "Apprentice Staff");
-  await expect(canvas).toHaveAttribute("data-skill", "ember-bolt");
-  await expect(canvas).toHaveAttribute("data-skill-name", "Ember Bolt");
+  await expect(canvas).toHaveAttribute("data-skill", "fire-bolt");
+  await expect(canvas).toHaveAttribute("data-skill-name", "Fire Bolt");
 });

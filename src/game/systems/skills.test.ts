@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
-import { createNewGameState } from "../data/gameState";
+import { createCharacterGameState, createNewGameState } from "../data/gameState";
 import { calculateDerivedStats } from "./stats";
 import type { ClassDefinition, ItemDefinition, SkillDefinition, StatusEffectDefinition } from "../types/dataDefinitions";
 import {
@@ -57,7 +57,7 @@ const guarded: StatusEffectDefinition = {
 
 describe("skills", () => {
   it("queries skills by class", () => {
-    expect(getSkillsByClass([powerSlash, { ...powerSlash, id: "ember-bolt", classId: "mage" }], "swordsman"))
+    expect(getSkillsByClass([powerSlash, { ...powerSlash, id: "fire-bolt", classId: "mage" }], "swordsman"))
       .toEqual([powerSlash]);
   });
 
@@ -243,6 +243,149 @@ describe("skills", () => {
     expect(executeSkill(dexState, skills["counter-blow"], damageProbe(), 1000).damage)
       .toBeGreaterThan(executeSkill(neutralCounterState, skills["counter-blow"], damageProbe(), 1000).damage);
   });
+
+  it("defines every Mage base skill in JSON with elemental, defensive, AoE, and passive roles", () => {
+    const mageSkills = getMageSkills();
+
+    expect(mageSkills.map((skill) => skill.id)).toEqual([
+      "fire-bolt",
+      "frost-bolt",
+      "lightning-spark",
+      "mana-recovery",
+      "arcane-shield",
+      "flame-wall",
+      "frost-ring",
+      "spell-focus",
+    ]);
+    expect(mageSkills.every((skill) => skill.classId === "mage")).toBe(true);
+    expect(mageSkills.filter((skill) => skill.type === "passive").map((skill) => skill.id)).toEqual([
+      "mana-recovery",
+      "spell-focus",
+    ]);
+    expect(mageSkills.filter((skill) => skill.targetingMode === "ground").map((skill) => skill.id)).toEqual([
+      "flame-wall",
+      "frost-ring",
+    ]);
+    expect(new Set(mageSkills.map((skill) => skill.element))).toEqual(new Set(["fire", "ice", "lightning", "neutral", "arcane"]));
+    expect(mageClass.startingSkillIds).toEqual(["fire-bolt"]);
+  });
+
+  it("executes Mage ranged magic, shield, and AoE control skills from JSON with meaningful SP costs", () => {
+    const skills = getMageSkillMap();
+    const state = createCharacterGameState("Mira", mageClass);
+    state.playerProfile.level = 10;
+    state.character.stats.sp = 50;
+    state.character.skills.learned.push(
+      { id: "frost-bolt", level: 1 },
+      { id: "lightning-spark", level: 1 },
+      { id: "arcane-shield", level: 1 },
+      { id: "flame-wall", level: 1 },
+      { id: "frost-ring", level: 1 },
+    );
+    let enemyHp = 100;
+    const singleTargetEffects: string[] = [];
+
+    expect(executeSkill(state, skills["fire-bolt"], {
+      kind: "enemy",
+      id: "green-jelly",
+      distance: 160,
+      hp: enemyHp,
+      applyDamage: (damage) => {
+        enemyHp -= damage;
+      },
+      applyStatusEffect: (effectId) => singleTargetEffects.push(effectId),
+    }, 1000).success).toBe(true);
+    expect(executeSkill(state, skills["frost-bolt"], damageProbe(["slow"]), 3000).success).toBe(true);
+    expect(executeSkill(state, skills["lightning-spark"], damageProbe(["marked"]), 5000).success).toBe(true);
+    expect(enemyHp).toBeLessThan(100);
+    expect(singleTargetEffects).toEqual(["burn"]);
+
+    expect(executeSkill(state, skills["arcane-shield"], undefined, 7000, () => shielded).success).toBe(true);
+    expect(state.character.statBuffs.find((buff) => buff.sourceSkillId === "arcane-shield")).toMatchObject({
+      derivedStats: { defense: 4, magicDefense: 8 },
+    });
+    expect(state.character.statusEffects).toMatchObject([{ id: "shielded", sourceId: "arcane-shield" }]);
+
+    const flameEffects: Record<string, string[]> = { slime: [], wisp: [] };
+    const flameResult = executeSkill(state, skills["flame-wall"], {
+      kind: "ground",
+      x: 100,
+      y: 100,
+      distance: 80,
+      enemies: [
+        {
+          id: "slime",
+          hp: 30,
+          applyDamage: () => undefined,
+          applyStatusEffect: (effectId) => flameEffects.slime.push(effectId),
+        },
+        {
+          id: "wisp",
+          hp: 24,
+          applyDamage: () => undefined,
+          applyStatusEffect: (effectId) => flameEffects.wisp.push(effectId),
+        },
+      ],
+    }, 9000);
+    const frostEffects: Record<string, string[]> = { slime: [], wisp: [] };
+    const frostResult = executeSkill(state, skills["frost-ring"], {
+      kind: "ground",
+      x: 100,
+      y: 100,
+      distance: 80,
+      enemies: [
+        {
+          id: "slime",
+          hp: 30,
+          applyDamage: () => undefined,
+          applyStatusEffect: (effectId) => frostEffects.slime.push(effectId),
+        },
+        {
+          id: "wisp",
+          hp: 24,
+          applyDamage: () => undefined,
+          applyStatusEffect: (effectId) => frostEffects.wisp.push(effectId),
+        },
+      ],
+    }, 10000);
+
+    expect(flameResult).toMatchObject({
+      success: true,
+      affectedTargetIds: ["slime", "wisp"],
+    });
+    expect(frostResult).toMatchObject({
+      success: true,
+      affectedTargetIds: ["slime", "wisp"],
+    });
+    expect(flameEffects).toEqual({ slime: ["burn"], wisp: ["burn"] });
+    expect(frostEffects).toEqual({ slime: ["freeze"], wisp: ["freeze"] });
+    expect(state.character.stats.sp).toBe(16);
+  });
+
+  it("applies Mage passive stats and INT scaling for spell damage", () => {
+    const skills = getMageSkillMap();
+    const state = createCharacterGameState("Mira", mageClass);
+    state.character.skills.learned.push(
+      { id: "mana-recovery", level: 1 },
+      { id: "spell-focus", level: 1 },
+    );
+    const before = calculateDerivedStats(state, mageClass, getItem);
+
+    applyPassiveSkills(state, Object.values(skills));
+    const after = calculateDerivedStats(state, mageClass, getItem);
+
+    expect(after.maxSp).toBeGreaterThan(before.maxSp);
+    expect(after.castSpeed).toBeGreaterThan(before.castSpeed);
+    expect(after.magicAttack).toBeGreaterThan(before.magicAttack);
+    expect(after.hit).toBeGreaterThan(before.hit);
+
+    const intState = createCharacterGameState("Mira", mageClass);
+    const neutralState = createCharacterGameState("Mira", mageClass);
+    intState.character.allocatedStats.int = 5;
+
+    expect(executeSkill(intState, skills["fire-bolt"], damageProbe(), 1000).damage)
+      .toBeGreaterThan(executeSkill(neutralState, skills["fire-bolt"], damageProbe(), 1000).damage);
+  });
 });
 
 function getSwordsmanSkills(): SkillDefinition[] {
@@ -255,13 +398,24 @@ function getSwordsmanSkillMap(): Record<string, SkillDefinition> {
   return Object.fromEntries(getSwordsmanSkills().map((skill) => [skill.id, skill]));
 }
 
-function damageProbe() {
+function getMageSkills(): SkillDefinition[] {
+  const skills = JSON.parse(readFileSync(new URL("../../../public/assets/data/skills.json", import.meta.url), "utf8")) as SkillDefinition[];
+
+  return skills.filter((skill) => skill.classId === "mage");
+}
+
+function getMageSkillMap(): Record<string, SkillDefinition> {
+  return Object.fromEntries(getMageSkills().map((skill) => [skill.id, skill]));
+}
+
+function damageProbe(effects?: string[]) {
   return {
     kind: "enemy" as const,
     id: "green-jelly",
     distance: 48,
     hp: 100,
     applyDamage: () => undefined,
+    applyStatusEffect: (effectId: string) => effects?.push(effectId),
   };
 }
 
@@ -303,6 +457,46 @@ const swordsmanClass: ClassDefinition = {
   startingSkillIds: ["power-slash"],
   startingItemIds: ["training-sword"],
   advancedClassOptions: [],
+};
+
+const mageClass: ClassDefinition = {
+  id: "mage",
+  name: "Mage",
+  description: "",
+  roleSummary: "",
+  recommendedStats: [],
+  difficultyRating: "Hard",
+  baseStats: {
+    hp: 22,
+    sp: 18,
+    attack: 8,
+    defense: 2,
+  },
+  growthRates: {
+    hp: 3,
+    sp: 5,
+    attack: 4,
+    defense: 1,
+  },
+  startingWeaponId: "apprentice-staff",
+  allowedWeaponTypes: ["staff"],
+  startingSkillIds: ["fire-bolt"],
+  startingItemIds: ["apprentice-staff"],
+  advancedClassOptions: [],
+};
+
+const shielded: StatusEffectDefinition = {
+  id: "shielded",
+  name: "Shielded",
+  description: "Defense and magic defense are increased.",
+  type: "buff",
+  duration: 6000,
+  tickInterval: 1000,
+  stackBehavior: "refresh",
+  maxStacks: 1,
+  statModifiers: { derivedStats: { defense: 5, magicDefense: 5 } },
+  visualIcon: "icon-status-shielded",
+  dispelRules: { dispellable: true, categories: ["boon"] },
 };
 
 function getItem(id: string): ItemDefinition {

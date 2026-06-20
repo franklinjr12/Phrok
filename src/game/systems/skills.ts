@@ -20,7 +20,7 @@ export type SkillExecutionTarget =
     x: number;
     y: number;
     distance: number;
-    enemies: Array<{ id: string; hp: number; applyDamage: (damage: number) => void }>;
+    enemies: Array<{ id: string; hp: number; applyDamage: (damage: number) => void; applyStatusEffect?: (effectId: string) => void }>;
   }
   | {
     kind: "self";
@@ -233,7 +233,12 @@ export function executeSkill(
 
   const damage = calculateSkillDamage(state, skill, learnedLevel);
   const affected = target.enemies.filter((enemy) => enemy.hp > 0);
-  affected.forEach((enemy) => enemy.applyDamage(damage));
+  affected.forEach((enemy) => {
+    enemy.applyDamage(damage);
+    for (const effectId of skill.statusEffects) {
+      enemy.applyStatusEffect?.(effectId);
+    }
+  });
   spendSkillCost(state, skill, now);
 
   return succeeded(skill.id, damage, affected.map((enemy) => enemy.id));

@@ -45,7 +45,7 @@
     },
     "startingWeaponId": "apprentice-staff",
     "allowedWeaponTypes": ["staff", "wand"],
-    "startingSkillIds": ["ember-bolt"],
+    "startingSkillIds": ["fire-bolt"],
     "startingItemIds": ["apprentice-staff"],
     "advancedClassOptions": ["Elementalist", "Chronomancer"]
   },

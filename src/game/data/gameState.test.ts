@@ -53,7 +53,7 @@ describe("createNewGameState", () => {
       growthRates: { hp: 3, sp: 5, attack: 4, defense: 1 },
       startingWeaponId: "apprentice-staff",
       allowedWeaponTypes: ["staff"],
-      startingSkillIds: ["ember-bolt"],
+      startingSkillIds: ["fire-bolt"],
       startingItemIds: ["apprentice-staff"],
       advancedClassOptions: ["Elementalist"],
     };
@@ -62,9 +62,9 @@ describe("createNewGameState", () => {
 
     expect(state.playerProfile.name).toBe("Mira");
     expect(state.character.archetype).toBe("mage");
-    expect(state.character.skillIds).toEqual(["ember-bolt"]);
-    expect(state.character.skills.learned).toEqual([{ id: "ember-bolt", level: 1 }]);
-    expect(state.character.hotbar[0]).toEqual({ slot: 1, type: "skill", id: "ember-bolt" });
+    expect(state.character.skillIds).toEqual(["fire-bolt"]);
+    expect(state.character.skills.learned).toEqual([{ id: "fire-bolt", level: 1 }]);
+    expect(state.character.hotbar[0]).toEqual({ slot: 1, type: "skill", id: "fire-bolt" });
     expect(state.character.stats).toMatchObject({
       hp: 22,
       maxHp: 45,
