@@ -386,6 +386,135 @@ describe("skills", () => {
     expect(executeSkill(intState, skills["fire-bolt"], damageProbe(), 1000).damage)
       .toBeGreaterThan(executeSkill(neutralState, skills["fire-bolt"], damageProbe(), 1000).damage);
   });
+
+  it("defines every Archer base skill in JSON with ranged, AoE, mobility, and passive roles", () => {
+    const archerSkills = getArcherSkills();
+
+    expect(archerSkills.map((skill) => skill.id)).toEqual([
+      "double-shot",
+      "arrow-rain",
+      "hawk-eye",
+      "quick-step",
+      "elemental-arrows",
+      "pinning-shot",
+      "focus",
+      "bow-training",
+    ]);
+    expect(archerSkills.every((skill) => skill.classId === "archer")).toBe(true);
+    expect(archerSkills.filter((skill) => skill.type === "passive").map((skill) => skill.id)).toEqual([
+      "hawk-eye",
+      "bow-training",
+    ]);
+    expect(archerSkills.filter((skill) => skill.targetingMode === "ground").map((skill) => skill.id)).toEqual([
+      "arrow-rain",
+    ]);
+    expect(archerSkills.filter((skill) => skill.targetingMode === "enemy").every((skill) => skill.range >= 172)).toBe(true);
+    expect(archerSkills.every((skill) => skill.scalingStat === "dex")).toBe(true);
+    expect(archerClass.startingSkillIds).toEqual(["pinning-shot"]);
+  });
+
+  it("executes Archer ranged single-target, AoE, movement, and stance skills from JSON", () => {
+    const skills = getArcherSkillMap();
+    const state = createCharacterGameState("Robin", archerClass);
+    state.playerProfile.level = 10;
+    state.character.stats.sp = 50;
+    state.character.skills.learned.push(
+      { id: "double-shot", level: 1 },
+      { id: "arrow-rain", level: 1 },
+      { id: "quick-step", level: 1 },
+      { id: "elemental-arrows", level: 1 },
+      { id: "focus", level: 1 },
+    );
+    let enemyHp = 100;
+    const singleTargetEffects: string[] = [];
+
+    expect(executeSkill(state, skills["pinning-shot"], {
+      kind: "enemy",
+      id: "green-jelly",
+      distance: 160,
+      hp: enemyHp,
+      applyDamage: (damage) => {
+        enemyHp -= damage;
+      },
+      applyStatusEffect: (effectId) => singleTargetEffects.push(effectId),
+    }, 1000).success).toBe(true);
+    expect(executeSkill(state, skills["double-shot"], rangedDamageProbe(), 3000).success).toBe(true);
+    expect(enemyHp).toBeLessThan(100);
+    expect(singleTargetEffects).toEqual(["slow"]);
+
+    const rainEffects: Record<string, string[]> = { slime: [], wisp: [] };
+    const rainResult = executeSkill(state, skills["arrow-rain"], {
+      kind: "ground",
+      x: 100,
+      y: 100,
+      distance: 140,
+      enemies: [
+        {
+          id: "slime",
+          hp: 30,
+          applyDamage: () => undefined,
+          applyStatusEffect: (effectId) => rainEffects.slime.push(effectId),
+        },
+        {
+          id: "wisp",
+          hp: 24,
+          applyDamage: () => undefined,
+          applyStatusEffect: (effectId) => rainEffects.wisp.push(effectId),
+        },
+      ],
+    }, 5000);
+
+    expect(rainResult).toMatchObject({
+      success: true,
+      affectedTargetIds: ["slime", "wisp"],
+    });
+    expect(rainEffects).toEqual({ slime: ["bleed"], wisp: ["bleed"] });
+
+    expect(executeSkill(state, skills["quick-step"], undefined, 11000).success).toBe(true);
+    expect(state.character.statBuffs.find((buff) => buff.sourceSkillId === "quick-step")).toMatchObject({
+      derivedStats: { moveSpeed: 18, dodge: 10 },
+    });
+
+    expect(executeSkill(state, skills["focus"], undefined, 13000).success).toBe(true);
+    expect(state.character.statBuffs.find((buff) => buff.sourceSkillId === "focus")).toMatchObject({
+      derivedStats: { rangedAttack: 6, hit: 6 },
+    });
+
+    expect(executeSkill(state, skills["elemental-arrows"], undefined, 15000).success).toBe(true);
+    expect(state.character.skills.activeToggleIds).toContain("elemental-arrows");
+    expect(state.character.statBuffs.find((buff) => buff.sourceSkillId === "elemental-arrows")).toMatchObject({
+      derivedStats: { rangedAttack: 4, magicAttack: 2 },
+    });
+  });
+
+  it("applies Archer passive stats and DEX scaling for bow skills", () => {
+    const skills = getArcherSkillMap();
+    const state = createCharacterGameState("Robin", archerClass);
+    state.character.skills.learned.push(
+      { id: "hawk-eye", level: 1 },
+      { id: "bow-training", level: 1 },
+    );
+    const before = calculateDerivedStats(state, archerClass, getItem);
+
+    applyPassiveSkills(state, Object.values(skills));
+    const after = calculateDerivedStats(state, archerClass, getItem);
+
+    expect(after.rangedAttack).toBeGreaterThan(before.rangedAttack);
+    expect(after.hit).toBeGreaterThan(before.hit);
+    expect(after.crit).toBeGreaterThan(before.crit);
+    expect(after.attackSpeed).toBeGreaterThan(before.attackSpeed);
+
+    const dexState = createCharacterGameState("Robin", archerClass);
+    const neutralState = createCharacterGameState("Robin", archerClass);
+    dexState.character.allocatedStats.dex = 5;
+    dexState.character.skills.learned.push({ id: "double-shot", level: 1 }, { id: "arrow-rain", level: 1 });
+    neutralState.character.skills.learned.push({ id: "double-shot", level: 1 }, { id: "arrow-rain", level: 1 });
+
+    expect(executeSkill(dexState, skills["double-shot"], rangedDamageProbe(), 1000).damage)
+      .toBeGreaterThan(executeSkill(neutralState, skills["double-shot"], rangedDamageProbe(), 1000).damage);
+    expect(executeSkill(dexState, skills["arrow-rain"], rainDamageProbe(), 3000).damage)
+      .toBeGreaterThan(executeSkill(neutralState, skills["arrow-rain"], rainDamageProbe(), 3000).damage);
+  });
 });
 
 function getSwordsmanSkills(): SkillDefinition[] {
@@ -408,6 +537,16 @@ function getMageSkillMap(): Record<string, SkillDefinition> {
   return Object.fromEntries(getMageSkills().map((skill) => [skill.id, skill]));
 }
 
+function getArcherSkills(): SkillDefinition[] {
+  const skills = JSON.parse(readFileSync(new URL("../../../public/assets/data/skills.json", import.meta.url), "utf8")) as SkillDefinition[];
+
+  return skills.filter((skill) => skill.classId === "archer");
+}
+
+function getArcherSkillMap(): Record<string, SkillDefinition> {
+  return Object.fromEntries(getArcherSkills().map((skill) => [skill.id, skill]));
+}
+
 function damageProbe(effects?: string[]) {
   return {
     kind: "enemy" as const,
@@ -416,6 +555,29 @@ function damageProbe(effects?: string[]) {
     hp: 100,
     applyDamage: () => undefined,
     applyStatusEffect: (effectId: string) => effects?.push(effectId),
+  };
+}
+
+function rangedDamageProbe(effects?: string[]) {
+  return {
+    ...damageProbe(effects),
+    distance: 160,
+  };
+}
+
+function rainDamageProbe() {
+  return {
+    kind: "ground" as const,
+    x: 100,
+    y: 100,
+    distance: 140,
+    enemies: [
+      {
+        id: "slime",
+        hp: 30,
+        applyDamage: () => undefined,
+      },
+    ],
   };
 }
 
@@ -482,6 +644,32 @@ const mageClass: ClassDefinition = {
   allowedWeaponTypes: ["staff"],
   startingSkillIds: ["fire-bolt"],
   startingItemIds: ["apprentice-staff"],
+  advancedClassOptions: [],
+};
+
+const archerClass: ClassDefinition = {
+  id: "archer",
+  name: "Archer",
+  description: "",
+  roleSummary: "",
+  recommendedStats: [],
+  difficultyRating: "Normal",
+  baseStats: {
+    hp: 26,
+    sp: 12,
+    attack: 7,
+    defense: 3,
+  },
+  growthRates: {
+    hp: 4,
+    sp: 3,
+    attack: 4,
+    defense: 2,
+  },
+  startingWeaponId: "shortbow",
+  allowedWeaponTypes: ["bow"],
+  startingSkillIds: ["pinning-shot"],
+  startingItemIds: ["shortbow"],
   advancedClassOptions: [],
 };
 
