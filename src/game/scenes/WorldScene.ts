@@ -18,6 +18,7 @@ import { autosaveSlot, writeAutosave, writeSaveSlot } from "../systems/autosave"
 import { getEquipmentStats } from "../systems/equipment";
 import {
   decideEnemyAiIntent,
+  getEffectiveEnemyRespawnMs,
   parseSpawnZones,
   pickSpawnPoint,
   type SpawnZoneDefinition,
@@ -295,6 +296,9 @@ export class WorldScene extends Phaser.Scene {
     this.game.canvas.dataset.enemyAliveCount = String(this.enemies.filter((enemy) => enemy.isAlive).length);
     this.game.canvas.dataset.enemyBehavior = primaryEnemy?.behavior ?? "";
     this.game.canvas.dataset.enemyTraits = primaryEnemy ? this.getEnemyTraitDataset(primaryEnemy) : "";
+    this.game.canvas.dataset.enemyVisualMarker = primaryEnemy ? this.getEnemyVisualMarkerDataset(primaryEnemy) : "none";
+    this.game.canvas.dataset.enemyRespawnMs = primaryEnemy ? String(primaryEnemy.respawnMs) : "";
+    this.game.canvas.dataset.enemyDamage = primaryEnemy ? String(primaryEnemy.stats.attack) : "";
     this.game.canvas.dataset.enemyAggroRange = primaryEnemy ? String(primaryEnemy.aggroRange) : "";
     this.game.canvas.dataset.enemyLeashDistance = primaryEnemy ? String(primaryEnemy.leashDistance) : "";
     this.game.canvas.dataset.enemyAssistRadius = primaryEnemy ? String(primaryEnemy.assistRadius) : "";
@@ -913,7 +917,9 @@ export class WorldScene extends Phaser.Scene {
     eventBus.emit("enemyKilled", { enemyId: enemy.id });
 
     const dropTable = dataRegistry.getDropTable(monster.dropTableId);
-    const drops = generateLootDrops(dropTable, dataRegistry);
+    const drops = generateLootDrops(dropTable, dataRegistry, Math.random, {
+      quality: enemy.boss ? "boss" : enemy.elite ? "elite" : "normal",
+    });
     drops.forEach((drop, index) => this.spawnLootDrop(drop, enemy.sprite.x + index * 28, enemy.sprite.y + 18));
   }
 
@@ -1250,8 +1256,10 @@ export class WorldScene extends Phaser.Scene {
       }
 
       zone.respawnTimerMs += deltaMs;
+      const monster = this.dataRegistry.getMonster(zone.monsterId);
+      const respawnMs = getEffectiveEnemyRespawnMs(zone.respawnMs, monster);
 
-      if (zone.respawnTimerMs >= zone.respawnMs) {
+      if (zone.respawnTimerMs >= respawnMs) {
         zone.respawnTimerMs = 0;
         this.spawnEnemyFromZone(zone, null);
         this.game.canvas.dataset.lastEnemyRespawn = zone.id;
@@ -1302,6 +1310,9 @@ export class WorldScene extends Phaser.Scene {
       this.game.canvas.dataset.enemyCastCooldownRemaining = "0";
       this.game.canvas.dataset.enemyCastTelegraph = "hidden";
       this.game.canvas.dataset.enemySilenced = "false";
+      this.game.canvas.dataset.enemyVisualMarker = "none";
+      this.game.canvas.dataset.enemyRespawnMs = "";
+      this.game.canvas.dataset.enemyDamage = "";
       this.syncAssistDataset();
       return;
     }
@@ -1313,6 +1324,9 @@ export class WorldScene extends Phaser.Scene {
     this.game.canvas.dataset.enemyPosition = `${this.enemy.sprite.x.toFixed(1)},${this.enemy.sprite.y.toFixed(1)}`;
     this.game.canvas.dataset.enemyBehavior = this.enemy.behavior;
     this.game.canvas.dataset.enemyTraits = this.getEnemyTraitDataset(this.enemy);
+    this.game.canvas.dataset.enemyVisualMarker = this.getEnemyVisualMarkerDataset(this.enemy);
+    this.game.canvas.dataset.enemyRespawnMs = String(this.enemy.respawnMs);
+    this.game.canvas.dataset.enemyDamage = String(this.enemy.stats.attack);
     this.game.canvas.dataset.enemyAggroRange = String(this.enemy.aggroRange);
     this.game.canvas.dataset.enemyLeashDistance = String(this.enemy.leashDistance);
     this.game.canvas.dataset.enemyAssistRadius = String(this.enemy.assistRadius);
@@ -1390,6 +1404,10 @@ export class WorldScene extends Phaser.Scene {
       enemy.boss ? "boss" : "",
       enemy.behavior === "caster" ? "caster" : "",
     ].filter((entry) => entry.length > 0).join("|");
+  }
+
+  private getEnemyVisualMarkerDataset(enemy: EnemyEntity): string {
+    return enemy.boss ? "boss-label" : enemy.elite ? "elite-label" : "none";
   }
 
   private syncCombatFormulaDataset(damage: number, hit: boolean, critical: boolean): void {
@@ -1560,10 +1578,11 @@ export class WorldScene extends Phaser.Scene {
     }
 
     const monster = this.dataRegistry.getMonster(zone.monsterId);
+    const respawnMs = getEffectiveEnemyRespawnMs(zone.respawnMs, monster);
     const spawnPoint = this.getWalkableSpawnPoint(zone);
     const enemy = new EnemyEntity(this, {
       ...monster,
-      respawnMs: zone.respawnMs,
+      respawnMs,
     }, spawnPoint);
 
     if (collisionLayer) {

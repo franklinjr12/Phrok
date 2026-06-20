@@ -31,6 +31,11 @@ export interface SpawnZoneDefinition {
   };
 }
 
+export interface EnemyRespawnDefinition {
+  elite: boolean;
+  boss: boolean;
+}
+
 export interface EnemyAiState {
   behavior: EnemyBehavior;
   mode: "idle" | "chasing" | "attacking" | "casting" | "returning" | "dead";
@@ -87,6 +92,15 @@ export function pickSpawnPoint(
     x: zone.bounds.x + random() * zone.bounds.width,
     y: zone.bounds.y + random() * zone.bounds.height,
   };
+}
+
+export function getEffectiveEnemyRespawnMs(
+  zoneRespawnMs: number,
+  monster: EnemyRespawnDefinition,
+): number {
+  const multiplier = monster.boss ? 4 : monster.elite ? 2.5 : 1;
+
+  return Math.max(1000, Math.ceil(zoneRespawnMs * multiplier));
 }
 
 export function decideEnemyAiIntent(state: EnemyAiState): EnemyAiIntent {

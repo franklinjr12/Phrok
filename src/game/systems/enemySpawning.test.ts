@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { decideEnemyAiIntent, parseSpawnZones, pickSpawnPoint } from "./enemySpawning";
+import { decideEnemyAiIntent, getEffectiveEnemyRespawnMs, parseSpawnZones, pickSpawnPoint } from "./enemySpawning";
 
 describe("enemy spawning", () => {
   it("reads monster ID, max count, respawn, and bounds from Tiled objects", () => {
@@ -40,6 +40,12 @@ describe("enemy spawning", () => {
       respawnMs: 1000,
       bounds: { x: 10, y: 20, width: 100, height: 50 },
     }, () => 0.5)).toEqual({ x: 60, y: 45 });
+  });
+
+  it("slows elite and boss respawns compared with normal monsters", () => {
+    expect(getEffectiveEnemyRespawnMs(4000, { elite: false, boss: false })).toBe(4000);
+    expect(getEffectiveEnemyRespawnMs(4000, { elite: true, boss: false })).toBe(10000);
+    expect(getEffectiveEnemyRespawnMs(4000, { elite: false, boss: true })).toBe(16000);
   });
 });
 

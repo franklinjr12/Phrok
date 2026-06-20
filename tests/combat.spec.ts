@@ -340,3 +340,56 @@ test("caster enemies can be silenced", async ({ page }) => {
   await expect(canvas).toHaveAttribute("data-enemy-silenced", "true");
   await expect(canvas).toHaveAttribute("data-enemy-cast-telegraph", "hidden");
 });
+
+test("elite enemies show markers, hit harder, drop better loot, and respawn slower", async ({ page }) => {
+  await page.route("**/assets/data/monsters.json", async (route) => {
+    const response = await route.fetch();
+    const monsters = await response.json() as Array<Record<string, unknown>>;
+
+    await route.fulfill({
+      response,
+      json: monsters.map((monster) => monster.id === "green-jelly"
+        ? {
+          ...monster,
+          hp: 6,
+          attack: 3,
+          elite: true,
+        }
+        : monster),
+    });
+  });
+  await page.route("**/assets/maps/crownfield-meadows.json", async (route) => {
+    const response = await route.fetch();
+    const map = await response.json() as {
+      layers: Array<{
+        name?: string;
+        objects?: Array<Record<string, unknown>>;
+      }>;
+    };
+    const objectLayer = map.layers.find((layer) => layer.name === "Objects");
+    const jellyGrove = objectLayer?.objects?.find((object) => object.name === "JellyGrove");
+
+    if (jellyGrove) {
+      jellyGrove.properties = [
+        { name: "monsterId", type: "string", value: "green-jelly" },
+        { name: "maxCount", type: "int", value: 1 },
+        { name: "respawnMs", type: "int", value: 1000 },
+      ];
+    }
+
+    await route.fulfill({ response, json: map });
+  });
+  await startApp(page);
+
+  const canvas = await enterMeadows(page);
+  await expect(canvas).toHaveAttribute("data-enemy-traits", "elite");
+  await expect(canvas).toHaveAttribute("data-enemy-visual-marker", "elite-label");
+  await expect(canvas).toHaveAttribute("data-enemy-hp", "11/11");
+  await expect(canvas).toHaveAttribute("data-enemy-damage", "5");
+  await expect(canvas).toHaveAttribute("data-enemy-respawn-ms", "2500");
+
+  await canvas.click({ position: { x: 528, y: 300 } });
+  await expect.poll(async () => await canvas.getAttribute("data-enemy-alive"), { timeout: 6000 }).toBe("false");
+  await expect(canvas).toHaveAttribute("data-pending-loot-count", "2");
+  await expect(canvas).toHaveAttribute("data-last-loot-drop", /gold:([6-9]|10)/);
+});

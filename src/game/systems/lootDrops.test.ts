@@ -17,6 +17,24 @@ describe("generateLootDrops", () => {
       { kind: "gold", quantity: 4 },
     ]);
   });
+
+  it("improves elite drop chances and quantities", () => {
+    const dropTable = {
+      id: "elite-jelly-drops",
+      entries: [
+        { type: "item" as const, itemId: "jelly-gel", chance: 0.7, minQuantity: 1, maxQuantity: 1 },
+        { type: "gold" as const, chance: 0.1, minQuantity: 2, maxQuantity: 3 },
+      ],
+    };
+
+    expect(generateLootDrops(dropTable, createRegistry(), createRandom([0.85, 0.25]))).toEqual([]);
+    expect(generateLootDrops(dropTable, createRegistry(), createRandom([0.85, 0, 0.25, 0.9]), {
+      quality: "elite",
+    })).toEqual([
+      { kind: "item", itemId: "jelly-gel", quantity: 2 },
+      { kind: "gold", quantity: 6 },
+    ]);
+  });
 });
 
 function createRegistry(): DataRegistry {
