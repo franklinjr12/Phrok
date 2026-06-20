@@ -46,6 +46,9 @@ export class EnemyEntity {
   private readonly highlight: Phaser.GameObjects.Ellipse;
   private readonly hpBarBackground: Phaser.GameObjects.Rectangle;
   private readonly hpBarFill: Phaser.GameObjects.Rectangle;
+  private readonly castTelegraph: Phaser.GameObjects.Ellipse;
+  private readonly castBarBackground: Phaser.GameObjects.Rectangle;
+  private readonly castBarFill: Phaser.GameObjects.Rectangle;
   private readonly traitMarker?: Phaser.GameObjects.Text;
 
   constructor(scene: Phaser.Scene, monster: MonsterDefinition, position: Phaser.Math.Vector2) {
@@ -88,6 +91,17 @@ export class EnemyEntity {
     this.hpBarFill = scene.add.rectangle(position.x - 21, position.y - 34, 42, 4, 0x22c55e, 1)
       .setOrigin(0, 0.5)
       .setDepth(22);
+    this.castTelegraph = scene.add.ellipse(position.x, position.y + 15, 76, 36, 0x38bdf8, 0.18)
+      .setStrokeStyle(2, 0x7dd3fc, 0.9)
+      .setDepth(13)
+      .setVisible(false);
+    this.castBarBackground = scene.add.rectangle(position.x, position.y - 44, 46, 5, 0x0f172a, 0.85)
+      .setDepth(23)
+      .setVisible(false);
+    this.castBarFill = scene.add.rectangle(position.x - 22, position.y - 44, 0, 3, 0x7dd3fc, 1)
+      .setOrigin(0, 0.5)
+      .setDepth(24)
+      .setVisible(false);
     if (monster.elite || monster.boss) {
       this.traitMarker = scene.add.text(position.x, position.y - 52, monster.boss ? "BOSS" : "ELITE", {
         color: monster.boss ? "#fca5a5" : "#fde68a",
@@ -131,8 +145,30 @@ export class EnemyEntity {
     this.highlight.destroy();
     this.hpBarBackground.destroy();
     this.hpBarFill.destroy();
+    this.castTelegraph.destroy();
+    this.castBarBackground.destroy();
+    this.castBarFill.destroy();
     this.traitMarker?.destroy();
     this.sprite.destroy();
+  }
+
+  setCastProgress(progress: number | null): void {
+    const visible = progress !== null && this.isAlive;
+    const clampedProgress = Phaser.Math.Clamp(progress ?? 0, 0, 1);
+
+    this.castTelegraph.setVisible(visible);
+    this.castBarBackground.setVisible(visible);
+    this.castBarFill
+      .setVisible(visible)
+      .setDisplaySize(44 * clampedProgress, 3);
+
+    if (visible) {
+      this.castTelegraph.setAlpha(0.14 + clampedProgress * 0.18);
+    }
+  }
+
+  updateVisuals(): void {
+    this.syncVisuals();
   }
 
   private die(): void {
@@ -144,6 +180,7 @@ export class EnemyEntity {
     this.highlight.setVisible(false);
     this.hpBarBackground.setVisible(false);
     this.hpBarFill.setVisible(false);
+    this.setCastProgress(null);
     this.traitMarker?.setVisible(false);
     this.sprite.disableBody(true, true);
   }
@@ -152,6 +189,9 @@ export class EnemyEntity {
     this.highlight.setPosition(this.sprite.x, this.sprite.y + 15);
     this.hpBarBackground.setPosition(this.sprite.x, this.sprite.y - 34);
     this.hpBarFill.setPosition(this.sprite.x - 21, this.sprite.y - 34);
+    this.castTelegraph.setPosition(this.sprite.x, this.sprite.y + 15);
+    this.castBarBackground.setPosition(this.sprite.x, this.sprite.y - 44);
+    this.castBarFill.setPosition(this.sprite.x - 22, this.sprite.y - 44);
     this.traitMarker?.setPosition(this.sprite.x, this.sprite.y - 52);
     this.hpBarFill.displayWidth = Math.max(0, 42 * (this.hp / this.maxHp));
   }

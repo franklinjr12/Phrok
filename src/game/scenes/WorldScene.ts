@@ -49,6 +49,7 @@ const tiledLayerNames = {
 const playerAttackRange = 62;
 const playerAttackCooldownMs = 850;
 const enemyAttackCooldownMs = 1250;
+const enemyCastWindupMs = 700;
 
 type PrototypeTilemapLayer = Phaser.Tilemaps.TilemapLayer | Phaser.Tilemaps.TilemapGPULayer;
 type WorldSceneData = {
@@ -82,6 +83,7 @@ type EnemyRuntime = {
   elapsedInCombatMs: number;
   attackTimerMs: number;
   castTimerMs: number;
+  castWindupMs: number | null;
 };
 
 export class WorldScene extends Phaser.Scene {
@@ -296,6 +298,11 @@ export class WorldScene extends Phaser.Scene {
     this.game.canvas.dataset.enemyAggroRange = primaryEnemy ? String(primaryEnemy.aggroRange) : "";
     this.game.canvas.dataset.enemyLeashDistance = primaryEnemy ? String(primaryEnemy.leashDistance) : "";
     this.game.canvas.dataset.enemyAssistRadius = primaryEnemy ? String(primaryEnemy.assistRadius) : "";
+    this.game.canvas.dataset.enemyCastRange = primaryEnemy ? String(primaryEnemy.castRange) : "";
+    this.game.canvas.dataset.enemyCastCooldown = primaryEnemy ? String(primaryEnemy.castCooldownMs) : "";
+    this.game.canvas.dataset.enemyCastCooldownRemaining = "0";
+    this.game.canvas.dataset.enemyCastTelegraph = "hidden";
+    this.game.canvas.dataset.enemySilenced = "false";
     this.game.canvas.dataset.enemyAssistedCount = "0";
     this.game.canvas.dataset.debugAssistRadius = "hidden";
     this.game.canvas.dataset.bossUi = "hidden";
@@ -556,7 +563,9 @@ export class WorldScene extends Phaser.Scene {
     const enemyCanAttack = this.canEnemyAttackPlayer(enemy, runtime);
 
     if (distanceToTarget > playerAttackRange) {
-      enemy.behaviorMode = enemyCanAttack ? "chasing" : "idle";
+      if (enemy.behavior !== "caster") {
+        enemy.behaviorMode = enemyCanAttack ? "chasing" : "idle";
+      }
       this.game.canvas.dataset.autoAttack = "moving-to-range";
 
       if (!player.destination && player.path.length === 0) {
@@ -567,7 +576,9 @@ export class WorldScene extends Phaser.Scene {
     }
 
     player.clearDestination();
-    enemy.behaviorMode = enemyCanAttack ? "attacking" : "idle";
+    if (enemy.behavior !== "caster") {
+      enemy.behaviorMode = enemyCanAttack ? "attacking" : "idle";
+    }
     this.game.canvas.dataset.autoAttack = "attacking";
     this.playerAttackTimerMs += deltaMs;
 
@@ -577,6 +588,7 @@ export class WorldScene extends Phaser.Scene {
 
     if (
       enemyCanAttack
+      && enemy.behavior !== "caster"
       && enemy.isAlive
       && distanceToTarget <= enemy.attackRange
       && (!runtime || runtime.attackTimerMs >= enemyAttackCooldownMs)
@@ -1027,10 +1039,14 @@ export class WorldScene extends Phaser.Scene {
         enemy.behaviorMode = "dead";
         runtime.damagedByPlayer = false;
         runtime.assistedByAlly = false;
+        runtime.castWindupMs = null;
+        enemy.setCastProgress(null);
         continue;
       }
 
-      if (this.attackTarget === enemy) {
+      enemy.updateVisuals();
+
+      if (this.attackTarget === enemy && enemy.behavior !== "caster") {
         this.stopEnemy(enemy);
         continue;
       }
@@ -1039,7 +1055,8 @@ export class WorldScene extends Phaser.Scene {
         || runtime.assistedByAlly
         || this.attackTarget === enemy
         || enemy.behaviorMode === "chasing"
-        || enemy.behaviorMode === "attacking";
+        || enemy.behaviorMode === "attacking"
+        || enemy.behaviorMode === "casting";
       runtime.elapsedInCombatMs = inCombat ? runtime.elapsedInCombatMs + deltaMs : 0;
       runtime.castTimerMs += deltaMs;
 
@@ -1088,6 +1105,8 @@ export class WorldScene extends Phaser.Scene {
       enemy.behaviorMode = "idle";
       runtime.damagedByPlayer = false;
       runtime.assistedByAlly = false;
+      runtime.castWindupMs = null;
+      enemy.setCastProgress(null);
       this.stopEnemy(enemy);
       return;
     }
@@ -1096,17 +1115,48 @@ export class WorldScene extends Phaser.Scene {
       enemy.behaviorMode = "returning";
       runtime.damagedByPlayer = false;
       runtime.assistedByAlly = false;
+      runtime.castWindupMs = null;
+      enemy.setCastProgress(null);
       this.moveEnemyToward(enemy, runtime.home, 54);
       this.game.canvas.dataset.lastEnemyLeash = enemy.id;
       return;
     }
 
     if (intent === "cast") {
-      enemy.behaviorMode = "casting";
+      const distanceToPlayer = Phaser.Math.Distance.Between(
+        enemy.sprite.x,
+        enemy.sprite.y,
+        this.player.sprite.x,
+        this.player.sprite.y,
+      );
+      const retreatDistance = this.getCasterRetreatDistance(enemy);
+
+      if (distanceToPlayer < retreatDistance && this.moveEnemyAwayFrom(enemy, this.player.position, 58)) {
+        enemy.behaviorMode = "chasing";
+        runtime.castWindupMs = null;
+        enemy.setCastProgress(null);
+        this.game.canvas.dataset.lastEnemyKeepDistance = `${enemy.id}:${Math.round(distanceToPlayer)}<${Math.round(retreatDistance)}`;
+        return;
+      }
+
       this.stopEnemy(enemy);
 
-      if (runtime.castTimerMs >= enemy.castCooldownMs) {
+      if (runtime.castTimerMs < enemy.castCooldownMs) {
+        enemy.behaviorMode = "attacking";
+        runtime.castWindupMs = null;
+        enemy.setCastProgress(null);
+        return;
+      }
+
+      enemy.behaviorMode = "casting";
+      runtime.castWindupMs = (runtime.castWindupMs ?? 0) + deltaMs;
+      enemy.setCastProgress(runtime.castWindupMs / enemyCastWindupMs);
+      this.game.canvas.dataset.lastEnemyCastStart = enemy.id;
+
+      if (runtime.castWindupMs >= enemyCastWindupMs) {
         runtime.castTimerMs = 0;
+        runtime.castWindupMs = null;
+        enemy.setCastProgress(null);
         this.enemyAttack(enemy);
         this.game.canvas.dataset.lastEnemyCast = enemy.id;
       }
@@ -1116,6 +1166,8 @@ export class WorldScene extends Phaser.Scene {
     if (intent === "attack") {
       enemy.behaviorMode = "attacking";
       this.stopEnemy(enemy);
+      runtime.castWindupMs = null;
+      enemy.setCastProgress(null);
       runtime.attackTimerMs += deltaMs;
 
       if (enemy !== this.attackTarget && runtime.attackTimerMs >= enemyAttackCooldownMs) {
@@ -1126,7 +1178,39 @@ export class WorldScene extends Phaser.Scene {
     }
 
     enemy.behaviorMode = "chasing";
+    runtime.castWindupMs = null;
+    enemy.setCastProgress(null);
     this.moveEnemyToward(enemy, this.player.position, 62);
+  }
+
+  private getCasterRetreatDistance(enemy: EnemyEntity): number {
+    return Math.min(enemy.castRange - 16, Math.max(enemy.attackRange + 26, enemy.castRange * 0.58));
+  }
+
+  private moveEnemyAwayFrom(enemy: EnemyEntity, threat: { x: number; y: number }, speed: number): boolean {
+    const body = enemy.sprite.body as Phaser.Physics.Arcade.Body | null;
+
+    if (!body) {
+      return false;
+    }
+
+    const direction = new Phaser.Math.Vector2(enemy.sprite.x - threat.x, enemy.sprite.y - threat.y);
+
+    if (direction.length() <= 1) {
+      direction.set(1, 0);
+    }
+
+    direction.normalize();
+    const nextX = enemy.sprite.x + direction.x * 16;
+    const nextY = enemy.sprite.y + direction.y * 16;
+
+    if (!this.isWalkable(nextX, nextY)) {
+      body.setVelocity(0, 0);
+      return false;
+    }
+
+    body.setVelocity(direction.x * speed, direction.y * speed);
+    return true;
   }
 
   private moveEnemyToward(enemy: EnemyEntity, target: { x: number; y: number }, speed: number): void {
@@ -1213,6 +1297,11 @@ export class WorldScene extends Phaser.Scene {
       this.game.canvas.dataset.enemyCombatState = "";
       this.game.canvas.dataset.enemySelected = "false";
       this.game.canvas.dataset.enemyAlive = "false";
+      this.game.canvas.dataset.enemyCastRange = "";
+      this.game.canvas.dataset.enemyCastCooldown = "";
+      this.game.canvas.dataset.enemyCastCooldownRemaining = "0";
+      this.game.canvas.dataset.enemyCastTelegraph = "hidden";
+      this.game.canvas.dataset.enemySilenced = "false";
       this.syncAssistDataset();
       return;
     }
@@ -1227,10 +1316,29 @@ export class WorldScene extends Phaser.Scene {
     this.game.canvas.dataset.enemyAggroRange = String(this.enemy.aggroRange);
     this.game.canvas.dataset.enemyLeashDistance = String(this.enemy.leashDistance);
     this.game.canvas.dataset.enemyAssistRadius = String(this.enemy.assistRadius);
+    this.game.canvas.dataset.enemyCastRange = String(this.enemy.castRange);
+    this.game.canvas.dataset.enemyCastCooldown = String(this.enemy.castCooldownMs);
     this.game.canvas.dataset.enemyStatusEffects = this.dataRegistry
       ? getStatusSummary(this.enemy.statusEffects, (id) => this.dataRegistry!.getStatusEffect(id))
       : "";
+    this.syncCasterDataset(this.enemy);
     this.syncAssistDataset();
+  }
+
+  private syncCasterDataset(enemy: EnemyEntity): void {
+    const runtime = this.getEnemyRuntime(enemy);
+    const cooldownRemaining = runtime
+      ? Math.max(0, Math.ceil(enemy.castCooldownMs - runtime.castTimerMs))
+      : 0;
+    const castProgress = runtime?.castWindupMs === null || runtime?.castWindupMs === undefined
+      ? 0
+      : Phaser.Math.Clamp(runtime.castWindupMs / enemyCastWindupMs, 0, 1);
+
+    this.game.canvas.dataset.enemyCastCooldownRemaining = String(cooldownRemaining);
+    this.game.canvas.dataset.enemyCastTelegraph = runtime?.castWindupMs === null || runtime?.castWindupMs === undefined
+      ? "hidden"
+      : `visible:${castProgress.toFixed(2)}`;
+    this.game.canvas.dataset.enemySilenced = String(this.hasEnemyControl(enemy, "silence"));
   }
 
   private syncAssistDataset(): void {
@@ -1472,6 +1580,7 @@ export class WorldScene extends Phaser.Scene {
       elapsedInCombatMs: 0,
       attackTimerMs: enemyAttackCooldownMs,
       castTimerMs: enemy.castCooldownMs,
+      castWindupMs: null,
     });
     this.refreshPrimaryEnemy();
   }

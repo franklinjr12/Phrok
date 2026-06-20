@@ -203,3 +203,140 @@ test("assist enemies locally join when a nearby ally is attacked", async ({ page
   await expect.poll(async () => await canvas.getAttribute("data-enemy-assisted-count"), { timeout: 5000 }).toBe("1");
   await expect(canvas).toHaveAttribute("data-last-assist-call", "green-jelly:green-jelly");
 });
+
+test("caster enemies keep distance, cast on cooldown, and show telegraphs", async ({ page }) => {
+  await page.route("**/assets/data/monsters.json", async (route) => {
+    const response = await route.fetch();
+    const monsters = await response.json() as Array<Record<string, unknown>>;
+
+    await route.fulfill({
+      response,
+      json: monsters.map((monster) => monster.id === "green-jelly"
+        ? {
+          ...monster,
+          behavior: "caster",
+          hp: 80,
+          attack: 1,
+          aggroRange: 220,
+          attackRange: 44,
+          castRange: 170,
+          castCooldownMs: 900,
+          leashDistance: 360,
+          leashTimeoutMs: 7000,
+        }
+        : monster),
+    });
+  });
+  await page.route("**/assets/maps/crownfield-meadows.json", async (route) => {
+    const response = await route.fetch();
+    const map = await response.json() as {
+      layers: Array<{
+        name?: string;
+        objects?: Array<Record<string, unknown>>;
+      }>;
+    };
+    const objectLayer = map.layers.find((layer) => layer.name === "Objects");
+    const jellyGrove = objectLayer?.objects?.find((object) => object.name === "JellyGrove");
+
+    if (jellyGrove) {
+      jellyGrove.x = 132;
+      jellyGrove.y = 304;
+      jellyGrove.width = 32;
+      jellyGrove.height = 32;
+    }
+
+    await route.fulfill({ response, json: map });
+  });
+  await startApp(page);
+
+  const canvas = await enterMeadows(page);
+  await expect(canvas).toHaveAttribute("data-enemy-behavior", "caster");
+  await expect(canvas).toHaveAttribute("data-enemy-cast-range", "170");
+  await expect(canvas).toHaveAttribute("data-enemy-cast-cooldown", "900");
+
+  const initialPosition = await canvas.getAttribute("data-enemy-position");
+
+  await expect.poll(async () => await canvas.getAttribute("data-last-enemy-keep-distance"), { timeout: 4000 }).toMatch(/^green-jelly:/);
+  await expect.poll(async () => await canvas.getAttribute("data-enemy-position")).not.toBe(initialPosition);
+  await expect.poll(async () => await canvas.getAttribute("data-enemy-cast-telegraph"), { timeout: 5000 }).toMatch(/^visible:/);
+  await expect.poll(async () => await canvas.getAttribute("data-last-enemy-cast"), { timeout: 7000 }).toBe("green-jelly");
+  await expect.poll(async () => Number(await canvas.getAttribute("data-enemy-cast-cooldown-remaining"))).toBeGreaterThan(0);
+});
+
+test("caster enemies can be silenced", async ({ page }) => {
+  await page.route("**/assets/data/monsters.json", async (route) => {
+    const response = await route.fetch();
+    const monsters = await response.json() as Array<Record<string, unknown>>;
+
+    await route.fulfill({
+      response,
+      json: monsters.map((monster) => monster.id === "green-jelly"
+        ? {
+          ...monster,
+          behavior: "caster",
+          hp: 80,
+          attack: 1,
+          aggroRange: 0,
+          attackRange: 44,
+          castRange: 70,
+          castCooldownMs: 900,
+          leashDistance: 360,
+          leashTimeoutMs: 7000,
+        }
+        : monster),
+    });
+  });
+  await page.route("**/assets/data/skills.json", async (route) => {
+    const response = await route.fetch();
+    const skills = await response.json() as Array<Record<string, unknown>>;
+
+    await route.fulfill({
+      response,
+      json: skills.map((skill) => skill.id === "power-slash"
+        ? {
+          ...skill,
+          statusEffects: ["silence"],
+        }
+        : skill),
+    });
+  });
+  await page.route("**/assets/maps/crownfield-meadows.json", async (route) => {
+    const response = await route.fetch();
+    const map = await response.json() as {
+      layers: Array<{
+        name?: string;
+        objects?: Array<Record<string, unknown>>;
+      }>;
+    };
+    const objectLayer = map.layers.find((layer) => layer.name === "Objects");
+    const jellyGrove = objectLayer?.objects?.find((object) => object.name === "JellyGrove");
+
+    if (jellyGrove) {
+      jellyGrove.x = 132;
+      jellyGrove.y = 304;
+      jellyGrove.width = 32;
+      jellyGrove.height = 32;
+    }
+
+    await route.fulfill({ response, json: map });
+  });
+  await startApp(page);
+
+  const canvas = await enterMeadows(page);
+
+  await expect(canvas).toHaveAttribute("data-enemy-behavior", "caster");
+  await expect.poll(async () => {
+    const enemyPosition = (await canvas.getAttribute("data-enemy-position")) ?? "132,304";
+    const [enemyX, enemyY] = enemyPosition.split(",").map((value) => Number(value));
+
+    await canvas.click({ position: { x: enemyX, y: enemyY } });
+    return await canvas.getAttribute("data-enemy-selected");
+  }, { timeout: 4000 }).toBe("true");
+  await expect.poll(async () => {
+    await page.keyboard.press("Digit1");
+    return await canvas.getAttribute("data-enemy-status-effects");
+  }, { timeout: 7000 }).toContain("silence:Silence");
+
+  await expect(canvas).toHaveAttribute("data-enemy-silenced", "true");
+  await expect(canvas).toHaveAttribute("data-enemy-cast-telegraph", "hidden");
+});
