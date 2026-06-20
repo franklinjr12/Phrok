@@ -518,10 +518,10 @@ export class UIScene extends Phaser.Scene {
     this.game.canvas.dataset.skillPanelPoints = String(state.playerProfile.skillPoints);
 
     classSkills.forEach((skill, index) => {
-      const y = 158 + index * 50;
+      const y = 150 + index * 34;
       const level = getLearnedSkillLevel(state, skill.id);
       const locked = !this.isSkillUnlocked(state, skill);
-      const row = this.addPanelRectangle(96, y, 330, 40, index === this.selectedSkillIndex ? 0x293548 : 0x18222c, 0.94)
+      const row = this.addPanelRectangle(96, y, 330, 28, index === this.selectedSkillIndex ? 0x293548 : 0x18222c, 0.94)
         .setOrigin(0)
         .setStrokeStyle(1, index === this.selectedSkillIndex ? 0xfacc15 : 0x334155, 0.9)
         .setInteractive({ useHandCursor: true });
@@ -529,25 +529,27 @@ export class UIScene extends Phaser.Scene {
         this.selectedSkillIndex = index;
         this.renderPanel();
       });
-      this.addPanelText(110, y + 6, `${skill.name} ${level}/${skill.maxSkillLevel}`, 14, locked ? "#94a3b8" : "#f8fafc");
-      this.addPanelText(292, y + 6, skill.type, 13, "#cbd5e1");
-      this.addPanelText(352, y + 6, locked ? `Req Lv ${skill.requiredLevel}` : "Unlocked", 12, locked ? "#fca5a5" : "#bbf7d0");
+      this.addPanelText(110, y + 5, `${skill.name} ${level}/${skill.maxSkillLevel}`, 13, locked ? "#94a3b8" : "#f8fafc");
+      this.addPanelText(292, y + 5, skill.type, 12, "#cbd5e1");
+      this.addPanelText(352, y + 5, locked ? `Req Lv ${skill.requiredLevel}` : "Unlocked", 11, locked ? "#fca5a5" : "#bbf7d0");
     });
 
     if (selectedSkill) {
       const level = getLearnedSkillLevel(state, selectedSkill.id);
+      const effectText = this.getSkillEffectText(selectedSkill);
       this.addPanelRectangle(456, 158, 230, 240, 0x17212b, 0.95)
         .setOrigin(0)
         .setStrokeStyle(1, 0x475569, 0.86);
       this.addPanelText(476, 178, selectedSkill.name, 17, "#f8fafc");
       this.addPanelText(476, 208, `Level ${level}/${selectedSkill.maxSkillLevel}   ${selectedSkill.targetingMode}`, 13, "#cbd5e1");
       this.addPanelText(476, 236, this.wrapText(selectedSkill.description, 24), 13, "#cbd5e1");
-      this.addPanelText(476, 306, `SP ${selectedSkill.spCost}  CD ${selectedSkill.cooldown}ms`, 13, "#93c5fd");
-      this.addPanelText(476, 332, this.getSkillRequirementText(state, selectedSkill), 12, this.isSkillUnlocked(state, selectedSkill) ? "#bbf7d0" : "#fca5a5");
+      this.addPanelText(476, 296, this.wrapText(effectText, 27), 12, "#fde68a");
+      this.addPanelText(476, 348, `SP ${selectedSkill.spCost}  CD ${selectedSkill.cooldown}ms`, 13, "#93c5fd");
+      this.addPanelText(476, 374, this.getSkillRequirementText(state, selectedSkill), 12, this.isSkillUnlocked(state, selectedSkill) ? "#bbf7d0" : "#fca5a5");
       this.game.canvas.dataset.selectedSkill = selectedSkill.id;
       this.game.canvas.dataset.selectedSkillLevel = String(level);
       this.game.canvas.dataset.selectedSkillLocked = String(!this.isSkillUnlocked(state, selectedSkill));
-      this.game.canvas.dataset.selectedSkillTooltip = `${selectedSkill.type}|${selectedSkill.targetingMode}|${this.getSkillRequirementText(state, selectedSkill)}`;
+      this.game.canvas.dataset.selectedSkillTooltip = `${selectedSkill.type}|${selectedSkill.targetingMode}|${effectText}|${this.getSkillRequirementText(state, selectedSkill)}`;
     }
 
     this.addPanelButton(456, 420, 86, 34, "Level", () => this.levelSelectedSkill());
@@ -1267,6 +1269,57 @@ export class UIScene extends Phaser.Scene {
     this.game.canvas.dataset.selectedInventoryItemRarity = item ? getItemRarity(item) : "";
     this.game.canvas.dataset.selectedInventoryItemDescription = item?.description ?? "";
     this.game.canvas.dataset.selectedInventoryItemSource = source ?? "";
+  }
+
+  private getSkillEffectText(skill: SkillDefinition): string {
+    const effects: string[] = [];
+
+    if (skill.damageMultiplier > 0) {
+      const scaling = skill.scalingStat === "none" ? "flat" : baseStatLabels[skill.scalingStat];
+      effects.push(`Damage ${skill.damageMultiplier}x ${scaling}`);
+    }
+
+    effects.push(...this.getSkillModifierText("Passive", skill.passiveModifiers));
+
+    if (skill.buff) {
+      effects.push(`Buff ${skill.buff.duration}ms`);
+      effects.push(...this.getSkillModifierText("Buff", skill.buff));
+    }
+
+    if (skill.statusEffects.length > 0) {
+      effects.push(`Status ${skill.statusEffects.join(", ")}`);
+    }
+
+    if (skill.area > 0) {
+      effects.push(`Area ${skill.area}`);
+    }
+
+    return effects.length > 0 ? effects.join("; ") : "Utility effect";
+  }
+
+  private getSkillModifierText(
+    label: string,
+    modifier?: SkillDefinition["passiveModifiers"] | NonNullable<SkillDefinition["buff"]>,
+  ): string[] {
+    const effects: string[] = [];
+
+    for (const [stat, value] of Object.entries(modifier?.baseStats ?? {})) {
+      if (typeof value === "number") {
+        effects.push(`${label} ${baseStatLabels[stat as BaseStatKey] ?? stat} ${this.formatSigned(value)}`);
+      }
+    }
+
+    for (const [stat, value] of Object.entries(modifier?.derivedStats ?? {})) {
+      if (typeof value === "number") {
+        effects.push(`${label} ${stat} ${this.formatSigned(value)}`);
+      }
+    }
+
+    return effects;
+  }
+
+  private formatSigned(value: number): string {
+    return value > 0 ? `+${value}` : String(value);
   }
 
   private clampSelectedSkillIndex(skills: SkillDefinition[]): number {

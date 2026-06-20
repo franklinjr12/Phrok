@@ -49,7 +49,10 @@ test("new game flows from character creation to world with ui state", async ({ p
   await expect(canvas).toHaveAttribute("data-player-stat-points", "0");
   await expect(canvas).toHaveAttribute("data-player-skill-points", "0");
   await expect(canvas).toHaveAttribute("data-player-class", "swordsman");
-  await expect(canvas).toHaveAttribute("data-class-skills", "power-slash|guard-stance|blade-mastery");
+  await expect(canvas).toHaveAttribute(
+    "data-class-skills",
+    "power-slash|guard-stance|iron-body|sweeping-cut|battle-cry|endure-pain|weapon-training|counter-blow",
+  );
   await expect(canvas).toHaveAttribute("data-learned-skills", "power-slash:1");
   await expect(canvas).toHaveAttribute("data-player-attack-stat", "29");
   await expect(canvas).toHaveAttribute("data-player-base-stats", "str:8|agi:5|vit:7|int:3|dex:5|luk:4");

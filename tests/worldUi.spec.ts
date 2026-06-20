@@ -71,11 +71,14 @@ test("skill screen supports leveling, requirements, hotbar assignment, and persi
   await expect(canvas).toHaveAttribute("data-skill-panel", "visible");
   await expect(canvas).toHaveAttribute("data-skill-groups", "swordsman");
   await expect(canvas).toHaveAttribute("data-skill-panel-points", "0");
-  await expect(canvas).toHaveAttribute("data-class-skills", "power-slash|guard-stance|blade-mastery");
+  await expect(canvas).toHaveAttribute(
+    "data-class-skills",
+    "power-slash|guard-stance|iron-body|sweeping-cut|battle-cry|endure-pain|weapon-training|counter-blow",
+  );
   await expect(canvas).toHaveAttribute("data-selected-skill", "power-slash");
   await expect(canvas).toHaveAttribute("data-selected-skill-level", "1");
   await expect(canvas).toHaveAttribute("data-selected-skill-locked", "false");
-  await expect(canvas).toHaveAttribute("data-selected-skill-tooltip", /active\|enemy\|Unlocked/);
+  await expect(canvas).toHaveAttribute("data-selected-skill-tooltip", /active\|enemy\|Damage 1\.15x STR; Status armor-break, stun\|Unlocked/);
   await expect(canvas).toHaveAttribute("data-skill-panel-buttons", "Level|Slot 1|Potion|Close");
 
   await canvas.click({ position: { x: 482, y: 438 } });
