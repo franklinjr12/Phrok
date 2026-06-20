@@ -66,6 +66,23 @@ describe("enemy AI intent", () => {
     expect(decideEnemyAiIntent({ ...baseState, behavior: "passive", damagedByPlayer: true })).toBe("attack");
   });
 
+  it("keeps returning enemies moving home before idling again", () => {
+    expect(decideEnemyAiIntent({
+      ...baseState,
+      behavior: "passive",
+      mode: "returning",
+      position: { x: 40, y: 0 },
+      playerPosition: { x: 40, y: 0 },
+    })).toBe("return");
+    expect(decideEnemyAiIntent({
+      ...baseState,
+      behavior: "passive",
+      mode: "returning",
+      position: { x: 4, y: 0 },
+      playerPosition: { x: 40, y: 0 },
+    })).toBe("idle");
+  });
+
   it("aggroes aggressive, assist, and caster enemies according to their rules", () => {
     expect(decideEnemyAiIntent({ ...baseState, behavior: "aggressive", playerPosition: { x: 120, y: 0 } })).toBe("idle");
     expect(decideEnemyAiIntent({ ...baseState, behavior: "aggressive" })).toBe("attack");

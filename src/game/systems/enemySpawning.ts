@@ -96,6 +96,11 @@ export function decideEnemyAiIntent(state: EnemyAiState): EnemyAiIntent {
   const distanceToPlayer = distance(state.position, state.playerPosition);
   const distanceFromHome = distance(state.position, state.home);
   const leashed = distanceFromHome > state.leashDistance || state.elapsedInCombatMs > state.leashTimeoutMs;
+
+  if (state.mode === "returning" && !state.damagedByPlayer && distanceFromHome > 8) {
+    return "return";
+  }
+
   const hasAggro = state.damagedByPlayer
     || ((state.behavior === "aggressive" || state.behavior === "caster") && distanceToPlayer <= state.aggroRange)
     || (state.behavior === "assist" && (distanceToPlayer <= state.aggroRange || state.allyInCombat));

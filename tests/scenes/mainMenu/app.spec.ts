@@ -423,7 +423,7 @@ test("world supports target selection and auto-attack combat", async ({ page }) 
   await expect(canvas).toHaveAttribute("data-monster-spawn-zone-count", "1");
   await expect(canvas).toHaveAttribute("data-monster-spawn-zones", "JellyGrove:green-jelly:1");
   await expect(canvas).toHaveAttribute("data-enemy-entity-count", "1");
-  await expect(canvas).toHaveAttribute("data-enemy-behavior", "aggressive");
+  await expect(canvas).toHaveAttribute("data-enemy-behavior", "passive");
   await expect(canvas).toHaveAttribute("data-enemy-aggro-range", "150");
   await expect(canvas).toHaveAttribute("data-enemy-leash-distance", "240");
   await expect(canvas).toHaveAttribute("data-gathering-spot-count", "1");

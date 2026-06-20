@@ -542,8 +542,11 @@ export class WorldScene extends Phaser.Scene {
       enemy.sprite.y,
     );
 
+    const runtime = this.getEnemyRuntime(enemy);
+    const enemyCanAttack = this.canEnemyAttackPlayer(enemy, runtime);
+
     if (distanceToTarget > playerAttackRange) {
-      enemy.behaviorMode = "chasing";
+      enemy.behaviorMode = enemyCanAttack ? "chasing" : "idle";
       this.game.canvas.dataset.autoAttack = "moving-to-range";
 
       if (!player.destination && player.path.length === 0) {
@@ -554,17 +557,17 @@ export class WorldScene extends Phaser.Scene {
     }
 
     player.clearDestination();
-    enemy.behaviorMode = "attacking";
+    enemy.behaviorMode = enemyCanAttack ? "attacking" : "idle";
     this.game.canvas.dataset.autoAttack = "attacking";
     this.playerAttackTimerMs += deltaMs;
-    const runtime = this.getEnemyRuntime(enemy);
 
     if (runtime) {
       runtime.attackTimerMs += deltaMs;
     }
 
     if (
-      enemy.isAlive
+      enemyCanAttack
+      && enemy.isAlive
       && distanceToTarget <= enemy.attackRange
       && (!runtime || runtime.attackTimerMs >= enemyAttackCooldownMs)
     ) {
@@ -580,6 +583,10 @@ export class WorldScene extends Phaser.Scene {
       this.playerAttackTimerMs = 0;
       this.playerAttack(enemy);
     }
+  }
+
+  private canEnemyAttackPlayer(enemy: EnemyEntity, runtime?: EnemyRuntime): boolean {
+    return enemy.behavior !== "passive" || Boolean(runtime?.damagedByPlayer);
   }
 
   private playerAttack(enemy: EnemyEntity): void {

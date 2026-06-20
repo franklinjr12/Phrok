@@ -8,7 +8,7 @@
     "defense": 1,
     "xpReward": 5,
     "dropTableId": "green-jelly-drops",
-    "behavior": "aggressive",
+    "behavior": "passive",
     "aggroRange": 150,
     "attackRange": 70,
     "leashDistance": 240,
