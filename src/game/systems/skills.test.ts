@@ -623,6 +623,154 @@ describe("skills", () => {
     expect(executeSkill(agiState, skills["backstab"], damageProbe(["marked"]), 3000).damage)
       .toBeGreaterThan(executeSkill(neutralState, skills["backstab"], damageProbe(["marked"]), 3000).damage);
   });
+
+  it("defines every advanced class skill in JSON with distinct combat roles", () => {
+    const expected: Record<string, string[]> = {
+      knight: [
+        "two-hand-mastery",
+        "charge-thrust",
+        "whirlwind-blade",
+        "heavy-impact",
+        "momentum",
+        "warpath",
+        "armor-breaker",
+        "knights-oath",
+      ],
+      guardian: [
+        "shield-mastery",
+        "shield-bash",
+        "radiant-guard",
+        "retaliation",
+        "sacred-edge",
+        "last-stand",
+        "barrier-circle",
+        "guardians-vow",
+      ],
+      wizard: [
+        "meteor-rain",
+        "blizzard-field",
+        "thunderstorm",
+        "elemental-amplify",
+        "mana-surge",
+        "chain-casting",
+        "arcane-explosion",
+        "archwizards-seal",
+      ],
+      sage: [
+        "elemental-weapon",
+        "spell-break",
+        "magic-field",
+        "elemental-study",
+        "mana-conversion",
+        "rune-trap",
+        "dispel-hex",
+        "sages-equation",
+      ],
+      hunter: [
+        "falcon-companion",
+        "snare-trap",
+        "blast-trap",
+        "mark-prey",
+        "camouflage",
+        "beast-knowledge",
+        "piercing-shot",
+        "apex-hunter",
+      ],
+      minstrel: [
+        "battle-song",
+        "weakening-verse",
+        "echo-shot",
+        "restorative-tune",
+        "rhythm-flow",
+        "discord-note",
+        "spirit-chorus",
+        "final-refrain",
+      ],
+      assassin: [
+        "katar-mastery",
+        "venom-stack",
+        "sonic-strike",
+        "grim-edge",
+        "fatal-wound",
+        "evasion-burst",
+        "execution",
+        "assassins-mark",
+      ],
+      rogue: [
+        "mug",
+        "trick-shot",
+        "smoke-bomb",
+        "disable-armor",
+        "treasure-sense",
+        "ambush",
+        "copy-technique",
+        "rogues-fortune",
+      ],
+    };
+
+    for (const [classId, ids] of Object.entries(expected)) {
+      const classSkills = getSkillMap(classId);
+
+      expect(Object.keys(classSkills)).toEqual(ids);
+      expect(Object.values(classSkills).every((skill) => skill.requiredLevel >= 40)).toBe(true);
+    }
+
+    expect(getSkillMap("knight")["whirlwind-blade"].targetingMode).toBe("ground");
+    expect(getSkillMap("knight")["charge-thrust"].range).toBeGreaterThan(100);
+    expect(getSkillMap("guardian")["shield-mastery"].passiveModifiers.derivedStats).toMatchObject({ defense: 10 });
+    expect(getSkillMap("wizard")["meteor-rain"]).toMatchObject({ targetingMode: "ground", spCost: 18, castTime: 1200 });
+    expect(getSkillMap("sage")["spell-break"].statusEffects).toEqual(["silence"]);
+    expect(getSkillMap("hunter")["snare-trap"]).toMatchObject({ targetingMode: "ground", statusEffects: ["slow"] });
+    expect(getSkillMap("minstrel")["rhythm-flow"]).toMatchObject({ type: "toggle", targetingMode: "self" });
+    expect(getSkillMap("assassin")["venom-stack"].statusEffects).toEqual(["poison"]);
+    expect(getSkillMap("rogue")["treasure-sense"].passiveModifiers).toMatchObject({
+      baseStats: { luk: 2 },
+      derivedStats: { weightLimit: 24 },
+    });
+    expect(getSkillMap("rogue")["trick-shot"].range).toBeGreaterThan(160);
+  });
+
+  it("executes representative advanced class skills through the shared skill engine", () => {
+    const state = createNewGameState();
+    const advancedSkills = getAdvancedSkills();
+    state.character.stats.sp = 300;
+    state.character.skills.learned.push(...advancedSkills.map((skill) => ({ id: skill.id, level: 1 })));
+
+    const whirlwindEffects: string[] = [];
+    expect(executeSkill(state, getSkill("whirlwind-blade"), groundDamageProbe(whirlwindEffects), 1000).affectedTargetIds)
+      .toEqual(["slime", "wisp"]);
+    expect(whirlwindEffects).toEqual(["bleed", "bleed"]);
+
+    expect(executeSkill(state, getSkill("radiant-guard"), undefined, 3000, getStatusEffect).success).toBe(true);
+    expect(state.character.statusEffects.map((effect) => effect.id)).toEqual(["guarded", "blessed"]);
+
+    const meteorEffects: string[] = [];
+    const meteorResult = executeSkill(state, getSkill("meteor-rain"), groundDamageProbe(meteorEffects, 160), 5000);
+    expect(meteorResult.damage).toBeGreaterThan(executeSkill(state, getSkill("snare-trap"), groundDamageProbe(), 7000).damage);
+    expect(meteorEffects).toEqual(["burn", "stun", "burn", "stun"]);
+
+    const casterEffects: string[] = [];
+    expect(executeSkill(state, getSkill("spell-break"), rangedDamageProbe(casterEffects), 9000).success).toBe(true);
+    expect(casterEffects).toEqual(["silence"]);
+
+    expect(executeSkill(state, getSkill("falcon-companion"), undefined, 11000).success).toBe(true);
+    expect(state.character.skills.activeToggleIds).toContain("falcon-companion");
+
+    expect(executeSkill(state, getSkill("rhythm-flow"), undefined, 13000).success).toBe(true);
+    expect(state.character.statBuffs.find((buff) => buff.sourceSkillId === "rhythm-flow")).toMatchObject({
+      derivedStats: { attackSpeed: 8, castSpeed: 6, moveSpeed: 6 },
+    });
+
+    const poisonEffects: string[] = [];
+    expect(executeSkill(state, getSkill("venom-stack"), damageProbe(poisonEffects), 15000).success).toBe(true);
+    expect(poisonEffects).toEqual(["poison"]);
+
+    expect(executeSkill(state, getSkill("copy-technique"), undefined, 17000).success).toBe(true);
+    expect(state.character.statBuffs.find((buff) => buff.sourceSkillId === "copy-technique")).toMatchObject({
+      derivedStats: { physicalAttack: 7, rangedAttack: 7, magicAttack: 4 },
+    });
+    expect(state.character.stats.sp).toBeLessThan(300);
+  });
 });
 
 function getSwordsmanSkills(): SkillDefinition[] {
@@ -665,6 +813,50 @@ function getThiefSkillMap(): Record<string, SkillDefinition> {
   return Object.fromEntries(getThiefSkills().map((skill) => [skill.id, skill]));
 }
 
+function getAllSkills(): SkillDefinition[] {
+  return JSON.parse(readFileSync(new URL("../../../public/assets/data/skills.json", import.meta.url), "utf8")) as SkillDefinition[];
+}
+
+function getAdvancedSkills(): SkillDefinition[] {
+  return getAllSkills().filter((skill) => [
+    "knight",
+    "guardian",
+    "wizard",
+    "sage",
+    "hunter",
+    "minstrel",
+    "assassin",
+    "rogue",
+  ].includes(skill.classId));
+}
+
+function getSkillMap(classId: string): Record<string, SkillDefinition> {
+  return Object.fromEntries(getAllSkills().filter((skill) => skill.classId === classId).map((skill) => [skill.id, skill]));
+}
+
+function getSkill(id: string): SkillDefinition {
+  const skill = getAllSkills().find((entry) => entry.id === id);
+
+  if (!skill) {
+    throw new Error(`Missing skill ${id}`);
+  }
+
+  return skill;
+}
+
+function getStatusEffect(id: string): StatusEffectDefinition {
+  const effects = JSON.parse(
+    readFileSync(new URL("../../../public/assets/data/status-effects.json", import.meta.url), "utf8"),
+  ) as StatusEffectDefinition[];
+  const effect = effects.find((entry) => entry.id === id);
+
+  if (!effect) {
+    throw new Error(`Missing status effect ${id}`);
+  }
+
+  return effect;
+}
+
 function damageProbe(effects?: string[]) {
   return {
     kind: "enemy" as const,
@@ -694,6 +886,29 @@ function rainDamageProbe() {
         id: "slime",
         hp: 30,
         applyDamage: () => undefined,
+      },
+    ],
+  };
+}
+
+function groundDamageProbe(effects?: string[], distance = 72) {
+  return {
+    kind: "ground" as const,
+    x: 100,
+    y: 100,
+    distance,
+    enemies: [
+      {
+        id: "slime",
+        hp: 30,
+        applyDamage: () => undefined,
+        applyStatusEffect: (effectId: string) => effects?.push(effectId),
+      },
+      {
+        id: "wisp",
+        hp: 24,
+        applyDamage: () => undefined,
+        applyStatusEffect: (effectId: string) => effects?.push(effectId),
       },
     ],
   };

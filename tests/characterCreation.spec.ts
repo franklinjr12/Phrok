@@ -94,7 +94,7 @@ test("character creation accepts name input and class selection", async ({ page 
   await expect(canvas).toHaveAttribute("data-starting-skill", "fire-bolt");
   await expect(canvas).toHaveAttribute("data-starting-skill-name", "Fire Bolt");
   await expect(canvas).toHaveAttribute("data-difficulty-rating", "Hard");
-  await expect(canvas).toHaveAttribute("data-advanced-class-options", "Elementalist|Chronomancer");
+  await expect(canvas).toHaveAttribute("data-advanced-class-options", "Wizard|Sage");
 
   await canvas.click({ position: { x: 630, y: 545 } });
   await expect(canvas).toHaveAttribute("data-scene", "world");

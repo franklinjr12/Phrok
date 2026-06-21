@@ -22,7 +22,7 @@
     "allowedWeaponTypes": ["sword", "greatsword"],
     "startingSkillIds": ["power-slash"],
     "startingItemIds": ["training-sword"],
-    "advancedClassOptions": ["Knight", "Blade Dancer"]
+    "advancedClassOptions": ["Knight", "Guardian"]
   },
   {
     "id": "mage",
@@ -47,7 +47,7 @@
     "allowedWeaponTypes": ["staff", "wand"],
     "startingSkillIds": ["fire-bolt"],
     "startingItemIds": ["apprentice-staff"],
-    "advancedClassOptions": ["Elementalist", "Chronomancer"]
+    "advancedClassOptions": ["Wizard", "Sage"]
   },
   {
     "id": "archer",
@@ -72,7 +72,7 @@
     "allowedWeaponTypes": ["bow", "crossbow"],
     "startingSkillIds": ["pinning-shot"],
     "startingItemIds": ["shortbow"],
-    "advancedClassOptions": ["Ranger", "Sharpshooter"]
+    "advancedClassOptions": ["Hunter", "Minstrel"]
   },
   {
     "id": "thief",
@@ -97,6 +97,6 @@
     "allowedWeaponTypes": ["dagger", "shortsword"],
     "startingSkillIds": ["quick-stab"],
     "startingItemIds": ["practice-daggers"],
-    "advancedClassOptions": ["Assassin", "Trickster"]
+    "advancedClassOptions": ["Assassin", "Rogue"]
   }
 ]

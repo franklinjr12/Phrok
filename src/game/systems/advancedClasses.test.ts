@@ -35,7 +35,7 @@ describe("advanced class unlocks", () => {
     expect(getUnlockedSkillTreeIds(state)).toEqual(["swordsman", "knight"]);
     expect(state.worldFlags["advanced-skill-tree-unlocked"]).toBe(true);
     expect(isAdvancedClassServiceAvailable(state)).toBe(false);
-    expect(chooseAdvancedClass(state, swordsmanClass, "Blade Dancer")).toEqual({
+    expect(chooseAdvancedClass(state, swordsmanClass, "Guardian")).toEqual({
       success: false,
       reason: "already-chosen",
     });
@@ -47,10 +47,10 @@ describe("advanced class unlocks", () => {
 
     expect(getAdvancedClassOptionsForBase(swordsmanClass).map((option) => option.name)).toEqual([
       "Knight",
-      "Blade Dancer",
+      "Guardian",
     ]);
     expect(getAdvancedClassOptionsForBase(mismatchedMageClass)).toEqual([]);
-    expect(chooseAdvancedClass(state, swordsmanClass, "Elementalist")).toEqual({
+    expect(chooseAdvancedClass(state, swordsmanClass, "Wizard")).toEqual({
       success: false,
       reason: "invalid-choice",
     });
@@ -75,12 +75,12 @@ const swordsmanClass: ClassDefinition = {
   allowedWeaponTypes: ["sword"],
   startingSkillIds: ["power-slash"],
   startingItemIds: ["training-sword"],
-  advancedClassOptions: ["Knight", "Blade Dancer"],
+  advancedClassOptions: ["Knight", "Guardian"],
 };
 
 const mismatchedMageClass: ClassDefinition = {
   ...swordsmanClass,
   id: "mage",
   name: "Mage",
-  advancedClassOptions: ["Knight", "Blade Dancer"],
+  advancedClassOptions: ["Knight", "Guardian"],
 };
