@@ -10,6 +10,7 @@ import type {
   MonsterDefinition,
   NpcDefinition,
   QuestDefinition,
+  RegionDefinition,
   RecipeDefinition,
   SkillDefinition,
   StatusEffectDefinition,
@@ -81,12 +82,24 @@ export class DataRegistry {
     return this.getById("monsters", id);
   }
 
+  getRegion(id: string): RegionDefinition {
+    return this.getById("regions", id);
+  }
+
+  getRegions(): RegionDefinition[] {
+    return Array.from(this.collections.regions.values());
+  }
+
   getDropTable(id: string): DropTableDefinition {
     return this.getById("dropTables", id);
   }
 
   getMap(id: string): MapDefinition {
     return this.getById("maps", id);
+  }
+
+  getMaps(): MapDefinition[] {
+    return Array.from(this.collections.maps.values());
   }
 
   getDialogue(id: string): DialogueDefinition {
@@ -193,6 +206,7 @@ function createEmptyCollections(): DataCollections {
     skills: new Map(),
     items: new Map(),
     monsters: new Map(),
+    regions: new Map(),
     dropTables: new Map(),
     maps: new Map(),
     dialogues: new Map(),
@@ -211,6 +225,7 @@ const dataFiles = [
   { key: "skills", fileName: "skills.json", validate: validateSkill },
   { key: "items", fileName: "items.json", validate: validateItem },
   { key: "monsters", fileName: "monsters.json", validate: validateMonster },
+  { key: "regions", fileName: "regions.json", validate: validateRegion },
   { key: "dropTables", fileName: "drop-tables.json", validate: validateDropTable },
   { key: "maps", fileName: "maps.json", validate: validateMap },
   { key: "dialogues", fileName: "dialogues.json", validate: validateDialogue },
@@ -378,6 +393,21 @@ function validateMonster(source: Record<string, unknown>, fileName: string): Mon
   };
 }
 
+function validateRegion(source: Record<string, unknown>, fileName: string): RegionDefinition {
+  const id = readId(source, fileName);
+
+  return {
+    id,
+    name: requireString(source, "name", fileName, id),
+    levelRange: validateLevelRange(source, fileName, id),
+    description: optionalString(source, "description", ""),
+    mapIds: optionalStringArray(source, "mapIds"),
+    dungeonIds: optionalStringArray(source, "dungeonIds"),
+    monsterIds: optionalStringArray(source, "monsterIds"),
+    bossIds: optionalStringArray(source, "bossIds"),
+  };
+}
+
 function normalizeMonsterBehavior(value: string): MonsterDefinition["behavior"] {
   return value === "aggressive" || value === "assist" || value === "caster" ? value : "passive";
 }
@@ -407,14 +437,77 @@ function validateDropTable(source: Record<string, unknown>, fileName: string): D
 
 function validateMap(source: Record<string, unknown>, fileName: string): MapDefinition {
   const id = readId(source, fileName);
+  const type = optionalString(source, "type", "field");
 
   return {
     id,
     name: requireString(source, "name", fileName, id),
     description: optionalString(source, "description", ""),
+    regionId: requireString(source, "regionId", fileName, id),
+    levelRange: validateLevelRange(source, fileName, id),
+    type: normalizeMapType(type),
+    portals: validateMapPortals(source.portals, fileName, id),
+    spawnGroups: validateMapSpawnGroups(source.spawnGroups, fileName, id),
     monsterIds: optionalStringArray(source, "monsterIds"),
     npcIds: optionalStringArray(source, "npcIds"),
+    musicKey: requireString(source, "musicKey", fileName, id),
+    recommendedElements: optionalStringArray(source, "recommendedElements"),
+    dropHighlights: optionalStringArray(source, "dropHighlights"),
+    tilemapKey: optionalString(source, "tilemapKey", `map-${id}`),
   };
+}
+
+function validateLevelRange(
+  source: Record<string, unknown>,
+  fileName: string,
+  id: string,
+): MapDefinition["levelRange"] {
+  const levelRange = requireRecord(source, "levelRange", fileName, id);
+
+  return {
+    min: requireNumber(levelRange, "min", fileName, id),
+    max: requireNumber(levelRange, "max", fileName, id),
+  };
+}
+
+function normalizeMapType(value: string): MapDefinition["type"] {
+  return value === "town"
+    || value === "dungeon"
+    || value === "tower"
+    || value === "coast"
+    || value === "highlands"
+    || value === "marsh"
+    ? value
+    : "field";
+}
+
+function validateMapPortals(
+  rawPortals: unknown,
+  fileName: string,
+  id: string,
+): MapDefinition["portals"] {
+  return Array.isArray(rawPortals)
+    ? rawPortals.filter(isRecord).map((portal) => ({
+      id: requireString(portal, "id", fileName, id),
+      name: optionalString(portal, "name", requireString(portal, "id", fileName, id)),
+      targetMapId: requireString(portal, "targetMapId", fileName, id),
+      targetSpawnName: requireString(portal, "targetSpawnName", fileName, id),
+    }))
+    : [];
+}
+
+function validateMapSpawnGroups(
+  rawSpawnGroups: unknown,
+  fileName: string,
+  id: string,
+): MapDefinition["spawnGroups"] {
+  return Array.isArray(rawSpawnGroups)
+    ? rawSpawnGroups.filter(isRecord).map((spawnGroup) => ({
+      id: requireString(spawnGroup, "id", fileName, id),
+      monsterIds: optionalStringArray(spawnGroup, "monsterIds"),
+      maxCount: Math.max(1, optionalNumber(spawnGroup, "maxCount", 1)),
+    }))
+    : [];
 }
 
 function validateDialogue(source: Record<string, unknown>, fileName: string): DialogueDefinition {

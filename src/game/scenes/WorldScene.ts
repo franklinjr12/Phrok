@@ -35,6 +35,7 @@ import {
 import { calculateDerivedStats, getSpentStatPoints, resetAllocatedStats } from "../systems/stats";
 import type { DataRegistry } from "../data/dataRegistry";
 import type { DialogueSceneData } from "./DialogueScene";
+import type { MapDefinition, RegionDefinition } from "../types/dataDefinitions";
 import type { GameState } from "../types/gameState";
 
 const mapKeysById: Record<string, string> = {
@@ -154,7 +155,8 @@ export class WorldScene extends Phaser.Scene {
     this.pendingNpcInteraction = undefined;
     this.isDialogueOpen = false;
     const map = dataRegistry.getMap(state.currentMapId);
-    const tilemapKey = mapKeysById[state.currentMapId] ?? mapKeysById["crownfield-town"];
+    const region = dataRegistry.getRegion(map.regionId);
+    const tilemapKey = map.tilemapKey || mapKeysById[state.currentMapId] || mapKeysById["crownfield-town"];
 
     const tilemap = this.make.tilemap({ key: tilemapKey });
     const tileset = tilemap.addTilesetImage(prototypeTilesKey, prototypeTilesKey);
@@ -198,7 +200,7 @@ export class WorldScene extends Phaser.Scene {
       this.physics.add.collider(this.player.sprite, collisionLayer);
     }
 
-    this.spawnZones = this.createSpawnZones(tilemap, map.monsterIds);
+    this.spawnZones = this.createSpawnZones(tilemap, this.getMapSpawnMonsterIds(map));
     this.spawnInitialEnemies(collisionLayer);
 
     this.cameras.main.startFollow(this.player.sprite, true, 0.12, 0.12);
@@ -249,6 +251,7 @@ export class WorldScene extends Phaser.Scene {
     this.game.canvas.dataset.scene = "world";
     this.game.canvas.dataset.currentMap = state.currentMapId;
     this.game.canvas.dataset.currentMapName = map.name;
+    this.syncMapMetadataDataset(map, region);
     this.game.canvas.dataset.characterArchetype = state.character.archetype;
     this.game.canvas.dataset.spawnedMonster = primaryEnemy?.id ?? "";
     this.game.canvas.dataset.spawnedMonsterName = primaryEnemy?.name ?? "";
@@ -339,7 +342,7 @@ export class WorldScene extends Phaser.Scene {
     this.syncEnemyDataset();
 
     this.scene.launch(SceneKeys.UI);
-    eventBus.emit("mapChanged", { mapId: state.currentMapId });
+    eventBus.emit("mapChanged", { mapId: state.currentMapId, musicKey: map.musicKey });
   }
 
   update(_time: number, delta: number): void {
@@ -1703,6 +1706,37 @@ export class WorldScene extends Phaser.Scene {
         ...zone,
         respawnTimerMs: 0,
       }));
+  }
+
+  private getMapSpawnMonsterIds(map: MapDefinition): string[] {
+    const spawnMonsterIds = map.spawnGroups.flatMap((spawnGroup) => spawnGroup.monsterIds);
+    return spawnMonsterIds.length > 0 ? spawnMonsterIds : map.monsterIds;
+  }
+
+  private syncMapMetadataDataset(map: MapDefinition, region: RegionDefinition): void {
+    this.game.canvas.dataset.currentRegion = region.id;
+    this.game.canvas.dataset.currentRegionName = region.name;
+    this.game.canvas.dataset.currentRegionLevelRange = `${region.levelRange.min}-${region.levelRange.max}`;
+    this.game.canvas.dataset.currentRegionDescription = region.description;
+    this.game.canvas.dataset.regionProgression = this.dataRegistry
+      ? this.dataRegistry.getRegions()
+        .map((entry) => `${entry.id}:${entry.levelRange.min}-${entry.levelRange.max}`)
+        .join("|")
+      : "";
+    this.game.canvas.dataset.currentMapDescription = map.description;
+    this.game.canvas.dataset.currentMapLevelRange = `${map.levelRange.min}-${map.levelRange.max}`;
+    this.game.canvas.dataset.currentMapType = map.type;
+    this.game.canvas.dataset.currentMapMusicKey = map.musicKey;
+    this.game.canvas.dataset.currentMapRecommendedElements = map.recommendedElements.join("|");
+    this.game.canvas.dataset.currentMapDropHighlights = map.dropHighlights.join("|");
+    this.game.canvas.dataset.currentMapPortals = map.portals
+      .map((portal) => `${portal.id}:${portal.targetMapId}:${portal.targetSpawnName}`)
+      .join("|");
+    this.game.canvas.dataset.currentMapSpawnGroups = map.spawnGroups
+      .map((spawnGroup) => `${spawnGroup.id}:${spawnGroup.monsterIds.join(",")}:${spawnGroup.maxCount}`)
+      .join("|");
+    this.game.canvas.dataset.currentMapNpcs = map.npcIds.join("|");
+    this.game.canvas.dataset.currentMapMonsters = map.monsterIds.join("|");
   }
 
   private spawnInitialEnemies(collisionLayer: PrototypeTilemapLayer | null): void {

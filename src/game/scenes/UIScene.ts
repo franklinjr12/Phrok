@@ -109,7 +109,7 @@ export class UIScene extends Phaser.Scene {
     this.syncPlayerStats(state, dataRegistry);
     this.createHud(state, dataRegistry);
     this.createAdvancedClassNotification(state);
-    this.createMapLabel(dataRegistry.getMap(state.currentMapId).name);
+    this.createMapLabel(state.currentMapId, dataRegistry);
     this.syncXpBar(state, dataRegistry);
     this.createTargetFrame();
     this.createBossFrame();
@@ -283,11 +283,9 @@ export class UIScene extends Phaser.Scene {
       }
     });
 
-    this.unsubscribeMapChanged = eventBus.on("mapChanged", ({ mapId }) => {
-      const map = dataRegistry.getMap(mapId);
-      this.mapNameText?.setText(map.name);
-      this.game.canvas.dataset.currentMap = map.id;
-      this.game.canvas.dataset.currentMapName = map.name;
+    this.unsubscribeMapChanged = eventBus.on("mapChanged", ({ mapId, musicKey }) => {
+      this.updateMapMetadata(mapId, dataRegistry);
+      this.game.canvas.dataset.currentMapMusicKey = musicKey;
     });
 
     this.unsubscribeSaveCompleted = eventBus.on("saveCompleted", ({ saveSlot }) => {
@@ -1017,15 +1015,42 @@ export class UIScene extends Phaser.Scene {
     this.clearBossFrame();
   }
 
-  private createMapLabel(mapName: string): void {
-    this.mapNameText = this.add.text(348, 18, mapName, {
+  private createMapLabel(mapId: string, dataRegistry: DataRegistry): void {
+    const map = dataRegistry.getMap(mapId);
+
+    this.mapNameText = this.add.text(348, 18, this.getMapLabel(map, dataRegistry), {
       color: "#f8fafc",
       fontFamily: "Arial, sans-serif",
       fontSize: "18px",
     })
       .setScrollFactor(0)
       .setDepth(hudDepth);
-    this.game.canvas.dataset.currentMapName = mapName;
+    this.updateMapMetadata(mapId, dataRegistry);
+  }
+
+  private updateMapMetadata(mapId: string, dataRegistry: DataRegistry): void {
+    const map = dataRegistry.getMap(mapId);
+    const region = dataRegistry.getRegion(map.regionId);
+
+    this.mapNameText?.setText(this.getMapLabel(map, dataRegistry));
+    this.game.canvas.dataset.currentMap = map.id;
+    this.game.canvas.dataset.currentMapName = map.name;
+    this.game.canvas.dataset.currentRegion = region.id;
+    this.game.canvas.dataset.currentRegionName = region.name;
+    this.game.canvas.dataset.currentRegionLevelRange = `${region.levelRange.min}-${region.levelRange.max}`;
+    this.game.canvas.dataset.currentMapLevelRange = `${map.levelRange.min}-${map.levelRange.max}`;
+    this.game.canvas.dataset.currentMapType = map.type;
+    this.game.canvas.dataset.currentMapMusicKey = map.musicKey;
+    this.game.canvas.dataset.currentMapRecommendedElements = map.recommendedElements.join("|");
+    this.game.canvas.dataset.currentMapDropHighlights = map.dropHighlights.join("|");
+    this.game.canvas.dataset.regionProgression = dataRegistry.getRegions()
+      .map((entry) => `${entry.id}:${entry.levelRange.min}-${entry.levelRange.max}`)
+      .join("|");
+  }
+
+  private getMapLabel(map: ReturnType<DataRegistry["getMap"]>, dataRegistry: DataRegistry): string {
+    const region = dataRegistry.getRegion(map.regionId);
+    return `${map.name} | ${region.name} Lv ${map.levelRange.min}-${map.levelRange.max}`;
   }
 
   private setTargetFrame(enemyId: string, name: string, hp: number, maxHp: number): void {

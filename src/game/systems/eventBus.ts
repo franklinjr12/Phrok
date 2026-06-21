@@ -36,7 +36,7 @@ export interface GameEventMap {
   enemyTargetChanged: { enemyId: string | null; name: string; hp: number; maxHp: number; boss?: boolean; phase?: number };
   lootDropped: { kind: "item" | "gold"; itemId?: string; quantity: number };
   lootPickedUp: { kind: "item" | "gold"; itemId?: string; quantity: number };
-  mapChanged: { mapId: string };
+  mapChanged: { mapId: string; musicKey: string };
   saveCompleted: { saveSlot: number };
   dialogueOpened: { dialogueId: string };
   dialogueClosed: { dialogueId: string };

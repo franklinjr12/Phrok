@@ -90,6 +90,22 @@ export interface MonsterDefinition {
   boss: boolean;
 }
 
+export interface LevelRangeDefinition {
+  min: number;
+  max: number;
+}
+
+export interface RegionDefinition {
+  id: string;
+  name: string;
+  levelRange: LevelRangeDefinition;
+  description: string;
+  mapIds: string[];
+  dungeonIds: string[];
+  monsterIds: string[];
+  bossIds: string[];
+}
+
 export interface DropTableEntryDefinition {
   itemId?: string;
   type?: "item" | "gold";
@@ -103,12 +119,34 @@ export interface DropTableDefinition {
   entries: DropTableEntryDefinition[];
 }
 
+export interface MapPortalDefinition {
+  id: string;
+  name: string;
+  targetMapId: string;
+  targetSpawnName: string;
+}
+
+export interface MapSpawnGroupDefinition {
+  id: string;
+  monsterIds: string[];
+  maxCount: number;
+}
+
 export interface MapDefinition {
   id: string;
   name: string;
   description: string;
+  regionId: string;
+  levelRange: LevelRangeDefinition;
+  type: "town" | "field" | "dungeon" | "tower" | "coast" | "highlands" | "marsh";
+  portals: MapPortalDefinition[];
+  spawnGroups: MapSpawnGroupDefinition[];
   monsterIds: string[];
   npcIds: string[];
+  musicKey: string;
+  recommendedElements: string[];
+  dropHighlights: string[];
+  tilemapKey: string;
 }
 
 export interface DialogueChoiceDefinition {
@@ -195,6 +233,7 @@ export interface DataFileMap {
   skills: SkillDefinition;
   items: ItemDefinition;
   monsters: MonsterDefinition;
+  regions: RegionDefinition;
   dropTables: DropTableDefinition;
   maps: MapDefinition;
   dialogues: DialogueDefinition;

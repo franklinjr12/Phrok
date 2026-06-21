@@ -20,6 +20,17 @@ const validFiles: Record<string, unknown[]> = {
     { id: "jelly-gel", name: "Jelly Gel", type: "material" },
   ],
   "monsters.json": [{ id: "green-jelly", name: "Green Jelly", hp: 10, attack: 2, dropTableId: "green-jelly-drops" }],
+  "regions.json": [
+    {
+      id: "crownfield",
+      name: "Crownfield",
+      levelRange: { min: 1, max: 8 },
+      mapIds: ["crownfield-meadows"],
+      dungeonIds: [],
+      monsterIds: ["green-jelly"],
+      bossIds: [],
+    },
+  ],
   "drop-tables.json": [
     {
       id: "green-jelly-drops",
@@ -29,7 +40,26 @@ const validFiles: Record<string, unknown[]> = {
       ],
     },
   ],
-  "maps.json": [{ id: "crownfield-meadows", name: "Crownfield Meadows" }],
+  "maps.json": [
+    {
+      id: "crownfield-meadows",
+      name: "Crownfield Meadows",
+      regionId: "crownfield",
+      levelRange: { min: 2, max: 6 },
+      type: "field",
+      portals: [
+        {
+          id: "town-road-return",
+          targetMapId: "crownfield-town",
+          targetSpawnName: "FieldRoadReturn",
+        },
+      ],
+      spawnGroups: [{ id: "starter-spawns", monsterIds: ["green-jelly"], maxCount: 2 }],
+      musicKey: "music-crownfield-meadows",
+      recommendedElements: ["neutral", "fire"],
+      dropHighlights: ["jelly-gel"],
+    },
+  ],
   "dialogues.json": [
     {
       id: "field-guide-greeting",
@@ -103,6 +133,12 @@ describe("loadDataRegistry", () => {
       elite: false,
       boss: false,
     });
+    expect(registry.getRegions().map((entry) => entry.id)).toEqual(["crownfield"]);
+    expect(registry.getRegion("crownfield")).toMatchObject({
+      levelRange: { min: 1, max: 8 },
+      mapIds: ["crownfield-meadows"],
+      monsterIds: ["green-jelly"],
+    });
     expect(registry.getDropTable("green-jelly-drops").entries).toContainEqual({
       itemId: undefined,
       type: "gold",
@@ -110,7 +146,25 @@ describe("loadDataRegistry", () => {
       minQuantity: 3,
       maxQuantity: 5,
     });
-    expect(registry.getMap("crownfield-meadows").monsterIds).toEqual([]);
+    expect(registry.getMap("crownfield-meadows")).toMatchObject({
+      regionId: "crownfield",
+      levelRange: { min: 2, max: 6 },
+      type: "field",
+      musicKey: "music-crownfield-meadows",
+      recommendedElements: ["neutral", "fire"],
+      dropHighlights: ["jelly-gel"],
+      tilemapKey: "map-crownfield-meadows",
+    });
+    expect(registry.getMap("crownfield-meadows").portals[0]).toMatchObject({
+      name: "town-road-return",
+      targetMapId: "crownfield-town",
+    });
+    expect(registry.getMap("crownfield-meadows").spawnGroups[0]).toMatchObject({
+      id: "starter-spawns",
+      monsterIds: ["green-jelly"],
+      maxCount: 2,
+    });
+    expect(registry.getMaps().map((entry) => entry.id)).toEqual(["crownfield-meadows"]);
     expect(registry.getDialogue("field-guide-greeting").choices).toContainEqual({
       id: "guide-service",
       label: "Ask for guidance",
