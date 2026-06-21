@@ -78,5 +78,165 @@
     "interactionRadius": 72,
     "dialogueId": "advanced-class-mentor-greeting",
     "serviceType": "advanced-class"
+  },
+  {
+    "id": "mossvale-innkeeper",
+    "name": "Rilla Mossbed",
+    "mapId": "mossvale-hub",
+    "interactionRadius": 72,
+    "dialogueId": "rilla-mossbed-greeting",
+    "serviceType": "inn"
+  },
+  {
+    "id": "mossvale-grove-warden",
+    "name": "Heth Grovewarden",
+    "mapId": "mossvale-hub",
+    "interactionRadius": 72,
+    "dialogueId": "heth-grovewarden-greeting",
+    "serviceType": "hunter-board"
+  },
+  {
+    "id": "mossvale-provisioner",
+    "name": "Lio Fernwick",
+    "mapId": "mossvale-hub",
+    "interactionRadius": 72,
+    "dialogueId": "lio-fernwick-greeting",
+    "serviceType": "merchant"
+  },
+  {
+    "id": "mossvale-routefinder",
+    "name": "Sava Greenpath",
+    "mapId": "mossvale-hub",
+    "interactionRadius": 72,
+    "dialogueId": "sava-greenpath-greeting",
+    "serviceType": "travel"
+  },
+  {
+    "id": "amber-oasis-keeper",
+    "name": "Dara Wellspring",
+    "mapId": "amber-dunes-hub",
+    "interactionRadius": 72,
+    "dialogueId": "dara-wellspring-greeting",
+    "serviceType": "inn"
+  },
+  {
+    "id": "amber-glass-refiner",
+    "name": "Qadir Glasshand",
+    "mapId": "amber-dunes-hub",
+    "interactionRadius": 72,
+    "dialogueId": "qadir-glasshand-greeting",
+    "serviceType": "refiner"
+  },
+  {
+    "id": "amber-sun-crafter",
+    "name": "Imen Sunstitch",
+    "mapId": "amber-dunes-hub",
+    "interactionRadius": 72,
+    "dialogueId": "imen-sunstitch-greeting",
+    "serviceType": "crafter"
+  },
+  {
+    "id": "amber-caravan-guide",
+    "name": "Niko Sandroad",
+    "mapId": "amber-dunes-hub",
+    "interactionRadius": 72,
+    "dialogueId": "niko-sandroad-greeting",
+    "serviceType": "travel"
+  },
+  {
+    "id": "blueharbor-harbormaster",
+    "name": "Mara Tidebell",
+    "mapId": "blueharbor-hub",
+    "interactionRadius": 72,
+    "dialogueId": "mara-tidebell-greeting",
+    "serviceType": "travel"
+  },
+  {
+    "id": "blueharbor-fishmonger",
+    "name": "Pell Netcaster",
+    "mapId": "blueharbor-hub",
+    "interactionRadius": 72,
+    "dialogueId": "pell-netcaster-greeting",
+    "serviceType": "merchant"
+  },
+  {
+    "id": "blueharbor-market-broker",
+    "name": "Vessa Saltcoin",
+    "mapId": "blueharbor-hub",
+    "interactionRadius": 72,
+    "dialogueId": "vessa-saltcoin-greeting",
+    "serviceType": "merchant"
+  },
+  {
+    "id": "blueharbor-innkeep",
+    "name": "Corin Wake",
+    "mapId": "blueharbor-hub",
+    "interactionRadius": 72,
+    "dialogueId": "corin-wake-greeting",
+    "serviceType": "inn"
+  },
+  {
+    "id": "ironroot-forgemaster",
+    "name": "Brann Orevein",
+    "mapId": "ironroot-hub",
+    "interactionRadius": 72,
+    "dialogueId": "brann-orevein-greeting",
+    "serviceType": "crafter"
+  },
+  {
+    "id": "ironroot-smelter",
+    "name": "Edda Coalbright",
+    "mapId": "ironroot-hub",
+    "interactionRadius": 72,
+    "dialogueId": "edda-coalbright-greeting",
+    "serviceType": "refiner"
+  },
+  {
+    "id": "ironroot-material-vendor",
+    "name": "Tovin Pickrest",
+    "mapId": "ironroot-hub",
+    "interactionRadius": 72,
+    "dialogueId": "tovin-pickrest-greeting",
+    "serviceType": "merchant"
+  },
+  {
+    "id": "ironroot-lift-operator",
+    "name": "Garrin Highrail",
+    "mapId": "ironroot-hub",
+    "interactionRadius": 72,
+    "dialogueId": "garrin-highrail-greeting",
+    "serviceType": "travel"
+  },
+  {
+    "id": "moonveil-lantern-keeper",
+    "name": "Nyra Fenlight",
+    "mapId": "moonveil-hub",
+    "interactionRadius": 72,
+    "dialogueId": "nyra-fenlight-greeting",
+    "serviceType": "inn"
+  },
+  {
+    "id": "moonveil-contract-scribe",
+    "name": "Orris Blackreed",
+    "mapId": "moonveil-hub",
+    "interactionRadius": 72,
+    "dialogueId": "orris-blackreed-greeting",
+    "serviceType": "advanced-hunter-board"
+  },
+  {
+    "id": "moonveil-relic-mender",
+    "name": "Selka Mireglass",
+    "mapId": "moonveil-hub",
+    "interactionRadius": 72,
+    "dialogueId": "selka-mireglass-greeting",
+    "serviceType": "crafter"
+  },
+  {
+    "id": "moonveil-ferry-witch",
+    "name": "Vey Moonwake",
+    "mapId": "moonveil-hub",
+    "interactionRadius": 72,
+    "dialogueId": "vey-moonwake-greeting",
+    "serviceType": "travel"
   }
 ]

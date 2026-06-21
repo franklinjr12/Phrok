@@ -5,7 +5,13 @@
       "Fresh linen, warm soup, and a bed that does not ask questions. That is my promise.",
       "The inn rooms are being aired out for new arrivals."
     ],
-    "choices": [{ "id": "open-inn", "label": "Rest at the inn", "disabled": true }]
+    "choices": [
+      {
+        "id": "open-inn",
+        "label": "Rest at the inn",
+        "disabled": true
+      }
+    ]
   },
   {
     "id": "borin-lockbar-greeting",
@@ -13,7 +19,13 @@
       "If it fits in a chest, I can keep it safer than a pocket can.",
       "Storage ledgers are still being stamped, so check back soon."
     ],
-    "choices": [{ "id": "open-storage", "label": "Open storage", "disabled": true }]
+    "choices": [
+      {
+        "id": "open-storage",
+        "label": "Open storage",
+        "disabled": true
+      }
+    ]
   },
   {
     "id": "tessa-vale-greeting",
@@ -21,7 +33,13 @@
       "I trade in useful things, not shiny regrets.",
       "The shop shelves are marked, but the till is not ready yet."
     ],
-    "choices": [{ "id": "open-shop", "label": "Browse goods", "disabled": true }]
+    "choices": [
+      {
+        "id": "open-shop",
+        "label": "Browse goods",
+        "disabled": true
+      }
+    ]
   },
   {
     "id": "orun-brightslag-greeting",
@@ -29,7 +47,13 @@
       "Ore sings if you heat it right. Most folks just hear clanging.",
       "Bring me rough materials once the refining bench is set."
     ],
-    "choices": [{ "id": "open-refinery", "label": "Refine materials", "disabled": true }]
+    "choices": [
+      {
+        "id": "open-refinery",
+        "label": "Refine materials",
+        "disabled": true
+      }
+    ]
   },
   {
     "id": "nima-threadwell-greeting",
@@ -37,7 +61,13 @@
       "A good craft starts before the first stitch or strike.",
       "My patterns are pinned up, but commissions are not open yet."
     ],
-    "choices": [{ "id": "open-crafting", "label": "Craft equipment", "disabled": true }]
+    "choices": [
+      {
+        "id": "open-crafting",
+        "label": "Craft equipment",
+        "disabled": true
+      }
+    ]
   },
   {
     "id": "sella-greenward-greeting",
@@ -45,7 +75,13 @@
       "Hold still a moment. Even a small bruise tells a story.",
       "For 50 gold I can help you retrain your allocated stats while keeping your class foundation intact."
     ],
-    "choices": [{ "id": "reset-stats", "label": "Reset stats", "disabled": false }]
+    "choices": [
+      {
+        "id": "reset-stats",
+        "label": "Reset stats",
+        "disabled": false
+      }
+    ]
   },
   {
     "id": "joric-wayfare-greeting",
@@ -53,7 +89,13 @@
       "Roads remember every boot. Mine remember plenty.",
       "I will mark routes once the travel board is cleared."
     ],
-    "choices": [{ "id": "open-travel", "label": "Plan travel", "disabled": true }]
+    "choices": [
+      {
+        "id": "open-travel",
+        "label": "Plan travel",
+        "disabled": true
+      }
+    ]
   },
   {
     "id": "perrin-slate-greeting",
@@ -61,14 +103,26 @@
       "Wanted notes, trail marks, claw counts. The board keeps all of it.",
       "Hunter requests are posted here once the clerk stamps them."
     ],
-    "choices": [{ "id": "open-hunter-board", "label": "View hunter board", "disabled": true }]
+    "choices": [
+      {
+        "id": "open-hunter-board",
+        "label": "View hunter board",
+        "disabled": true
+      }
+    ]
   },
   {
     "id": "meadow-keeper-greeting",
     "lines": [
       "Stay near the road if the grass starts moving against the wind."
     ],
-    "choices": [{ "id": "ask-meadow", "label": "Ask about the meadow", "disabled": true }]
+    "choices": [
+      {
+        "id": "ask-meadow",
+        "label": "Ask about the meadow",
+        "disabled": true
+      }
+    ]
   },
   {
     "id": "advanced-class-mentor-greeting",
@@ -76,5 +130,285 @@
       "Your foundation is ready. Choose the discipline that will carry you past level 40."
     ],
     "choices": []
+  },
+  {
+    "id": "rilla-mossbed-greeting",
+    "lines": [
+      "The beds are dry, which is rare praise under these branches.",
+      "Rest here before the old roots start whispering."
+    ],
+    "choices": [
+      {
+        "id": "open-inn",
+        "label": "Rest at the inn",
+        "disabled": true
+      }
+    ]
+  },
+  {
+    "id": "heth-grovewarden-greeting",
+    "lines": [
+      "Fresh claw marks go on this board before they go in a song.",
+      "Mossvale contracts favor quiet feet and a sharp eye."
+    ],
+    "choices": [
+      {
+        "id": "open-hunter-board",
+        "label": "View hunter board",
+        "disabled": true
+      }
+    ]
+  },
+  {
+    "id": "lio-fernwick-greeting",
+    "lines": [
+      "Lantern oil, salve, rope, and the sort of snacks that survive rain.",
+      "Forest stock is sorted by what keeps you alive first."
+    ],
+    "choices": [
+      {
+        "id": "open-shop",
+        "label": "Browse goods",
+        "disabled": true
+      }
+    ]
+  },
+  {
+    "id": "sava-greenpath-greeting",
+    "lines": [
+      "Every path here forks twice before breakfast.",
+      "I can mark the Crownfield road and the deeper green trails."
+    ],
+    "choices": [
+      {
+        "id": "open-travel",
+        "label": "Plan travel",
+        "disabled": true
+      }
+    ]
+  },
+  {
+    "id": "dara-wellspring-greeting",
+    "lines": [
+      "Shade is a service in Amber Dunes, and water is the luxury.",
+      "Take a cup before the sand asks for one back."
+    ],
+    "choices": [
+      {
+        "id": "open-inn",
+        "label": "Rest at the inn",
+        "disabled": true
+      }
+    ]
+  },
+  {
+    "id": "qadir-glasshand-greeting",
+    "lines": [
+      "Sand becomes glass, ore becomes patience, and both cut careless hands.",
+      "Bring rough desert finds when the refiner is open."
+    ],
+    "choices": [
+      {
+        "id": "open-refinery",
+        "label": "Refine materials",
+        "disabled": true
+      }
+    ]
+  },
+  {
+    "id": "imen-sunstitch-greeting",
+    "lines": [
+      "A dune cloak is armor if the sun is your enemy.",
+      "My bench is set for wraps, charms, and heat-tempered fittings."
+    ],
+    "choices": [
+      {
+        "id": "open-crafting",
+        "label": "Craft equipment",
+        "disabled": true
+      }
+    ]
+  },
+  {
+    "id": "niko-sandroad-greeting",
+    "lines": [
+      "Caravans leave by star count, not clock bells.",
+      "I know the oasis road, the dune route, and the vault trail."
+    ],
+    "choices": [
+      {
+        "id": "open-travel",
+        "label": "Plan travel",
+        "disabled": true
+      }
+    ]
+  },
+  {
+    "id": "mara-tidebell-greeting",
+    "lines": [
+      "Ships, ferries, tide windows. All of them answer to the bell.",
+      "I can put you on the beach road or a boat when the weather agrees."
+    ],
+    "choices": [
+      {
+        "id": "open-travel",
+        "label": "Plan travel",
+        "disabled": true
+      }
+    ]
+  },
+  {
+    "id": "pell-netcaster-greeting",
+    "lines": [
+      "Fresh fish, sharper hooks, and a story for each scar on the dock.",
+      "The morning market pays well for sea-cave oddities."
+    ],
+    "choices": [
+      {
+        "id": "open-shop",
+        "label": "Browse goods",
+        "disabled": true
+      }
+    ]
+  },
+  {
+    "id": "vessa-saltcoin-greeting",
+    "lines": [
+      "If it came off a ship, I know who wants it and who should not get it.",
+      "Market stalls change with every tide."
+    ],
+    "choices": [
+      {
+        "id": "open-shop",
+        "label": "Browse goods",
+        "disabled": true
+      }
+    ]
+  },
+  {
+    "id": "corin-wake-greeting",
+    "lines": [
+      "You can sleep through gulls if you are tired enough.",
+      "Rooms are upstairs, stew is downstairs, boots stay outside."
+    ],
+    "choices": [
+      {
+        "id": "open-inn",
+        "label": "Rest at the inn",
+        "disabled": true
+      }
+    ]
+  },
+  {
+    "id": "brann-orevein-greeting",
+    "lines": [
+      "Good steel starts under pressure and ends under a steady hand.",
+      "The forge is ready for serious work."
+    ],
+    "choices": [
+      {
+        "id": "open-crafting",
+        "label": "Craft equipment",
+        "disabled": true
+      }
+    ]
+  },
+  {
+    "id": "edda-coalbright-greeting",
+    "lines": [
+      "Ore lies. Fire tells the truth.",
+      "Bring me raw highland stone and I will show you what it wanted to be."
+    ],
+    "choices": [
+      {
+        "id": "open-refinery",
+        "label": "Refine materials",
+        "disabled": true
+      }
+    ]
+  },
+  {
+    "id": "tovin-pickrest-greeting",
+    "lines": [
+      "Picks, wedges, lamp caps, spare gloves. Nothing fancy, all necessary.",
+      "Miners buy before pride gets expensive."
+    ],
+    "choices": [
+      {
+        "id": "open-shop",
+        "label": "Browse goods",
+        "disabled": true
+      }
+    ]
+  },
+  {
+    "id": "garrin-highrail-greeting",
+    "lines": [
+      "The lift complains, but it climbs.",
+      "I run the high trail and the mine drop. Hold the rail."
+    ],
+    "choices": [
+      {
+        "id": "open-travel",
+        "label": "Plan travel",
+        "disabled": true
+      }
+    ]
+  },
+  {
+    "id": "nyra-fenlight-greeting",
+    "lines": [
+      "Keep the lantern close. The marsh dislikes witnesses.",
+      "My rooms are warded, mostly. Sleep lightly anyway."
+    ],
+    "choices": [
+      {
+        "id": "open-inn",
+        "label": "Rest at the inn",
+        "disabled": true
+      }
+    ]
+  },
+  {
+    "id": "orris-blackreed-greeting",
+    "lines": [
+      "Late contracts are sealed in black wax for a reason.",
+      "Undead signs, poison blooms, and cursed spoor all come through this desk."
+    ],
+    "choices": [
+      {
+        "id": "open-advanced-hunter-board",
+        "label": "View advanced contracts",
+        "disabled": true
+      }
+    ]
+  },
+  {
+    "id": "selka-mireglass-greeting",
+    "lines": [
+      "Broken relics remember their shape if you ask with silver tools.",
+      "I mend what the marsh has not already claimed."
+    ],
+    "choices": [
+      {
+        "id": "open-crafting",
+        "label": "Craft equipment",
+        "disabled": true
+      }
+    ]
+  },
+  {
+    "id": "vey-moonwake-greeting",
+    "lines": [
+      "The ferry moves when the fog lets it be seen.",
+      "I know which channels are water and which are pretending."
+    ],
+    "choices": [
+      {
+        "id": "open-travel",
+        "label": "Plan travel",
+        "disabled": true
+      }
+    ]
   }
 ]

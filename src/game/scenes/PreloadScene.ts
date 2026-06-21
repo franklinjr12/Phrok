@@ -16,6 +16,11 @@ const spriteAssetUrls = import.meta.glob("../../../assets/sprites/*.png", {
 const mapAssets = [
   { key: "map-crownfield-town", path: "assets/maps/crownfield-town.json" },
   { key: "map-crownfield-meadows", path: "assets/maps/crownfield-meadows.json" },
+  { key: "map-mossvale-hub", path: "assets/maps/mossvale-hub.json" },
+  { key: "map-amber-dunes-hub", path: "assets/maps/amber-dunes-hub.json" },
+  { key: "map-blueharbor-hub", path: "assets/maps/blueharbor-hub.json" },
+  { key: "map-ironroot-hub", path: "assets/maps/ironroot-hub.json" },
+  { key: "map-moonveil-hub", path: "assets/maps/moonveil-hub.json" },
 ] as const;
 const prototypeTilesKey = "prototype-tiles";
 

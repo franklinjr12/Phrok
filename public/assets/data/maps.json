@@ -4,7 +4,10 @@
     "name": "Crownfield",
     "description": "A sheltered starter town with market stalls, trainers, and a road to the meadows.",
     "regionId": "crownfield",
-    "levelRange": { "min": 1, "max": 3 },
+    "levelRange": {
+      "min": 1,
+      "max": 3
+    },
     "type": "town",
     "portals": [
       {
@@ -24,10 +27,13 @@
       "nima-threadwell",
       "sella-greenward",
       "joric-wayfare",
-      "perrin-slate"
+      "perrin-slate",
+      "advanced-class-mentor"
     ],
     "musicKey": "music-crownfield-town",
-    "recommendedElements": ["neutral"],
+    "recommendedElements": [
+      "neutral"
+    ],
     "dropHighlights": [],
     "tilemapKey": "map-crownfield-town"
   },
@@ -36,7 +42,10 @@
     "name": "Crownfield Meadows",
     "description": "A quiet starter meadow outside the first town.",
     "regionId": "crownfield",
-    "levelRange": { "min": 2, "max": 6 },
+    "levelRange": {
+      "min": 2,
+      "max": 6
+    },
     "type": "field",
     "portals": [
       {
@@ -49,15 +58,274 @@
     "spawnGroups": [
       {
         "id": "meadow-field-hoppers",
-        "monsterIds": ["green-jelly", "field-hopper"],
+        "monsterIds": [
+          "green-jelly",
+          "field-hopper"
+        ],
         "maxCount": 3
       }
     ],
-    "monsterIds": ["green-jelly", "field-hopper"],
-    "npcIds": ["meadow-keeper"],
+    "monsterIds": [
+      "green-jelly",
+      "field-hopper"
+    ],
+    "npcIds": [
+      "meadow-keeper"
+    ],
     "musicKey": "music-crownfield-meadows",
-    "recommendedElements": ["neutral", "fire"],
-    "dropHighlights": ["jelly-gel", "hopper-leg"],
+    "recommendedElements": [
+      "neutral",
+      "fire"
+    ],
+    "dropHighlights": [
+      "jelly-gel",
+      "hopper-leg"
+    ],
     "tilemapKey": "map-crownfield-meadows"
+  },
+  {
+    "id": "mossvale-hub",
+    "name": "Mossvale Grove",
+    "description": "A lantern-lit forest hub built around a mossy hunting board, root bridges, and rain-dark service stalls.",
+    "regionId": "mossvale",
+    "levelRange": {
+      "min": 9,
+      "max": 16
+    },
+    "type": "town",
+    "portals": [
+      {
+        "id": "mossvale-south-road",
+        "name": "South Road to Crownfield",
+        "targetMapId": "crownfield-town",
+        "targetSpawnName": "PlayerSpawn"
+      },
+      {
+        "id": "mossvale-east-thicket",
+        "name": "East Thicket Trail",
+        "targetMapId": "mossvale-thicket",
+        "targetSpawnName": "MossvaleGateSpawn"
+      },
+      {
+        "id": "mossvale-rootcellar-path",
+        "name": "Rootcellar Path",
+        "targetMapId": "mossvale-rootcellar",
+        "targetSpawnName": "HubEntranceSpawn"
+      }
+    ],
+    "spawnGroups": [],
+    "monsterIds": [],
+    "npcIds": [
+      "mossvale-innkeeper",
+      "mossvale-grove-warden",
+      "mossvale-provisioner",
+      "mossvale-routefinder"
+    ],
+    "musicKey": "music-mossvale-hub",
+    "recommendedElements": [
+      "fire",
+      "neutral"
+    ],
+    "dropHighlights": [
+      "moss-fiber",
+      "verdant-core"
+    ],
+    "tilemapKey": "map-mossvale-hub"
+  },
+  {
+    "id": "amber-dunes-hub",
+    "name": "Amber Oasis",
+    "description": "A desert oasis hub of shade awnings, glasswork benches, caravan posts, and sun-baked stone paths.",
+    "regionId": "amber-dunes",
+    "levelRange": {
+      "min": 17,
+      "max": 24
+    },
+    "type": "town",
+    "portals": [
+      {
+        "id": "amber-caravan-west",
+        "name": "West Caravan Road",
+        "targetMapId": "mossvale-hub",
+        "targetSpawnName": "PlayerSpawn"
+      },
+      {
+        "id": "amber-dune-trail",
+        "name": "Dune Trail",
+        "targetMapId": "amber-dunes-trail",
+        "targetSpawnName": "OasisGateSpawn"
+      },
+      {
+        "id": "amber-sandvault-gate",
+        "name": "Sandvault Gate",
+        "targetMapId": "amber-dunes-sandvault",
+        "targetSpawnName": "VaultEntranceSpawn"
+      }
+    ],
+    "spawnGroups": [],
+    "monsterIds": [],
+    "npcIds": [
+      "amber-oasis-keeper",
+      "amber-glass-refiner",
+      "amber-sun-crafter",
+      "amber-caravan-guide"
+    ],
+    "musicKey": "music-amber-dunes-hub",
+    "recommendedElements": [
+      "water",
+      "ice"
+    ],
+    "dropHighlights": [
+      "sun-glass",
+      "dune-silk"
+    ],
+    "tilemapKey": "map-amber-dunes-hub"
+  },
+  {
+    "id": "blueharbor-hub",
+    "name": "Blueharbor Pier",
+    "description": "A coastal port hub with stacked market crates, ferry bells, fish stalls, and wet planks facing the surf.",
+    "regionId": "blueharbor-coast",
+    "levelRange": {
+      "min": 25,
+      "max": 32
+    },
+    "type": "coast",
+    "portals": [
+      {
+        "id": "blueharbor-ferry",
+        "name": "Harbor Ferry",
+        "targetMapId": "amber-dunes-hub",
+        "targetSpawnName": "PlayerSpawn"
+      },
+      {
+        "id": "blueharbor-beach-road",
+        "name": "Beach Road",
+        "targetMapId": "blueharbor-beach",
+        "targetSpawnName": "PierSpawn"
+      },
+      {
+        "id": "blueharbor-sea-cave",
+        "name": "Sea Cave Steps",
+        "targetMapId": "blueharbor-tidecaves",
+        "targetSpawnName": "CaveMouthSpawn"
+      }
+    ],
+    "spawnGroups": [],
+    "monsterIds": [],
+    "npcIds": [
+      "blueharbor-harbormaster",
+      "blueharbor-fishmonger",
+      "blueharbor-market-broker",
+      "blueharbor-innkeep"
+    ],
+    "musicKey": "music-blueharbor-hub",
+    "recommendedElements": [
+      "lightning",
+      "earth"
+    ],
+    "dropHighlights": [
+      "salt-pearl",
+      "tide-shell"
+    ],
+    "tilemapKey": "map-blueharbor-hub"
+  },
+  {
+    "id": "ironroot-hub",
+    "name": "Ironroot Camp",
+    "description": "A highland mining hub packed with forge smoke, ore carts, lift rails, and vendors under rough canvas.",
+    "regionId": "ironroot-highlands",
+    "levelRange": {
+      "min": 33,
+      "max": 40
+    },
+    "type": "highlands",
+    "portals": [
+      {
+        "id": "ironroot-lift-down",
+        "name": "Lift to Blueharbor",
+        "targetMapId": "blueharbor-hub",
+        "targetSpawnName": "PlayerSpawn"
+      },
+      {
+        "id": "ironroot-high-trail",
+        "name": "High Trail",
+        "targetMapId": "ironroot-high-trail",
+        "targetSpawnName": "CampGateSpawn"
+      },
+      {
+        "id": "ironroot-mine-drop",
+        "name": "Deep Mine Drop",
+        "targetMapId": "ironroot-deepmine",
+        "targetSpawnName": "MineLiftSpawn"
+      }
+    ],
+    "spawnGroups": [],
+    "monsterIds": [],
+    "npcIds": [
+      "ironroot-forgemaster",
+      "ironroot-smelter",
+      "ironroot-material-vendor",
+      "ironroot-lift-operator"
+    ],
+    "musicKey": "music-ironroot-hub",
+    "recommendedElements": [
+      "water",
+      "wind"
+    ],
+    "dropHighlights": [
+      "ironroot-ore",
+      "ember-coal"
+    ],
+    "tilemapKey": "map-ironroot-hub"
+  },
+  {
+    "id": "moonveil-hub",
+    "name": "Moonveil Fenwatch",
+    "description": "A cursed marsh hub of warded lanterns, black-reed contract posts, ferry poles, and crooked plank walks.",
+    "regionId": "moonveil-marsh",
+    "levelRange": {
+      "min": 41,
+      "max": 48
+    },
+    "type": "marsh",
+    "portals": [
+      {
+        "id": "moonveil-ferry-back",
+        "name": "Fen Ferry",
+        "targetMapId": "ironroot-hub",
+        "targetSpawnName": "PlayerSpawn"
+      },
+      {
+        "id": "moonveil-poison-walk",
+        "name": "Poison Walk",
+        "targetMapId": "moonveil-poison-fen",
+        "targetSpawnName": "FenwatchSpawn"
+      },
+      {
+        "id": "moonveil-bogsanctum-way",
+        "name": "Bogsanctum Way",
+        "targetMapId": "moonveil-bogsanctum",
+        "targetSpawnName": "SanctumApproachSpawn"
+      }
+    ],
+    "spawnGroups": [],
+    "monsterIds": [],
+    "npcIds": [
+      "moonveil-lantern-keeper",
+      "moonveil-contract-scribe",
+      "moonveil-relic-mender",
+      "moonveil-ferry-witch"
+    ],
+    "musicKey": "music-moonveil-hub",
+    "recommendedElements": [
+      "holy",
+      "fire"
+    ],
+    "dropHighlights": [
+      "bog-ichor",
+      "moonlit-reed"
+    ],
+    "tilemapKey": "map-moonveil-hub"
   }
 ]
