@@ -258,6 +258,7 @@ export class WorldScene extends Phaser.Scene {
     this.game.canvas.dataset.enemyPosition = primaryEnemy
       ? `${primaryEnemy.sprite.x},${primaryEnemy.sprite.y}`
       : "";
+    this.game.canvas.dataset.enemyTextureKey = primaryEnemy?.textureKey ?? "";
     this.game.canvas.dataset.targetFrame = "hidden";
     this.game.canvas.dataset.autoAttack = "idle";
     this.game.canvas.dataset.playerCombatState = "alive";
@@ -1414,6 +1415,7 @@ export class WorldScene extends Phaser.Scene {
       this.game.canvas.dataset.enemyCastTelegraph = "hidden";
       this.game.canvas.dataset.enemySilenced = "false";
       this.game.canvas.dataset.enemyVisualMarker = "none";
+      this.game.canvas.dataset.enemyTextureKey = "";
       this.game.canvas.dataset.enemyRespawnMs = "";
       this.game.canvas.dataset.enemyDamage = "";
       this.game.canvas.dataset.bossProtocol = "disabled";
@@ -1428,6 +1430,7 @@ export class WorldScene extends Phaser.Scene {
     this.game.canvas.dataset.enemySelected = String(this.enemy.targetingState.selected);
     this.game.canvas.dataset.enemyAlive = String(this.enemy.isAlive);
     this.game.canvas.dataset.enemyPosition = `${this.enemy.sprite.x.toFixed(1)},${this.enemy.sprite.y.toFixed(1)}`;
+    this.game.canvas.dataset.enemyTextureKey = this.enemy.textureKey;
     this.game.canvas.dataset.enemyBehavior = this.enemy.behavior;
     this.game.canvas.dataset.enemyTraits = this.getEnemyTraitDataset(this.enemy);
     this.game.canvas.dataset.enemyVisualMarker = this.getEnemyVisualMarkerDataset(this.enemy);

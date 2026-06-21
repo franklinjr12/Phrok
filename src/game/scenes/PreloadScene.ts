@@ -3,11 +3,16 @@ import { RegistryKeys } from "../constants/registryKeys";
 import { SceneKeys } from "../constants/sceneKeys";
 import { loadDataRegistry } from "../data/dataRegistry";
 import { createNewGameState } from "../data/gameState";
-import { EnemyTextureKeys } from "../entities/EnemyEntity";
+import { EnemyTextureKeys, getEnemyTextureKey } from "../entities/EnemyEntity";
 import { NpcTextureKeys } from "../entities/NpcEntity";
 import { PlayerTextureKeys } from "../entities/PlayerEntity";
 import townServiceNpcUrl from "../../../assets/sprites/town-service-npc.png?url";
 
+const spriteAssetUrls = import.meta.glob("../../../assets/sprites/*.png", {
+  eager: true,
+  import: "default",
+  query: "?url",
+}) as Record<string, string>;
 const mapAssets = [
   { key: "map-crownfield-town", path: "assets/maps/crownfield-town.json" },
   { key: "map-crownfield-meadows", path: "assets/maps/crownfield-meadows.json" },
@@ -25,6 +30,7 @@ export class PreloadScene extends Phaser.Scene {
     }
 
     this.load.image(NpcTextureKeys.TownService, townServiceNpcUrl);
+    this.loadEnemySprites();
   }
 
   async create(): Promise<void> {
@@ -107,5 +113,17 @@ export class PreloadScene extends Phaser.Scene {
 
     graphics.generateTexture(prototypeTilesKey, 64, 32);
     graphics.destroy();
+  }
+
+  private loadEnemySprites(): void {
+    for (const [path, url] of Object.entries(spriteAssetUrls)) {
+      const fileName = path.split("/").pop() ?? "";
+      const monsterId = fileName.replace(/\.png$/i, "");
+      const textureKey = getEnemyTextureKey(monsterId);
+
+      if (!this.textures.exists(textureKey)) {
+        this.load.image(textureKey, url);
+      }
+    }
   }
 }

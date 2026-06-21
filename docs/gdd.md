@@ -1,10 +1,10 @@
 # Game Design Document
 
-# Working Title: **Echoes of the Rune Wilds**
+# Working Title: **Phrok**
 
 ## 1. Executive Summary
 
-**Echoes of the Rune Wilds** is a single-player 2D top-down pixel art RPG inspired by the core design appeal of classic Ragnarok Online: open-ended adventuring, class identity, stat allocation, skill builds, gear progression, rare item drops, monster-filled maps, towns with useful NPCs, and powerful MVP-style bosses.
+**Phrok** is a single-player 2D top-down pixel art RPG inspired by the core design appeal of classic Ragnarok Online: open-ended adventuring, class identity, stat allocation, skill builds, gear progression, rare item drops, monster-filled maps, towns with useful NPCs, and powerful MVP-style bosses.
 
 The game is not designed as a story-first RPG. It has a campaign, but the campaign exists mainly to introduce regions, unlock systems, guide progression, and give structure to the world. The real core of the game is:
 
@@ -2762,7 +2762,7 @@ The game can be considered complete when:
 
 # 48. Final Design Summary
 
-**Echoes of the Rune Wilds** is a single-player, top-down, pixel art RPG that captures the best parts of classic Ragnarok-like design without copying its IP or depending on MMO systems.
+**Phrok** is a single-player, top-down, pixel art RPG that captures the best parts of classic Ragnarok-like design without copying its IP or depending on MMO systems.
 
 The player does not begin as a novice. The player immediately chooses a class and starts building toward a unique playstyle.
 

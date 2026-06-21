@@ -15,5 +15,22 @@
         "maxQuantity": 5
       }
     ]
+  },
+  {
+    "id": "field-hopper-drops",
+    "entries": [
+      {
+        "itemId": "hopper-leg",
+        "chance": 1,
+        "minQuantity": 1,
+        "maxQuantity": 2
+      },
+      {
+        "type": "gold",
+        "chance": 1,
+        "minQuantity": 5,
+        "maxQuantity": 9
+      }
+    ]
   }
 ]

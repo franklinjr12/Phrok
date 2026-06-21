@@ -35,6 +35,13 @@
     "value": 2
   },
   {
+    "id": "hopper-leg",
+    "name": "Field hopper leg",
+    "description": "Part of the body of a field hopper",
+    "type": "material",
+    "value": 2
+  },
+  {
     "id": "minor-health-potion",
     "name": "Minor Health Potion",
     "description": "A simple red draught that restores a small amount of HP.",

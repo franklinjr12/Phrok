@@ -6,6 +6,7 @@ test("world supports target selection and auto-attack combat", async ({ page }) 
 
   const canvas = await enterMeadows(page);
   await expect(canvas).toHaveAttribute("data-spawned-monster", "green-jelly");
+  await expect(canvas).toHaveAttribute("data-enemy-texture-key", "enemy-green-jelly-placeholder");
   await expect(canvas).toHaveAttribute("data-current-map-name", "Crownfield Meadows");
   await expect(canvas).toHaveAttribute("data-spawn-name", "TownGateSpawn");
   await expect(canvas).toHaveAttribute("data-last-autosave-slot", "1");
@@ -54,6 +55,55 @@ test("world supports target selection and auto-attack combat", async ({ page }) 
   await expect.poll(async () => Number(await canvas.getAttribute("data-inventory-gold"))).toBeGreaterThan(0);
 });
 
+test("enemy uses the matching monster sprite when it is preloaded", async ({ page }) => {
+  await routeMeadowsMonster(page, "field-hopper");
+  await startApp(page);
+
+  const canvas = await enterMeadows(page);
+
+  await expect(canvas).toHaveAttribute("data-spawned-monster", "field-hopper");
+  await expect(canvas).toHaveAttribute("data-spawned-monster-name", "Field Hopper");
+  await expect(canvas).toHaveAttribute("data-enemy-texture-key", "enemy-field-hopper");
+});
+
+test("enemy falls back to the placeholder when no monster sprite exists", async ({ page }) => {
+  await page.route("**/assets/data/monsters.json", async (route) => {
+    const response = await route.fetch();
+    const monsters = await response.json();
+
+    await route.fulfill({
+      response,
+      json: [
+        ...monsters,
+        {
+          id: "missing-sprite",
+          name: "Missing Sprite",
+          level: 1,
+          hp: 10,
+          attack: 2,
+          defense: 1,
+          xpReward: 5,
+          dropTableId: "green-jelly-drops",
+          behavior: "passive",
+          aggroRange: 150,
+          attackRange: 70,
+          leashDistance: 240,
+          leashTimeoutMs: 6500,
+          assistRadius: 96,
+          respawnMs: 15000,
+        },
+      ],
+    });
+  });
+  await routeMeadowsMonster(page, "missing-sprite");
+  await startApp(page);
+
+  const canvas = await enterMeadows(page);
+
+  await expect(canvas).toHaveAttribute("data-spawned-monster", "missing-sprite");
+  await expect(canvas).toHaveAttribute("data-enemy-texture-key", "enemy-green-jelly-placeholder");
+});
+
 test("hotbar skill key fails without target and executes against selected enemies", async ({ page }) => {
   await startApp(page);
 
@@ -74,6 +124,24 @@ test("hotbar skill key fails without target and executes against selected enemie
   await expect.poll(async () => await canvas.getAttribute("data-last-skill-use")).toMatch(/1:power-slash:(success|failed:(out-of-range|cooldown))/);
   await expect(canvas).toHaveAttribute("data-skill-cooldowns", /power-slash:|^$/);
 });
+
+async function routeMeadowsMonster(page: Parameters<typeof startApp>[0], monsterId: string) {
+  await page.route("**/assets/maps/crownfield-meadows.json", async (route) => {
+    const response = await route.fetch();
+    const map = await response.json();
+    const objectLayer = map.layers.find((layer: { name?: string }) => layer.name === "Objects");
+    const monsterSpawn = objectLayer?.objects.find((object: { type?: string }) => object.type === "monsterSpawn");
+
+    if (monsterSpawn) {
+      monsterSpawn.properties = [
+        ...(monsterSpawn.properties ?? []).filter((property: { name?: string }) => property.name !== "monsterId"),
+        { name: "monsterId", type: "string", value: monsterId },
+      ];
+    }
+
+    await route.fulfill({ response, json: map });
+  });
+}
 
 test("aggressive enemies detect, chase, and attack without being clicked", async ({ page }) => {
   await page.route("**/assets/data/monsters.json", async (route) => {

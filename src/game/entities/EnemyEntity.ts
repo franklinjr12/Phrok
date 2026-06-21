@@ -6,6 +6,10 @@ export const EnemyTextureKeys = {
   GreenJellyPlaceholder: "enemy-green-jelly-placeholder",
 } as const;
 
+export function getEnemyTextureKey(monsterId: string): string {
+  return `enemy-${monsterId}`;
+}
+
 export type EnemyBehaviorMode = "idle" | "chasing" | "attacking" | "casting" | "returning" | "dead";
 export type BossPhase = 1 | 2 | 3;
 
@@ -43,6 +47,7 @@ export class EnemyEntity {
     attack: number;
     defense: number;
   };
+  readonly textureKey: string;
   readonly sprite: Phaser.Physics.Arcade.Sprite;
 
   hp: number;
@@ -89,11 +94,13 @@ export class EnemyEntity {
       defense: Math.ceil(monster.defense * (monster.boss ? 1.6 : monster.elite ? 1.3 : 1)),
     };
 
+    this.textureKey = this.getAvailableTextureKey(scene, monster.id);
+
     this.highlight = scene.add.ellipse(position.x, position.y + 15, 56, 24, 0xfacc15, 0.22)
       .setStrokeStyle(2, 0xfef08a, 0.9)
       .setDepth(14)
       .setVisible(false);
-    this.sprite = scene.physics.add.sprite(position.x, position.y, EnemyTextureKeys.GreenJellyPlaceholder);
+    this.sprite = scene.physics.add.sprite(position.x, position.y, this.textureKey);
     this.sprite.setName(this.id);
     this.sprite.setDepth(18);
     this.sprite.setCollideWorldBounds(true);
@@ -242,5 +249,13 @@ export class EnemyEntity {
     }
 
     return 1;
+  }
+
+  private getAvailableTextureKey(scene: Phaser.Scene, monsterId: string): string {
+    const textureKey = getEnemyTextureKey(monsterId);
+
+    return scene.textures.exists(textureKey)
+      ? textureKey
+      : EnemyTextureKeys.GreenJellyPlaceholder;
   }
 }

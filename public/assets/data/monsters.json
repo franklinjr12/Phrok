@@ -15,5 +15,22 @@
     "leashTimeoutMs": 6500,
     "assistRadius": 96,
     "respawnMs": 15000
+  },
+  {
+    "id": "field-hopper",
+    "name": "Field Hopper",
+    "level": 3,
+    "hp": 30,
+    "attack": 3,
+    "defense": 2,
+    "xpReward": 15,
+    "dropTableId": "field-hopper-drops",
+    "behavior": "passive",
+    "aggroRange": 150,
+    "attackRange": 70,
+    "leashDistance": 240,
+    "leashTimeoutMs": 6500,
+    "assistRadius": 96,
+    "respawnMs": 15000
   }
 ]
