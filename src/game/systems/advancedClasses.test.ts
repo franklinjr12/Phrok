@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 import { createNewGameState } from "../data/gameState";
-import { chooseAdvancedClass, getUnlockedSkillTreeIds, isAdvancedClassServiceAvailable } from "./advancedClasses";
+import {
+  chooseAdvancedClass,
+  getAdvancedClassOptionsForBase,
+  getUnlockedSkillTreeIds,
+  isAdvancedClassServiceAvailable,
+} from "./advancedClasses";
 import type { ClassDefinition } from "../types/dataDefinitions";
 
 describe("advanced class unlocks", () => {
@@ -35,6 +40,26 @@ describe("advanced class unlocks", () => {
       reason: "already-chosen",
     });
   });
+
+  it("only exposes and accepts advanced classes for the current base class", () => {
+    const state = createNewGameState();
+    state.playerProfile.level = 40;
+
+    expect(getAdvancedClassOptionsForBase(swordsmanClass).map((option) => option.name)).toEqual([
+      "Knight",
+      "Blade Dancer",
+    ]);
+    expect(getAdvancedClassOptionsForBase(mismatchedMageClass)).toEqual([]);
+    expect(chooseAdvancedClass(state, swordsmanClass, "Elementalist")).toEqual({
+      success: false,
+      reason: "invalid-choice",
+    });
+    expect(chooseAdvancedClass(state, mismatchedMageClass, "Knight")).toEqual({
+      success: false,
+      reason: "invalid-choice",
+    });
+    expect(state.character.advancedClass).toBeNull();
+  });
 });
 
 const swordsmanClass: ClassDefinition = {
@@ -50,5 +75,12 @@ const swordsmanClass: ClassDefinition = {
   allowedWeaponTypes: ["sword"],
   startingSkillIds: ["power-slash"],
   startingItemIds: ["training-sword"],
+  advancedClassOptions: ["Knight", "Blade Dancer"],
+};
+
+const mismatchedMageClass: ClassDefinition = {
+  ...swordsmanClass,
+  id: "mage",
+  name: "Mage",
   advancedClassOptions: ["Knight", "Blade Dancer"],
 };

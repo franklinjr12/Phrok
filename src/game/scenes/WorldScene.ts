@@ -15,7 +15,7 @@ import { addGold, addInventoryItem } from "../systems/inventory";
 import { generateLootDrops, type LootDrop } from "../systems/lootDrops";
 import { awardXp, getLevelXpThreshold } from "../systems/progression";
 import { autosaveSlot, writeAutosave, writeSaveSlot } from "../systems/autosave";
-import { isAdvancedClassServiceAvailable } from "../systems/advancedClasses";
+import { getAdvancedClassOptionsForBase, isAdvancedClassServiceAvailable } from "../systems/advancedClasses";
 import { getEquipmentStats } from "../systems/equipment";
 import {
   decideEnemyAiIntent,
@@ -548,10 +548,13 @@ export class WorldScene extends Phaser.Scene {
     }
 
     const dialogue = dataRegistry.getDialogue(npc.dialogueId);
-    const choices = npc.serviceType === "advanced-class" && this.state
-      ? dataRegistry.getClass(this.state.character.archetype).advancedClassOptions.map((option) => ({
-        id: `choose-advanced-class:${option}`,
-        label: option,
+    const advancedClassOptions = npc.serviceType === "advanced-class" && this.state
+      ? getAdvancedClassOptionsForBase(dataRegistry.getClass(this.state.character.archetype))
+      : undefined;
+    const choices = advancedClassOptions
+      ? advancedClassOptions.map((option) => ({
+        id: `choose-advanced-class:${option.name}`,
+        label: option.name,
         disabled: !isAdvancedClassServiceAvailable(this.state!),
       }))
       : dialogue.choices;
@@ -562,6 +565,7 @@ export class WorldScene extends Phaser.Scene {
       serviceType: npc.serviceType,
       lines: dialogue.lines,
       choices,
+      advancedClassOptions,
     };
 
     this.pendingNpcInteraction = undefined;

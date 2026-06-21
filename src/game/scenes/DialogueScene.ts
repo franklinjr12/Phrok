@@ -1,7 +1,7 @@
 import Phaser from "phaser";
 import { SceneKeys } from "../constants/sceneKeys";
 import { RegistryKeys } from "../constants/registryKeys";
-import { chooseAdvancedClass } from "../systems/advancedClasses";
+import { chooseAdvancedClass, type AdvancedClassDefinition } from "../systems/advancedClasses";
 import { eventBus } from "../systems/eventBus";
 import type { DataRegistry } from "../data/dataRegistry";
 import type { DialogueChoiceDefinition } from "../types/dataDefinitions";
@@ -14,6 +14,7 @@ export type DialogueSceneData = {
   serviceType: string;
   lines: string[];
   choices: DialogueChoiceDefinition[];
+  advancedClassOptions?: AdvancedClassDefinition[];
 };
 
 export class DialogueScene extends Phaser.Scene {
@@ -22,6 +23,8 @@ export class DialogueScene extends Phaser.Scene {
   private nameText?: Phaser.GameObjects.Text;
   private bodyText?: Phaser.GameObjects.Text;
   private nextButton?: Phaser.GameObjects.Text;
+  private confirmButton?: Phaser.GameObjects.Text;
+  private selectedAdvancedClass?: AdvancedClassDefinition;
 
   constructor() {
     super(SceneKeys.Dialogue);
@@ -33,6 +36,7 @@ export class DialogueScene extends Phaser.Scene {
       lines: data.lines.length > 0 ? data.lines : ["..."],
     };
     this.lineIndex = 0;
+    this.selectedAdvancedClass = undefined;
   }
 
   create(): void {
@@ -69,6 +73,7 @@ export class DialogueScene extends Phaser.Scene {
     this.nextButton = this.createButton(width - 150, boxY + boxHeight - 42, "Next", () => this.advance());
     this.createButton(width - 70, boxY + boxHeight - 42, "Close", () => this.close());
     this.createChoices(boxY);
+    this.createAdvancedClassConfirmationButton(width, boxY);
     this.syncDataset("open");
     this.renderLine();
     eventBus.emit("dialogueOpened", { dialogueId: this.dialogueData.dialogueId });
@@ -112,21 +117,43 @@ export class DialogueScene extends Phaser.Scene {
       const state = this.registry.get(RegistryKeys.GameState) as GameState | undefined;
       const dataRegistry = this.registry.get(RegistryKeys.DataRegistry) as DataRegistry | undefined;
       const specializationName = choiceId.slice(advancedClassPrefix.length);
+      const selectedDefinition = this.dialogueData?.advancedClassOptions
+        ?.find((option) => option.name === specializationName);
 
       if (!state || !dataRegistry) {
         this.game.canvas.dataset.lastAdvancedClassChoice = "failed:missing-state";
         return;
       }
 
-      const result = chooseAdvancedClass(state, dataRegistry.getClass(state.character.archetype), specializationName);
-      this.game.canvas.dataset.lastAdvancedClassChoice = result.success
-        ? `success:${result.id}`
-        : `failed:${result.reason}`;
-
-      if (result.success) {
-        eventBus.emit("advancedClassChosen", { id: result.id, name: result.name });
-        this.close();
+      if (!selectedDefinition) {
+        this.game.canvas.dataset.lastAdvancedClassChoice = "failed:invalid-choice";
+        return;
       }
+
+      this.selectedAdvancedClass = selectedDefinition;
+      this.game.canvas.dataset.advancedClassConfirmation = `pending:${selectedDefinition.id}`;
+      this.renderLine();
+    }
+  }
+
+  private confirmAdvancedClassChoice(): void {
+    const state = this.registry.get(RegistryKeys.GameState) as GameState | undefined;
+    const dataRegistry = this.registry.get(RegistryKeys.DataRegistry) as DataRegistry | undefined;
+    const specializationName = this.selectedAdvancedClass?.name;
+
+    if (!state || !dataRegistry || !specializationName) {
+      this.game.canvas.dataset.lastAdvancedClassChoice = "failed:missing-confirmation";
+      return;
+    }
+
+    const result = chooseAdvancedClass(state, dataRegistry.getClass(state.character.archetype), specializationName);
+    this.game.canvas.dataset.lastAdvancedClassChoice = result.success
+      ? `success:${result.id}`
+      : `failed:${result.reason}`;
+
+    if (result.success) {
+      eventBus.emit("advancedClassChosen", { id: result.id, name: result.name });
+      this.close();
     }
   }
 
@@ -165,29 +192,68 @@ export class DialogueScene extends Phaser.Scene {
       return;
     }
 
+    const line = this.selectedAdvancedClass
+      ? this.getAdvancedClassPreviewText(this.selectedAdvancedClass)
+      : this.dialogueData.lines[this.lineIndex] ?? "";
+
     this.nameText?.setText(this.dialogueData.npcName);
-    this.bodyText?.setText(this.dialogueData.lines[this.lineIndex] ?? "");
+    this.bodyText?.setText(line);
     this.nextButton?.setText(this.lineIndex >= this.dialogueData.lines.length - 1 ? "Close" : "Next");
+    this.confirmButton?.setVisible(Boolean(this.selectedAdvancedClass));
     this.syncDataset("open");
   }
 
   private close(): void {
     const dialogueId = this.dialogueData?.dialogueId ?? "";
 
+    this.selectedAdvancedClass = undefined;
     this.syncDataset("closed");
     eventBus.emit("dialogueClosed", { dialogueId });
     this.scene.stop();
   }
 
+  private createAdvancedClassConfirmationButton(width: number, boxY: number): void {
+    if (this.dialogueData?.serviceType !== "advanced-class") {
+      return;
+    }
+
+    this.confirmButton = this.add.text(width - 252, boxY + 112, "Confirm", {
+      backgroundColor: "#047857",
+      color: "#f8fafc",
+      fixedWidth: 92,
+      fixedHeight: 28,
+      fontFamily: "Arial, sans-serif",
+      fontSize: "13px",
+      padding: { x: 10, y: 6 },
+    })
+      .setScrollFactor(0)
+      .setDepth(201)
+      .setVisible(false)
+      .setInteractive({ useHandCursor: true })
+      .on(Phaser.Input.Events.POINTER_DOWN, () => this.confirmAdvancedClassChoice());
+  }
+
+  private getAdvancedClassPreviewText(definition: AdvancedClassDefinition): string {
+    return [
+      `${definition.name}: ${definition.description}`,
+      `Playstyle: ${definition.playstyle}`,
+      `Advanced skills: ${definition.previewSkillNames.join(", ")}`,
+      "Confirm to make this permanent.",
+    ].join("\n");
+  }
+
   private syncDataset(state: "open" | "closed"): void {
     const data = this.dialogueData;
+    const selected = state === "open" ? this.selectedAdvancedClass : undefined;
 
     this.game.canvas.dataset.dialogueState = state;
     this.game.canvas.dataset.dialogueNpcId = state === "open" ? data?.npcId ?? "" : "";
     this.game.canvas.dataset.dialogueNpcName = state === "open" ? data?.npcName ?? "" : "";
     this.game.canvas.dataset.dialogueId = state === "open" ? data?.dialogueId ?? "" : "";
     this.game.canvas.dataset.dialogueServiceType = state === "open" ? data?.serviceType ?? "" : "";
-    this.game.canvas.dataset.dialogueText = state === "open" ? data?.lines[this.lineIndex] ?? "" : "";
+    this.game.canvas.dataset.dialogueText = state === "open"
+      ? selected ? this.getAdvancedClassPreviewText(selected) : data?.lines[this.lineIndex] ?? ""
+      : "";
     this.game.canvas.dataset.dialogueLineIndex = state === "open" ? String(this.lineIndex) : "";
     this.game.canvas.dataset.dialogueChoiceLabels = state === "open"
       ? data?.choices.map((choice) => choice.label).join("|") ?? ""
@@ -195,5 +261,20 @@ export class DialogueScene extends Phaser.Scene {
     this.game.canvas.dataset.dialogueChoiceDisabled = state === "open"
       ? data?.choices.map((choice) => String(choice.disabled)).join("|") ?? ""
       : "";
+    this.game.canvas.dataset.advancedClassDetailNames = state === "open"
+      ? data?.advancedClassOptions?.map((option) => option.name).join("|") ?? ""
+      : "";
+    this.game.canvas.dataset.advancedClassDetailDescriptions = state === "open"
+      ? data?.advancedClassOptions?.map((option) => option.description).join("|") ?? ""
+      : "";
+    this.game.canvas.dataset.advancedClassDetailPlaystyles = state === "open"
+      ? data?.advancedClassOptions?.map((option) => option.playstyle).join("|") ?? ""
+      : "";
+    this.game.canvas.dataset.advancedClassDetailPreviewSkills = state === "open"
+      ? data?.advancedClassOptions?.map((option) => option.previewSkillNames.join(", ")).join("|") ?? ""
+      : "";
+    this.game.canvas.dataset.selectedAdvancedClass = selected?.id ?? "";
+    this.game.canvas.dataset.selectedAdvancedClassPreviewSkills = selected?.previewSkillNames.join("|") ?? "";
+    this.game.canvas.dataset.advancedClassConfirmation = selected ? `pending:${selected.id}` : "";
   }
 }

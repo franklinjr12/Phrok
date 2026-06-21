@@ -21,8 +21,18 @@ test("level 40 player can choose, save, and load an advanced specialization", as
   await expect(canvas).toHaveAttribute("data-dialogue-npc-name", "Iria Crossroad");
   await expect(canvas).toHaveAttribute("data-dialogue-choice-labels", "Knight|Blade Dancer");
   await expect(canvas).toHaveAttribute("data-dialogue-choice-disabled", "false|false");
+  await expect(canvas).toHaveAttribute("data-advanced-class-detail-names", "Knight|Blade Dancer");
+  await expect(canvas).toHaveAttribute("data-advanced-class-detail-playstyles", /Hold the line/);
+  await expect(canvas).toHaveAttribute("data-advanced-class-detail-preview-skills", /Shield Bash, Iron Oath, Guardian Charge/);
 
   await canvas.click({ position: { x: 86, y: 530 } });
+  await expect(canvas).toHaveAttribute("data-selected-advanced-class", "knight");
+  await expect(canvas).toHaveAttribute("data-selected-advanced-class-preview-skills", "Shield Bash|Iron Oath|Guardian Charge");
+  await expect(canvas).toHaveAttribute("data-dialogue-text", /Confirm to make this permanent/);
+  await expect(canvas).toHaveAttribute("data-advanced-class-confirmation", "pending:knight");
+  await expect(canvas).toHaveAttribute("data-player-advanced-class", "");
+
+  await canvas.click({ position: { x: 590, y: 530 } });
   await expect(canvas).toHaveAttribute("data-last-advanced-class-choice", "success:knight");
   await expect(canvas).toHaveAttribute("data-player-advanced-class", "knight");
   await expect(canvas).toHaveAttribute("data-player-advanced-class-name", "Knight");
