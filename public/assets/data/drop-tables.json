@@ -2,35 +2,240 @@
   {
     "id": "green-jelly-drops",
     "entries": [
-      {
-        "itemId": "jelly-gel",
-        "chance": 1,
-        "minQuantity": 1,
-        "maxQuantity": 2
-      },
-      {
-        "type": "gold",
-        "chance": 1,
-        "minQuantity": 3,
-        "maxQuantity": 5
-      }
+      { "itemId": "jelly-gel", "chance": 1, "minQuantity": 1, "maxQuantity": 2 },
+      { "type": "gold", "chance": 1, "minQuantity": 3, "maxQuantity": 5 }
     ]
   },
   {
     "id": "field-hopper-drops",
     "entries": [
-      {
-        "itemId": "hopper-leg",
-        "chance": 1,
-        "minQuantity": 1,
-        "maxQuantity": 2
-      },
-      {
-        "type": "gold",
-        "chance": 1,
-        "minQuantity": 5,
-        "maxQuantity": 9
-      }
+      { "itemId": "hopper-leg", "chance": 1, "minQuantity": 1, "maxQuantity": 2 },
+      { "type": "gold", "chance": 1, "minQuantity": 5, "maxQuantity": 9 }
+    ]
+  },
+  {
+    "id": "meadow-pup-drops",
+    "entries": [
+      { "itemId": "soft-hide", "chance": 0.75, "minQuantity": 1, "maxQuantity": 2 },
+      { "itemId": "minor-health-potion", "chance": 0.2, "minQuantity": 1, "maxQuantity": 1 },
+      { "type": "gold", "chance": 1, "minQuantity": 6, "maxQuantity": 12 }
+    ]
+  },
+  {
+    "id": "road-thief-drops",
+    "entries": [
+      { "itemId": "road-token", "chance": 0.8, "minQuantity": 1, "maxQuantity": 2 },
+      { "itemId": "practice-daggers", "chance": 0.08, "minQuantity": 1, "maxQuantity": 1 },
+      { "type": "gold", "chance": 1, "minQuantity": 10, "maxQuantity": 18 }
+    ]
+  },
+  {
+    "id": "sewer-rat-drops",
+    "entries": [
+      { "itemId": "sewer-moss", "chance": 0.85, "minQuantity": 1, "maxQuantity": 3 },
+      { "itemId": "soft-hide", "chance": 0.35, "minQuantity": 1, "maxQuantity": 1 },
+      { "type": "gold", "chance": 1, "minQuantity": 9, "maxQuantity": 16 }
+    ]
+  },
+  {
+    "id": "old-road-bruiser-drops",
+    "entries": [
+      { "itemId": "road-token", "chance": 1, "minQuantity": 2, "maxQuantity": 4 },
+      { "itemId": "minor-health-potion", "chance": 0.45, "minQuantity": 1, "maxQuantity": 2 },
+      { "type": "gold", "chance": 1, "minQuantity": 25, "maxQuantity": 42 }
+    ]
+  },
+  {
+    "id": "moss-sprite-drops",
+    "entries": [
+      { "itemId": "moss-fiber", "chance": 0.8, "minQuantity": 1, "maxQuantity": 3 },
+      { "type": "gold", "chance": 1, "minQuantity": 14, "maxQuantity": 24 }
+    ]
+  },
+  {
+    "id": "thorn-runner-drops",
+    "entries": [
+      { "itemId": "thorny-vine", "chance": 0.82, "minQuantity": 1, "maxQuantity": 2 },
+      { "itemId": "mosswood-bowgrip", "chance": 0.14, "minQuantity": 1, "maxQuantity": 1 },
+      { "type": "gold", "chance": 1, "minQuantity": 18, "maxQuantity": 30 }
+    ]
+  },
+  {
+    "id": "grove-stalker-drops",
+    "entries": [
+      { "itemId": "shadowleaf-wraps", "chance": 0.22, "minQuantity": 1, "maxQuantity": 1 },
+      { "itemId": "moss-fiber", "chance": 0.68, "minQuantity": 1, "maxQuantity": 3 },
+      { "type": "gold", "chance": 1, "minQuantity": 28, "maxQuantity": 42 }
+    ]
+  },
+  {
+    "id": "chapel-rootguard-drops",
+    "entries": [
+      { "itemId": "verdant-core", "chance": 0.9, "minQuantity": 1, "maxQuantity": 2 },
+      { "itemId": "mosswood-bowgrip", "chance": 0.35, "minQuantity": 1, "maxQuantity": 1 },
+      { "itemId": "shadowleaf-wraps", "chance": 0.35, "minQuantity": 1, "maxQuantity": 1 },
+      { "type": "gold", "chance": 1, "minQuantity": 54, "maxQuantity": 82 }
+    ]
+  },
+  {
+    "id": "tide-crab-drops",
+    "entries": [
+      { "itemId": "tide-shell", "chance": 0.85, "minQuantity": 1, "maxQuantity": 3 },
+      { "type": "gold", "chance": 1, "minQuantity": 22, "maxQuantity": 36 }
+    ]
+  },
+  {
+    "id": "foam-wisp-drops",
+    "entries": [
+      { "itemId": "foamglass", "chance": 0.78, "minQuantity": 1, "maxQuantity": 2 },
+      { "itemId": "waterlogged-rune", "chance": 0.16, "minQuantity": 1, "maxQuantity": 1 },
+      { "type": "gold", "chance": 1, "minQuantity": 26, "maxQuantity": 44 }
+    ]
+  },
+  {
+    "id": "reef-strider-drops",
+    "entries": [
+      { "itemId": "storm-feather", "chance": 0.32, "minQuantity": 1, "maxQuantity": 1 },
+      { "itemId": "salt-pearl", "chance": 0.5, "minQuantity": 1, "maxQuantity": 2 },
+      { "type": "gold", "chance": 1, "minQuantity": 34, "maxQuantity": 54 }
+    ]
+  },
+  {
+    "id": "sea-cave-siren-drops",
+    "entries": [
+      { "itemId": "waterlogged-rune", "chance": 0.8, "minQuantity": 1, "maxQuantity": 2 },
+      { "itemId": "salt-pearl", "chance": 0.45, "minQuantity": 1, "maxQuantity": 2 },
+      { "itemId": "storm-feather", "chance": 0.28, "minQuantity": 1, "maxQuantity": 1 },
+      { "type": "gold", "chance": 1, "minQuantity": 72, "maxQuantity": 105 }
+    ]
+  },
+  {
+    "id": "dune-scorpion-drops",
+    "entries": [
+      { "itemId": "venom-sack", "chance": 0.76, "minQuantity": 1, "maxQuantity": 2 },
+      { "itemId": "dune-silk", "chance": 0.32, "minQuantity": 1, "maxQuantity": 1 },
+      { "type": "gold", "chance": 1, "minQuantity": 38, "maxQuantity": 62 }
+    ]
+  },
+  {
+    "id": "sand-ambusher-drops",
+    "entries": [
+      { "itemId": "dune-silk", "chance": 0.72, "minQuantity": 1, "maxQuantity": 2 },
+      { "itemId": "bandit-mark", "chance": 0.22, "minQuantity": 1, "maxQuantity": 1 },
+      { "type": "gold", "chance": 1, "minQuantity": 44, "maxQuantity": 68 }
+    ]
+  },
+  {
+    "id": "glass-vulture-drops",
+    "entries": [
+      { "itemId": "sun-glass", "chance": 0.78, "minQuantity": 1, "maxQuantity": 2 },
+      { "type": "gold", "chance": 1, "minQuantity": 52, "maxQuantity": 76 }
+    ]
+  },
+  {
+    "id": "red-sash-captain-drops",
+    "entries": [
+      { "itemId": "bandit-mark", "chance": 1, "minQuantity": 2, "maxQuantity": 3 },
+      { "itemId": "buried-sun-shard", "chance": 0.5, "minQuantity": 1, "maxQuantity": 1 },
+      { "itemId": "venom-sack", "chance": 0.35, "minQuantity": 1, "maxQuantity": 2 },
+      { "type": "gold", "chance": 1, "minQuantity": 96, "maxQuantity": 140 }
+    ]
+  },
+  {
+    "id": "oreling-drops",
+    "entries": [
+      { "itemId": "ironroot-ore", "chance": 0.86, "minQuantity": 1, "maxQuantity": 3 },
+      { "type": "gold", "chance": 1, "minQuantity": 36, "maxQuantity": 58 }
+    ]
+  },
+  {
+    "id": "goblin-sapper-drops",
+    "entries": [
+      { "itemId": "goblin-rivet", "chance": 0.78, "minQuantity": 1, "maxQuantity": 3 },
+      { "itemId": "ember-coal", "chance": 0.35, "minQuantity": 1, "maxQuantity": 2 },
+      { "type": "gold", "chance": 1, "minQuantity": 46, "maxQuantity": 70 }
+    ]
+  },
+  {
+    "id": "quarry-construct-drops",
+    "entries": [
+      { "itemId": "quarry-gear", "chance": 0.74, "minQuantity": 1, "maxQuantity": 2 },
+      { "itemId": "refined-nickel", "chance": 0.22, "minQuantity": 1, "maxQuantity": 1 },
+      { "type": "gold", "chance": 1, "minQuantity": 60, "maxQuantity": 92 }
+    ]
+  },
+  {
+    "id": "mine-road-overseer-drops",
+    "entries": [
+      { "itemId": "refined-nickel", "chance": 0.7, "minQuantity": 1, "maxQuantity": 2 },
+      { "itemId": "quarry-gear", "chance": 0.55, "minQuantity": 1, "maxQuantity": 2 },
+      { "itemId": "ironroot-ore", "chance": 1, "minQuantity": 2, "maxQuantity": 4 },
+      { "type": "gold", "chance": 1, "minQuantity": 110, "maxQuantity": 160 }
+    ]
+  },
+  {
+    "id": "fen-wisp-drops",
+    "entries": [
+      { "itemId": "moonlit-reed", "chance": 0.76, "minQuantity": 1, "maxQuantity": 2 },
+      { "itemId": "bog-ichor", "chance": 0.34, "minQuantity": 1, "maxQuantity": 1 },
+      { "type": "gold", "chance": 1, "minQuantity": 62, "maxQuantity": 92 }
+    ]
+  },
+  {
+    "id": "black-reed-stalker-drops",
+    "entries": [
+      { "itemId": "black-reed-oil", "chance": 0.52, "minQuantity": 1, "maxQuantity": 2 },
+      { "itemId": "bog-ichor", "chance": 0.7, "minQuantity": 1, "maxQuantity": 2 },
+      { "type": "gold", "chance": 1, "minQuantity": 72, "maxQuantity": 108 }
+    ]
+  },
+  {
+    "id": "bell-haunt-drops",
+    "entries": [
+      { "itemId": "curse-bell-clapper", "chance": 0.42, "minQuantity": 1, "maxQuantity": 1 },
+      { "itemId": "grave-silk", "chance": 0.68, "minQuantity": 1, "maxQuantity": 2 },
+      { "type": "gold", "chance": 1, "minQuantity": 84, "maxQuantity": 126 }
+    ]
+  },
+  {
+    "id": "rotting-knight-drops",
+    "entries": [
+      { "itemId": "curse-bell-clapper", "chance": 0.82, "minQuantity": 1, "maxQuantity": 2 },
+      { "itemId": "black-reed-oil", "chance": 0.7, "minQuantity": 1, "maxQuantity": 2 },
+      { "itemId": "grave-silk", "chance": 0.7, "minQuantity": 1, "maxQuantity": 3 },
+      { "type": "gold", "chance": 1, "minQuantity": 150, "maxQuantity": 220 }
+    ]
+  },
+  {
+    "id": "starfall-prowler-drops",
+    "entries": [
+      { "itemId": "star-iron", "chance": 0.34, "minQuantity": 1, "maxQuantity": 1 },
+      { "type": "gold", "chance": 1, "minQuantity": 90, "maxQuantity": 135 }
+    ]
+  },
+  {
+    "id": "rune-archivist-drops",
+    "entries": [
+      { "itemId": "rune-glass", "chance": 0.68, "minQuantity": 1, "maxQuantity": 2 },
+      { "itemId": "star-iron", "chance": 0.24, "minQuantity": 1, "maxQuantity": 1 },
+      { "type": "gold", "chance": 1, "minQuantity": 112, "maxQuantity": 168 }
+    ]
+  },
+  {
+    "id": "astral-construct-drops",
+    "entries": [
+      { "itemId": "astral-gear", "chance": 0.64, "minQuantity": 1, "maxQuantity": 2 },
+      { "itemId": "rune-glass", "chance": 0.36, "minQuantity": 1, "maxQuantity": 1 },
+      { "type": "gold", "chance": 1, "minQuantity": 148, "maxQuantity": 220 }
+    ]
+  },
+  {
+    "id": "fallen-observer-drops",
+    "entries": [
+      { "itemId": "observatory-lens", "chance": 0.74, "minQuantity": 1, "maxQuantity": 2 },
+      { "itemId": "astral-gear", "chance": 0.58, "minQuantity": 1, "maxQuantity": 2 },
+      { "itemId": "star-iron", "chance": 0.5, "minQuantity": 1, "maxQuantity": 2 },
+      { "type": "gold", "chance": 1, "minQuantity": 240, "maxQuantity": 360 }
     ]
   }
 ]

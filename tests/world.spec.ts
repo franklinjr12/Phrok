@@ -15,7 +15,7 @@ test("world supports mouse click player movement without WASD movement", async (
   await expect(canvas).toHaveAttribute("data-current-map-level-range", "1-3");
   await expect(canvas).toHaveAttribute("data-current-map-type", "town");
   await expect(canvas).toHaveAttribute("data-current-map-music-key", "music-crownfield-town");
-  await expect(canvas).toHaveAttribute("data-region-progression", /crownfield:1-8.*starfall-tower:49-60/);
+  await expect(canvas).toHaveAttribute("data-region-progression", /crownfield:1-10.*starfall-tower:65-99/);
 
   const startX = Number(await canvas.getAttribute("data-player-x"));
   const startY = Number(await canvas.getAttribute("data-player-y"));
@@ -53,12 +53,12 @@ test("world portals connect town and field", async ({ page }) => {
   await expect(canvas).toHaveAttribute("data-current-map", "crownfield-meadows");
   await expect(canvas).toHaveAttribute("data-current-map-name", "Crownfield Meadows");
   await expect(canvas).toHaveAttribute("data-current-region", "crownfield");
-  await expect(canvas).toHaveAttribute("data-current-map-level-range", "2-6");
+  await expect(canvas).toHaveAttribute("data-current-map-level-range", "1-5");
   await expect(canvas).toHaveAttribute("data-current-map-type", "field");
   await expect(canvas).toHaveAttribute("data-current-map-music-key", "music-crownfield-meadows");
   await expect(canvas).toHaveAttribute("data-current-map-recommended-elements", "neutral|fire");
-  await expect(canvas).toHaveAttribute("data-current-map-drop-highlights", "jelly-gel|hopper-leg");
-  await expect(canvas).toHaveAttribute("data-current-map-spawn-groups", "meadow-field-hoppers:green-jelly,field-hopper:3");
+  await expect(canvas).toHaveAttribute("data-current-map-drop-highlights", "jelly-gel|hopper-leg|soft-hide|minor-health-potion");
+  await expect(canvas).toHaveAttribute("data-current-map-spawn-groups", "meadow-jelly-loop:green-jelly,field-hopper:3|meadow-pup-loop:meadow-pup:2");
   await expect(canvas).toHaveAttribute("data-spawn-point", "80,304");
   await expect(canvas).toHaveAttribute("data-spawn-name", "TownGateSpawn");
   await expect(canvas).toHaveAttribute("data-safe-zone", "field-entrance");

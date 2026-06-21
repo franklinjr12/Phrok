@@ -36,8 +36,8 @@
   },
   {
     "id": "hopper-leg",
-    "name": "Field hopper leg",
-    "description": "Part of the body of a field hopper",
+    "name": "Field Hopper Leg",
+    "description": "Part of the body of a field hopper.",
     "type": "material",
     "value": 2
   },
@@ -47,5 +47,229 @@
     "description": "A simple red draught that restores a small amount of HP.",
     "type": "consumable",
     "value": 6
+  },
+  {
+    "id": "soft-hide",
+    "name": "Soft Hide",
+    "description": "Flexible beginner leather used for simple armor repairs.",
+    "type": "material",
+    "value": 3
+  },
+  {
+    "id": "road-token",
+    "name": "Road Token",
+    "description": "A stamped copper keepsake taken from road bandits.",
+    "type": "material",
+    "value": 4
+  },
+  {
+    "id": "sewer-moss",
+    "name": "Sewer Moss",
+    "description": "Damp green growth useful in low-level alchemy.",
+    "type": "material",
+    "value": 3
+  },
+  {
+    "id": "moss-fiber",
+    "name": "Moss Fiber",
+    "description": "A springy woodland fiber prized by bowyers and outfitters.",
+    "type": "material",
+    "value": 8
+  },
+  {
+    "id": "thorny-vine",
+    "name": "Thorny Vine",
+    "description": "A tough vine that holds tension well for traps and bowstrings.",
+    "type": "material",
+    "value": 9
+  },
+  {
+    "id": "mosswood-bowgrip",
+    "name": "Mosswood Bowgrip",
+    "description": "A fitted grip that helps archers stabilize forest bows.",
+    "type": "material",
+    "value": 14
+  },
+  {
+    "id": "shadowleaf-wraps",
+    "name": "Shadowleaf Wraps",
+    "description": "Quiet cloth strips favored by thieves for muffled movement.",
+    "type": "material",
+    "value": 14
+  },
+  {
+    "id": "verdant-core",
+    "name": "Verdant Core",
+    "description": "A pulsing seed-heart from the deepest Mossvale plant beasts.",
+    "type": "material",
+    "value": 18
+  },
+  {
+    "id": "salt-pearl",
+    "name": "Salt Pearl",
+    "description": "A pale pearl that carries a faint ocean chill.",
+    "type": "material",
+    "value": 16
+  },
+  {
+    "id": "tide-shell",
+    "name": "Tide Shell",
+    "description": "A curved shell used in water-aspected charms and arrowheads.",
+    "type": "material",
+    "value": 12
+  },
+  {
+    "id": "foamglass",
+    "name": "Foamglass",
+    "description": "Wave-smoothed glass that channels spell focus cleanly.",
+    "type": "material",
+    "value": 17
+  },
+  {
+    "id": "storm-feather",
+    "name": "Storm Feather",
+    "description": "A salt-stiff feather used for light fletching and air charms.",
+    "type": "material",
+    "value": 18
+  },
+  {
+    "id": "waterlogged-rune",
+    "name": "Waterlogged Rune",
+    "description": "A rune fragment useful to mages studying slow and water effects.",
+    "type": "material",
+    "value": 22
+  },
+  {
+    "id": "sun-glass",
+    "name": "Sun Glass",
+    "description": "Amber desert glass used in heat-resistant craftwork.",
+    "type": "material",
+    "value": 20
+  },
+  {
+    "id": "dune-silk",
+    "name": "Dune Silk",
+    "description": "A light desert thread valued for poison-resistant wraps.",
+    "type": "material",
+    "value": 19
+  },
+  {
+    "id": "venom-sack",
+    "name": "Venom Sack",
+    "description": "A sealed toxin gland handled carefully by alchemists.",
+    "type": "material",
+    "value": 21
+  },
+  {
+    "id": "bandit-mark",
+    "name": "Bandit Mark",
+    "description": "An outlaw token traded for bounty proofs and rugged gear.",
+    "type": "material",
+    "value": 24
+  },
+  {
+    "id": "buried-sun-shard",
+    "name": "Buried Sun Shard",
+    "description": "A hot mineral shard from the tomb road.",
+    "type": "material",
+    "value": 28
+  },
+  {
+    "id": "ironroot-ore",
+    "name": "Ironroot Ore",
+    "description": "Dense highland ore threaded with dark root fibers.",
+    "type": "material",
+    "value": 22
+  },
+  {
+    "id": "ember-coal",
+    "name": "Ember Coal",
+    "description": "Slow-burning coal that keeps refinery furnaces steady.",
+    "type": "material",
+    "value": 20
+  },
+  {
+    "id": "quarry-gear",
+    "name": "Quarry Gear",
+    "description": "A sturdy gear salvaged from old mining constructs.",
+    "type": "material",
+    "value": 25
+  },
+  {
+    "id": "goblin-rivet",
+    "name": "Goblin Rivet",
+    "description": "A crude fastener useful for quick field repairs.",
+    "type": "material",
+    "value": 18
+  },
+  {
+    "id": "refined-nickel",
+    "name": "Refined Nickel",
+    "description": "A clean refinement material for midgame weapon upgrades.",
+    "type": "material",
+    "value": 30
+  },
+  {
+    "id": "bog-ichor",
+    "name": "Bog Ichor",
+    "description": "A dark fluid used in curse-resistant oils.",
+    "type": "material",
+    "value": 28
+  },
+  {
+    "id": "moonlit-reed",
+    "name": "Moonlit Reed",
+    "description": "A pale marsh reed that glows under cursed moonlight.",
+    "type": "material",
+    "value": 26
+  },
+  {
+    "id": "grave-silk",
+    "name": "Grave Silk",
+    "description": "A cold thread gathered from undead burial wrappings.",
+    "type": "material",
+    "value": 31
+  },
+  {
+    "id": "curse-bell-clapper",
+    "name": "Curse Bell Clapper",
+    "description": "A cracked bell piece still humming with dark magic.",
+    "type": "material",
+    "value": 35
+  },
+  {
+    "id": "black-reed-oil",
+    "name": "Black Reed Oil",
+    "description": "A late-game material used in shadowed and poison craftwork.",
+    "type": "material",
+    "value": 36
+  },
+  {
+    "id": "star-iron",
+    "name": "Star Iron",
+    "description": "A rare endgame metal fallen from the upper sky.",
+    "type": "material",
+    "value": 46
+  },
+  {
+    "id": "rune-glass",
+    "name": "Rune Glass",
+    "description": "Transparent arcane glass cut for high-level spellwork.",
+    "type": "material",
+    "value": 44
+  },
+  {
+    "id": "observatory-lens",
+    "name": "Observatory Lens",
+    "description": "A precise lens used in endgame focus gear.",
+    "type": "material",
+    "value": 52
+  },
+  {
+    "id": "astral-gear",
+    "name": "Astral Gear",
+    "description": "A rare construct part from Starfall's exterior guardians.",
+    "type": "material",
+    "value": 55
   }
 ]

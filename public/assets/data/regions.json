@@ -2,120 +2,105 @@
   {
     "id": "crownfield",
     "name": "Crownfield",
-    "levelRange": {
-      "min": 1,
-      "max": 8
-    },
-    "description": "A protected farming heartland where new adventurers learn town routes, meadow threats, and basic field work.",
+    "levelRange": { "min": 1, "max": 10 },
+    "description": "A protected farming heartland where new adventurers learn town routes, meadow threats, old road fights, and training sewer approaches.",
     "mapIds": [
       "crownfield-town",
-      "crownfield-meadows"
+      "crownfield-meadows",
+      "crownfield-old-road",
+      "training-sewers-entrance"
     ],
-    "dungeonIds": [],
-    "monsterIds": [
-      "green-jelly",
-      "field-hopper"
-    ],
-    "bossIds": []
+    "dungeonIds": ["training-sewers"],
+    "monsterIds": ["green-jelly", "field-hopper", "meadow-pup", "road-thief", "sewer-rat"],
+    "bossIds": ["old-road-bruiser"]
   },
   {
     "id": "mossvale",
     "name": "Mossvale",
-    "levelRange": {
-      "min": 9,
-      "max": 16
-    },
-    "description": "A damp woodland of mossy ruins, old shrines, and ambush paths beneath the canopy.",
+    "levelRange": { "min": 10, "max": 30 },
+    "description": "A damp woodland of mossy ruins, old shrines, plant beasts, assist packs, and ambush paths beneath the canopy.",
     "mapIds": [
-      "mossvale-hub"
+      "mossvale-hub",
+      "mossvale-edge",
+      "deep-mossvale",
+      "green-chapel-road"
     ],
-    "dungeonIds": [
-      "mossvale-rootcellar"
-    ],
-    "monsterIds": [],
-    "bossIds": []
-  },
-  {
-    "id": "amber-dunes",
-    "name": "Amber Dunes",
-    "levelRange": {
-      "min": 17,
-      "max": 24
-    },
-    "description": "A sunlit desert route where caravan trails cross glassy sands and buried vaults.",
-    "mapIds": [
-      "amber-dunes-hub"
-    ],
-    "dungeonIds": [
-      "amber-dunes-sandvault"
-    ],
-    "monsterIds": [],
-    "bossIds": []
+    "dungeonIds": ["mossvale-rootcellar", "green-chapel-ruins"],
+    "monsterIds": ["moss-sprite", "thorn-runner", "grove-stalker"],
+    "bossIds": ["chapel-rootguard"]
   },
   {
     "id": "blueharbor-coast",
     "name": "Blueharbor Coast",
-    "levelRange": {
-      "min": 25,
-      "max": 32
-    },
-    "description": "A salt-air coastline of docks, tide caves, and weather-beaten lighthouse roads.",
+    "levelRange": { "min": 20, "max": 35 },
+    "description": "A salt-air coastline of docks, tide flats, sea cave mouths, aquatic monsters, and water-slow caster pressure.",
     "mapIds": [
-      "blueharbor-hub"
+      "blueharbor-hub",
+      "blueharbor-beach",
+      "tide-flats",
+      "sea-cave-entrance"
     ],
-    "dungeonIds": [
-      "blueharbor-tidecaves"
+    "dungeonIds": ["tide-cave"],
+    "monsterIds": ["tide-crab", "foam-wisp", "reef-strider"],
+    "bossIds": ["sea-cave-siren"]
+  },
+  {
+    "id": "amber-dunes",
+    "name": "Amber Dunes",
+    "levelRange": { "min": 35, "max": 50 },
+    "description": "A sunlit desert route where caravan trails cross glassy sands, poison threats, bandit ambushes, and buried tomb roads.",
+    "mapIds": [
+      "amber-dunes-hub",
+      "amber-dunes-field",
+      "bandit-pass",
+      "buried-sun-approach"
     ],
-    "monsterIds": [],
-    "bossIds": []
+    "dungeonIds": ["amber-dunes-sandvault", "buried-sun-tomb"],
+    "monsterIds": ["dune-scorpion", "sand-ambusher", "glass-vulture"],
+    "bossIds": ["red-sash-captain"]
   },
   {
     "id": "ironroot-highlands",
     "name": "Ironroot Highlands",
-    "levelRange": {
-      "min": 33,
-      "max": 40
-    },
-    "description": "A rugged upland of mineral roots, steep trails, and fortified mining camps.",
+    "levelRange": { "min": 35, "max": 55 },
+    "description": "A rugged upland of mineral roots, steep trails, goblin work crews, construct guardians, and fortified mining roads.",
     "mapIds": [
-      "ironroot-hub"
+      "ironroot-hub",
+      "ironroot-highlands-field",
+      "old-quarry",
+      "mine-road"
     ],
-    "dungeonIds": [
-      "ironroot-deepmine"
-    ],
-    "monsterIds": [],
-    "bossIds": []
+    "dungeonIds": ["ironroot-deepmine", "ironroot-mine"],
+    "monsterIds": ["oreling", "goblin-sapper", "quarry-construct"],
+    "bossIds": ["mine-road-overseer"]
   },
   {
     "id": "moonveil-marsh",
     "name": "Moonveil Marsh",
-    "levelRange": {
-      "min": 41,
-      "max": 48
-    },
-    "description": "A moonlit wetland where fog hides witchlights, sink paths, and poisonous pools.",
+    "levelRange": { "min": 50, "max": 70 },
+    "description": "A moonlit wetland where fog hides undead, curse bells, poisonous pools, witchlights, and late-game black-reed materials.",
     "mapIds": [
-      "moonveil-hub"
+      "moonveil-hub",
+      "moonveil-marsh-field",
+      "cursed-bell-road",
+      "rotting-fen"
     ],
-    "dungeonIds": [
-      "moonveil-bogsanctum"
-    ],
-    "monsterIds": [],
-    "bossIds": []
+    "dungeonIds": ["moonveil-bogsanctum", "cursed-bell-crypt"],
+    "monsterIds": ["fen-wisp", "black-reed-stalker", "bell-haunt"],
+    "bossIds": ["rotting-knight"]
   },
   {
     "id": "starfall-tower",
     "name": "Starfall Tower",
-    "levelRange": {
-      "min": 49,
-      "max": 60
-    },
-    "description": "A sky-piercing arcane tower built around a fallen star and the campaign's final ascent.",
-    "mapIds": [],
-    "dungeonIds": [
-      "starfall-astral-spire"
+    "levelRange": { "min": 65, "max": 99 },
+    "description": "A sky-piercing arcane region built around fallen stars, rune archives, construct guardians, and endgame exterior approaches.",
+    "mapIds": [
+      "starfall-approach",
+      "rune-archive-exterior",
+      "fallen-observatory-approach"
     ],
-    "monsterIds": [],
-    "bossIds": []
+    "dungeonIds": ["starfall-astral-spire", "fallen-observatory"],
+    "monsterIds": ["starfall-prowler", "rune-archivist", "astral-construct"],
+    "bossIds": ["fallen-observer"]
   }
 ]

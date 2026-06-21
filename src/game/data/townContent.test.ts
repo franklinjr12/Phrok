@@ -39,27 +39,27 @@ describe("town content", () => {
   it("defines region hubs with expected services and local connections", () => {
     expectHub("mossvale", "mossvale-hub", ["inn", "merchant", "hunter-board", "travel"], [
       "crownfield-town",
-      "mossvale-thicket",
+      "mossvale-edge",
       "mossvale-rootcellar",
     ]);
     expectHub("amber-dunes", "amber-dunes-hub", ["inn", "refiner", "crafter", "travel"], [
       "mossvale-hub",
-      "amber-dunes-trail",
+      "amber-dunes-field",
       "amber-dunes-sandvault",
     ]);
     expectHub("blueharbor-coast", "blueharbor-hub", ["inn", "merchant", "merchant", "travel"], [
       "amber-dunes-hub",
       "blueharbor-beach",
-      "blueharbor-tidecaves",
+      "sea-cave-entrance",
     ]);
     expectHub("ironroot-highlands", "ironroot-hub", ["crafter", "refiner", "merchant", "travel"], [
       "blueharbor-hub",
-      "ironroot-high-trail",
+      "ironroot-highlands-field",
       "ironroot-deepmine",
     ]);
     expectHub("moonveil-marsh", "moonveil-hub", ["inn", "advanced-hunter-board", "crafter", "travel"], [
       "ironroot-hub",
-      "moonveil-poison-fen",
+      "moonveil-marsh-field",
       "moonveil-bogsanctum",
     ]);
   });

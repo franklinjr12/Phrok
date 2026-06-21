@@ -4,10 +4,7 @@
     "name": "Crownfield",
     "description": "A sheltered starter town with market stalls, trainers, and a road to the meadows.",
     "regionId": "crownfield",
-    "levelRange": {
-      "min": 1,
-      "max": 3
-    },
+    "levelRange": { "min": 1, "max": 3 },
     "type": "town",
     "portals": [
       {
@@ -31,21 +28,16 @@
       "advanced-class-mentor"
     ],
     "musicKey": "music-crownfield-town",
-    "recommendedElements": [
-      "neutral"
-    ],
+    "recommendedElements": ["neutral"],
     "dropHighlights": [],
     "tilemapKey": "map-crownfield-town"
   },
   {
     "id": "crownfield-meadows",
     "name": "Crownfield Meadows",
-    "description": "A quiet starter meadow outside the first town.",
+    "description": "A quiet beginner meadow with close town access, passive jellies, and short farming loops around safe grass paths.",
     "regionId": "crownfield",
-    "levelRange": {
-      "min": 2,
-      "max": 6
-    },
+    "levelRange": { "min": 1, "max": 5 },
     "type": "field",
     "portals": [
       {
@@ -53,34 +45,67 @@
         "name": "Town Road Return",
         "targetMapId": "crownfield-town",
         "targetSpawnName": "FieldRoadReturn"
+      },
+      {
+        "id": "old-road-west",
+        "name": "Old Road West",
+        "targetMapId": "crownfield-old-road",
+        "targetSpawnName": "MeadowReturn"
       }
     ],
     "spawnGroups": [
-      {
-        "id": "meadow-field-hoppers",
-        "monsterIds": [
-          "green-jelly",
-          "field-hopper"
-        ],
-        "maxCount": 3
-      }
+      { "id": "meadow-jelly-loop", "monsterIds": ["green-jelly", "field-hopper"], "maxCount": 3 },
+      { "id": "meadow-pup-loop", "monsterIds": ["meadow-pup"], "maxCount": 2 }
     ],
-    "monsterIds": [
-      "green-jelly",
-      "field-hopper"
-    ],
-    "npcIds": [
-      "meadow-keeper"
-    ],
+    "monsterIds": ["green-jelly", "field-hopper", "meadow-pup"],
+    "npcIds": ["meadow-keeper"],
     "musicKey": "music-crownfield-meadows",
-    "recommendedElements": [
-      "neutral",
-      "fire"
+    "recommendedElements": ["neutral", "fire"],
+    "dropHighlights": ["jelly-gel", "hopper-leg", "soft-hide", "minor-health-potion"],
+    "tilemapKey": "map-crownfield-meadows"
+  },
+  {
+    "id": "crownfield-old-road",
+    "name": "Old Road",
+    "description": "A broken farm road with mild bandit pressure, a return route to the meadows, and compact loops for level 5 to 8 farming.",
+    "regionId": "crownfield",
+    "levelRange": { "min": 5, "max": 8 },
+    "type": "field",
+    "portals": [
+      { "id": "meadow-return", "name": "Meadow Return", "targetMapId": "crownfield-meadows", "targetSpawnName": "OldRoadReturn" },
+      { "id": "sewer-approach", "name": "Training Sewers Entrance", "targetMapId": "training-sewers-entrance", "targetSpawnName": "RoadReturn" }
     ],
-    "dropHighlights": [
-      "jelly-gel",
-      "hopper-leg"
+    "spawnGroups": [
+      { "id": "old-road-bandits", "monsterIds": ["road-thief"], "maxCount": 3 },
+      { "id": "old-road-wildlife", "monsterIds": ["field-hopper", "meadow-pup"], "maxCount": 3 }
     ],
+    "monsterIds": ["field-hopper", "meadow-pup", "road-thief"],
+    "npcIds": [],
+    "musicKey": "music-crownfield-field",
+    "recommendedElements": ["neutral", "fire"],
+    "dropHighlights": ["road-token", "practice-daggers", "soft-hide"],
+    "tilemapKey": "map-crownfield-meadows"
+  },
+  {
+    "id": "training-sewers-entrance",
+    "name": "Training Sewers Exterior Entrance",
+    "description": "A supervised sewer approach outside Crownfield where new players meet aggressive rats and a single elite road bruiser.",
+    "regionId": "crownfield",
+    "levelRange": { "min": 8, "max": 10 },
+    "type": "field",
+    "portals": [
+      { "id": "old-road-return", "name": "Old Road Return", "targetMapId": "crownfield-old-road", "targetSpawnName": "SewerReturn" },
+      { "id": "training-sewer-door", "name": "Training Sewer Door", "targetMapId": "training-sewers", "targetSpawnName": "ExteriorEntrance" }
+    ],
+    "spawnGroups": [
+      { "id": "sewer-rat-loop", "monsterIds": ["sewer-rat", "road-thief"], "maxCount": 4 },
+      { "id": "old-road-elite", "monsterIds": ["old-road-bruiser"], "maxCount": 1 }
+    ],
+    "monsterIds": ["sewer-rat", "road-thief", "old-road-bruiser"],
+    "npcIds": [],
+    "musicKey": "music-crownfield-field",
+    "recommendedElements": ["neutral", "fire"],
+    "dropHighlights": ["sewer-moss", "road-token", "minor-health-potion"],
     "tilemapKey": "map-crownfield-meadows"
   },
   {
@@ -88,97 +113,105 @@
     "name": "Mossvale Grove",
     "description": "A lantern-lit forest hub built around a mossy hunting board, root bridges, and rain-dark service stalls.",
     "regionId": "mossvale",
-    "levelRange": {
-      "min": 9,
-      "max": 16
-    },
+    "levelRange": { "min": 10, "max": 16 },
     "type": "town",
     "portals": [
-      {
-        "id": "mossvale-south-road",
-        "name": "South Road to Crownfield",
-        "targetMapId": "crownfield-town",
-        "targetSpawnName": "PlayerSpawn"
-      },
-      {
-        "id": "mossvale-east-thicket",
-        "name": "East Thicket Trail",
-        "targetMapId": "mossvale-thicket",
-        "targetSpawnName": "MossvaleGateSpawn"
-      },
-      {
-        "id": "mossvale-rootcellar-path",
-        "name": "Rootcellar Path",
-        "targetMapId": "mossvale-rootcellar",
-        "targetSpawnName": "HubEntranceSpawn"
-      }
+      { "id": "mossvale-south-road", "name": "South Road to Crownfield", "targetMapId": "crownfield-town", "targetSpawnName": "PlayerSpawn" },
+      { "id": "mossvale-edge-path", "name": "Mossvale Edge Path", "targetMapId": "mossvale-edge", "targetSpawnName": "GroveGateSpawn" },
+      { "id": "mossvale-rootcellar-path", "name": "Rootcellar Path", "targetMapId": "mossvale-rootcellar", "targetSpawnName": "HubEntranceSpawn" }
     ],
     "spawnGroups": [],
     "monsterIds": [],
-    "npcIds": [
-      "mossvale-innkeeper",
-      "mossvale-grove-warden",
-      "mossvale-provisioner",
-      "mossvale-routefinder"
-    ],
+    "npcIds": ["mossvale-innkeeper", "mossvale-grove-warden", "mossvale-provisioner", "mossvale-routefinder"],
     "musicKey": "music-mossvale-hub",
-    "recommendedElements": [
-      "fire",
-      "neutral"
-    ],
-    "dropHighlights": [
-      "moss-fiber",
-      "verdant-core"
-    ],
+    "recommendedElements": ["fire", "neutral"],
+    "dropHighlights": ["moss-fiber", "verdant-core"],
     "tilemapKey": "map-mossvale-hub"
+  },
+  {
+    "id": "mossvale-edge",
+    "name": "Mossvale Edge",
+    "description": "The first green border of Mossvale, mixing plant casters and assist beasts for players moving beyond Crownfield.",
+    "regionId": "mossvale",
+    "levelRange": { "min": 10, "max": 16 },
+    "type": "field",
+    "portals": [
+      { "id": "grove-return", "name": "Mossvale Grove Return", "targetMapId": "mossvale-hub", "targetSpawnName": "EdgeReturn" },
+      { "id": "deep-mossvale-trail", "name": "Deep Mossvale Trail", "targetMapId": "deep-mossvale", "targetSpawnName": "EdgeTrailSpawn" }
+    ],
+    "spawnGroups": [
+      { "id": "edge-sprites", "monsterIds": ["moss-sprite"], "maxCount": 3 },
+      { "id": "edge-thorns", "monsterIds": ["thorn-runner"], "maxCount": 3 }
+    ],
+    "monsterIds": ["moss-sprite", "thorn-runner"],
+    "npcIds": [],
+    "musicKey": "music-mossvale-field",
+    "recommendedElements": ["fire", "wind"],
+    "dropHighlights": ["moss-fiber", "thorny-vine", "mosswood-bowgrip"],
+    "tilemapKey": "map-crownfield-meadows"
+  },
+  {
+    "id": "deep-mossvale",
+    "name": "Deep Mossvale",
+    "description": "A dense woodland farming map that emphasizes assist monster packs, beast ambushes, and archer or thief material drops.",
+    "regionId": "mossvale",
+    "levelRange": { "min": 17, "max": 24 },
+    "type": "field",
+    "portals": [
+      { "id": "mossvale-edge-return", "name": "Mossvale Edge Return", "targetMapId": "mossvale-edge", "targetSpawnName": "DeepReturn" },
+      { "id": "chapel-road-east", "name": "Green Chapel Road", "targetMapId": "green-chapel-road", "targetSpawnName": "DeepTrailSpawn" }
+    ],
+    "spawnGroups": [
+      { "id": "deep-assist-pack", "monsterIds": ["thorn-runner", "grove-stalker"], "maxCount": 4 },
+      { "id": "deep-caster-roots", "monsterIds": ["moss-sprite"], "maxCount": 2 }
+    ],
+    "monsterIds": ["moss-sprite", "thorn-runner", "grove-stalker"],
+    "npcIds": [],
+    "musicKey": "music-mossvale-field",
+    "recommendedElements": ["fire", "lightning"],
+    "dropHighlights": ["shadowleaf-wraps", "mosswood-bowgrip", "moss-fiber"],
+    "tilemapKey": "map-crownfield-meadows"
+  },
+  {
+    "id": "green-chapel-road",
+    "name": "Green Chapel Road",
+    "description": "A moss-choked shrine road with plant beasts, an elite rootguard, and the surface entrance to Green Chapel Ruins.",
+    "regionId": "mossvale",
+    "levelRange": { "min": 24, "max": 30 },
+    "type": "field",
+    "portals": [
+      { "id": "deep-mossvale-return", "name": "Deep Mossvale Return", "targetMapId": "deep-mossvale", "targetSpawnName": "ChapelReturn" },
+      { "id": "green-chapel-ruins", "name": "Green Chapel Ruins", "targetMapId": "green-chapel-ruins", "targetSpawnName": "RoadEntrance" }
+    ],
+    "spawnGroups": [
+      { "id": "chapel-road-pack", "monsterIds": ["grove-stalker", "thorn-runner"], "maxCount": 4 },
+      { "id": "chapel-elite-root", "monsterIds": ["chapel-rootguard"], "maxCount": 1 }
+    ],
+    "monsterIds": ["thorn-runner", "grove-stalker", "chapel-rootguard"],
+    "npcIds": [],
+    "musicKey": "music-mossvale-field",
+    "recommendedElements": ["fire", "holy"],
+    "dropHighlights": ["verdant-core", "mosswood-bowgrip", "shadowleaf-wraps"],
+    "tilemapKey": "map-crownfield-meadows"
   },
   {
     "id": "amber-dunes-hub",
     "name": "Amber Oasis",
     "description": "A desert oasis hub of shade awnings, glasswork benches, caravan posts, and sun-baked stone paths.",
     "regionId": "amber-dunes",
-    "levelRange": {
-      "min": 17,
-      "max": 24
-    },
+    "levelRange": { "min": 35, "max": 42 },
     "type": "town",
     "portals": [
-      {
-        "id": "amber-caravan-west",
-        "name": "West Caravan Road",
-        "targetMapId": "mossvale-hub",
-        "targetSpawnName": "PlayerSpawn"
-      },
-      {
-        "id": "amber-dune-trail",
-        "name": "Dune Trail",
-        "targetMapId": "amber-dunes-trail",
-        "targetSpawnName": "OasisGateSpawn"
-      },
-      {
-        "id": "amber-sandvault-gate",
-        "name": "Sandvault Gate",
-        "targetMapId": "amber-dunes-sandvault",
-        "targetSpawnName": "VaultEntranceSpawn"
-      }
+      { "id": "amber-caravan-west", "name": "West Caravan Road", "targetMapId": "mossvale-hub", "targetSpawnName": "PlayerSpawn" },
+      { "id": "amber-dune-trail", "name": "Amber Dunes Trail", "targetMapId": "amber-dunes-field", "targetSpawnName": "OasisGateSpawn" },
+      { "id": "amber-sandvault-gate", "name": "Sandvault Gate", "targetMapId": "amber-dunes-sandvault", "targetSpawnName": "VaultEntranceSpawn" }
     ],
     "spawnGroups": [],
     "monsterIds": [],
-    "npcIds": [
-      "amber-oasis-keeper",
-      "amber-glass-refiner",
-      "amber-sun-crafter",
-      "amber-caravan-guide"
-    ],
+    "npcIds": ["amber-oasis-keeper", "amber-glass-refiner", "amber-sun-crafter", "amber-caravan-guide"],
     "musicKey": "music-amber-dunes-hub",
-    "recommendedElements": [
-      "water",
-      "ice"
-    ],
-    "dropHighlights": [
-      "sun-glass",
-      "dune-silk"
-    ],
+    "recommendedElements": ["water", "ice"],
+    "dropHighlights": ["sun-glass", "dune-silk"],
     "tilemapKey": "map-amber-dunes-hub"
   },
   {
@@ -186,146 +219,389 @@
     "name": "Blueharbor Pier",
     "description": "A coastal port hub with stacked market crates, ferry bells, fish stalls, and wet planks facing the surf.",
     "regionId": "blueharbor-coast",
-    "levelRange": {
-      "min": 25,
-      "max": 32
-    },
+    "levelRange": { "min": 20, "max": 28 },
     "type": "coast",
     "portals": [
-      {
-        "id": "blueharbor-ferry",
-        "name": "Harbor Ferry",
-        "targetMapId": "amber-dunes-hub",
-        "targetSpawnName": "PlayerSpawn"
-      },
-      {
-        "id": "blueharbor-beach-road",
-        "name": "Beach Road",
-        "targetMapId": "blueharbor-beach",
-        "targetSpawnName": "PierSpawn"
-      },
-      {
-        "id": "blueharbor-sea-cave",
-        "name": "Sea Cave Steps",
-        "targetMapId": "blueharbor-tidecaves",
-        "targetSpawnName": "CaveMouthSpawn"
-      }
+      { "id": "blueharbor-ferry", "name": "Harbor Ferry", "targetMapId": "amber-dunes-hub", "targetSpawnName": "PlayerSpawn" },
+      { "id": "blueharbor-beach-road", "name": "Beach Road", "targetMapId": "blueharbor-beach", "targetSpawnName": "PierSpawn" },
+      { "id": "blueharbor-sea-cave", "name": "Sea Cave Steps", "targetMapId": "sea-cave-entrance", "targetSpawnName": "CaveMouthSpawn" }
     ],
     "spawnGroups": [],
     "monsterIds": [],
-    "npcIds": [
-      "blueharbor-harbormaster",
-      "blueharbor-fishmonger",
-      "blueharbor-market-broker",
-      "blueharbor-innkeep"
-    ],
+    "npcIds": ["blueharbor-harbormaster", "blueharbor-fishmonger", "blueharbor-market-broker", "blueharbor-innkeep"],
     "musicKey": "music-blueharbor-hub",
-    "recommendedElements": [
-      "lightning",
-      "earth"
-    ],
-    "dropHighlights": [
-      "salt-pearl",
-      "tide-shell"
-    ],
+    "recommendedElements": ["lightning", "earth"],
+    "dropHighlights": ["salt-pearl", "tide-shell"],
     "tilemapKey": "map-blueharbor-hub"
+  },
+  {
+    "id": "blueharbor-beach",
+    "name": "Blueharbor Beach",
+    "description": "A bright shoreline field that introduces aquatic monsters and early water-slow caster pressure for mages and archers.",
+    "regionId": "blueharbor-coast",
+    "levelRange": { "min": 20, "max": 26 },
+    "type": "field",
+    "portals": [
+      { "id": "pier-return", "name": "Blueharbor Pier Return", "targetMapId": "blueharbor-hub", "targetSpawnName": "BeachReturn" },
+      { "id": "tide-flats-east", "name": "Tide Flats East", "targetMapId": "tide-flats", "targetSpawnName": "BeachTrailSpawn" }
+    ],
+    "spawnGroups": [
+      { "id": "beach-crabs", "monsterIds": ["tide-crab"], "maxCount": 3 },
+      { "id": "beach-wisps", "monsterIds": ["foam-wisp"], "maxCount": 2 }
+    ],
+    "monsterIds": ["tide-crab", "foam-wisp"],
+    "npcIds": [],
+    "musicKey": "music-blueharbor-field",
+    "recommendedElements": ["lightning", "earth"],
+    "dropHighlights": ["tide-shell", "foamglass", "waterlogged-rune"],
+    "tilemapKey": "map-crownfield-meadows"
+  },
+  {
+    "id": "tide-flats",
+    "name": "Tide Flats",
+    "description": "A wide wetland coast map with aquatic assist packs, slow water effects, and useful fletching or mage materials.",
+    "regionId": "blueharbor-coast",
+    "levelRange": { "min": 26, "max": 31 },
+    "type": "field",
+    "portals": [
+      { "id": "beach-return", "name": "Blueharbor Beach Return", "targetMapId": "blueharbor-beach", "targetSpawnName": "FlatsReturn" },
+      { "id": "sea-cave-west", "name": "Sea Cave Entrance", "targetMapId": "sea-cave-entrance", "targetSpawnName": "FlatsTrailSpawn" }
+    ],
+    "spawnGroups": [
+      { "id": "flats-striders", "monsterIds": ["reef-strider", "tide-crab"], "maxCount": 4 },
+      { "id": "flats-water-casters", "monsterIds": ["foam-wisp"], "maxCount": 2 }
+    ],
+    "monsterIds": ["tide-crab", "foam-wisp", "reef-strider"],
+    "npcIds": [],
+    "musicKey": "music-blueharbor-field",
+    "recommendedElements": ["lightning", "wind"],
+    "dropHighlights": ["salt-pearl", "storm-feather", "waterlogged-rune"],
+    "tilemapKey": "map-crownfield-meadows"
+  },
+  {
+    "id": "sea-cave-entrance",
+    "name": "Sea Cave Entrance",
+    "description": "A wave-cut cave mouth with an elite siren encounter, aquatic monsters, and the entrance to Tide Cave.",
+    "regionId": "blueharbor-coast",
+    "levelRange": { "min": 31, "max": 35 },
+    "type": "field",
+    "portals": [
+      { "id": "tide-flats-return", "name": "Tide Flats Return", "targetMapId": "tide-flats", "targetSpawnName": "CaveReturn" },
+      { "id": "tide-cave-door", "name": "Tide Cave", "targetMapId": "tide-cave", "targetSpawnName": "SeaEntrance" }
+    ],
+    "spawnGroups": [
+      { "id": "cave-mouth-aquatics", "monsterIds": ["reef-strider", "foam-wisp"], "maxCount": 4 },
+      { "id": "siren-elite", "monsterIds": ["sea-cave-siren"], "maxCount": 1 }
+    ],
+    "monsterIds": ["foam-wisp", "reef-strider", "sea-cave-siren"],
+    "npcIds": [],
+    "musicKey": "music-blueharbor-field",
+    "recommendedElements": ["lightning", "holy"],
+    "dropHighlights": ["waterlogged-rune", "salt-pearl", "storm-feather"],
+    "tilemapKey": "map-crownfield-meadows"
+  },
+  {
+    "id": "amber-dunes-field",
+    "name": "Amber Dunes",
+    "description": "A hot desert field with scorpions, poison materials, and a stable loop near the oasis before deeper ambush routes.",
+    "regionId": "amber-dunes",
+    "levelRange": { "min": 35, "max": 40 },
+    "type": "field",
+    "portals": [
+      { "id": "oasis-return", "name": "Amber Oasis Return", "targetMapId": "amber-dunes-hub", "targetSpawnName": "DunesReturn" },
+      { "id": "bandit-pass-east", "name": "Bandit Pass", "targetMapId": "bandit-pass", "targetSpawnName": "DunesTrailSpawn" }
+    ],
+    "spawnGroups": [
+      { "id": "dune-poisoners", "monsterIds": ["dune-scorpion"], "maxCount": 3 },
+      { "id": "dune-ambushers", "monsterIds": ["sand-ambusher"], "maxCount": 2 }
+    ],
+    "monsterIds": ["dune-scorpion", "sand-ambusher"],
+    "npcIds": [],
+    "musicKey": "music-amber-dunes-field",
+    "recommendedElements": ["water", "ice"],
+    "dropHighlights": ["venom-sack", "dune-silk", "sun-glass"],
+    "tilemapKey": "map-crownfield-meadows"
+  },
+  {
+    "id": "bandit-pass",
+    "name": "Bandit Pass",
+    "description": "A narrow desert pass built around ambush enemies, poison threats, and an elite bandit encounter.",
+    "regionId": "amber-dunes",
+    "levelRange": { "min": 40, "max": 46 },
+    "type": "field",
+    "portals": [
+      { "id": "dunes-return", "name": "Amber Dunes Return", "targetMapId": "amber-dunes-field", "targetSpawnName": "PassReturn" },
+      { "id": "buried-sun-road", "name": "Buried Sun Approach", "targetMapId": "buried-sun-approach", "targetSpawnName": "PassTrailSpawn" }
+    ],
+    "spawnGroups": [
+      { "id": "pass-ambush", "monsterIds": ["sand-ambusher", "glass-vulture"], "maxCount": 4 },
+      { "id": "red-sash-elite", "monsterIds": ["red-sash-captain"], "maxCount": 1 }
+    ],
+    "monsterIds": ["sand-ambusher", "glass-vulture", "red-sash-captain"],
+    "npcIds": [],
+    "musicKey": "music-amber-dunes-field",
+    "recommendedElements": ["water", "lightning"],
+    "dropHighlights": ["bandit-mark", "dune-silk", "venom-sack"],
+    "tilemapKey": "map-crownfield-meadows"
+  },
+  {
+    "id": "buried-sun-approach",
+    "name": "Buried Sun Approach",
+    "description": "A glassy tomb approach with desert materials, hardened ambush packs, and the entrance to Buried Sun Tomb.",
+    "regionId": "amber-dunes",
+    "levelRange": { "min": 46, "max": 50 },
+    "type": "field",
+    "portals": [
+      { "id": "bandit-pass-return", "name": "Bandit Pass Return", "targetMapId": "bandit-pass", "targetSpawnName": "TombReturn" },
+      { "id": "buried-sun-tomb", "name": "Buried Sun Tomb", "targetMapId": "buried-sun-tomb", "targetSpawnName": "ApproachEntrance" }
+    ],
+    "spawnGroups": [
+      { "id": "sun-glass-flock", "monsterIds": ["glass-vulture", "dune-scorpion"], "maxCount": 4 },
+      { "id": "tomb-ambushers", "monsterIds": ["sand-ambusher"], "maxCount": 3 }
+    ],
+    "monsterIds": ["dune-scorpion", "sand-ambusher", "glass-vulture"],
+    "npcIds": [],
+    "musicKey": "music-amber-dunes-field",
+    "recommendedElements": ["water", "ice"],
+    "dropHighlights": ["sun-glass", "buried-sun-shard", "venom-sack"],
+    "tilemapKey": "map-crownfield-meadows"
   },
   {
     "id": "ironroot-hub",
     "name": "Ironroot Camp",
     "description": "A highland mining hub packed with forge smoke, ore carts, lift rails, and vendors under rough canvas.",
     "regionId": "ironroot-highlands",
-    "levelRange": {
-      "min": 33,
-      "max": 40
-    },
+    "levelRange": { "min": 35, "max": 42 },
     "type": "highlands",
     "portals": [
-      {
-        "id": "ironroot-lift-down",
-        "name": "Lift to Blueharbor",
-        "targetMapId": "blueharbor-hub",
-        "targetSpawnName": "PlayerSpawn"
-      },
-      {
-        "id": "ironroot-high-trail",
-        "name": "High Trail",
-        "targetMapId": "ironroot-high-trail",
-        "targetSpawnName": "CampGateSpawn"
-      },
-      {
-        "id": "ironroot-mine-drop",
-        "name": "Deep Mine Drop",
-        "targetMapId": "ironroot-deepmine",
-        "targetSpawnName": "MineLiftSpawn"
-      }
+      { "id": "ironroot-lift-down", "name": "Lift to Blueharbor", "targetMapId": "blueharbor-hub", "targetSpawnName": "PlayerSpawn" },
+      { "id": "ironroot-highlands-path", "name": "Ironroot Highlands Path", "targetMapId": "ironroot-highlands-field", "targetSpawnName": "CampGateSpawn" },
+      { "id": "ironroot-mine-drop", "name": "Deep Mine Drop", "targetMapId": "ironroot-deepmine", "targetSpawnName": "MineLiftSpawn" }
     ],
     "spawnGroups": [],
     "monsterIds": [],
-    "npcIds": [
-      "ironroot-forgemaster",
-      "ironroot-smelter",
-      "ironroot-material-vendor",
-      "ironroot-lift-operator"
-    ],
+    "npcIds": ["ironroot-forgemaster", "ironroot-smelter", "ironroot-material-vendor", "ironroot-lift-operator"],
     "musicKey": "music-ironroot-hub",
-    "recommendedElements": [
-      "water",
-      "wind"
-    ],
-    "dropHighlights": [
-      "ironroot-ore",
-      "ember-coal"
-    ],
+    "recommendedElements": ["water", "wind"],
+    "dropHighlights": ["ironroot-ore", "ember-coal"],
     "tilemapKey": "map-ironroot-hub"
+  },
+  {
+    "id": "ironroot-highlands-field",
+    "name": "Ironroot Highlands",
+    "description": "A rugged highland field where orelings and goblin sappers introduce refinement materials and construct-adjacent threats.",
+    "regionId": "ironroot-highlands",
+    "levelRange": { "min": 35, "max": 42 },
+    "type": "field",
+    "portals": [
+      { "id": "camp-return", "name": "Ironroot Camp Return", "targetMapId": "ironroot-hub", "targetSpawnName": "HighlandsReturn" },
+      { "id": "old-quarry-road", "name": "Old Quarry Road", "targetMapId": "old-quarry", "targetSpawnName": "HighTrailSpawn" }
+    ],
+    "spawnGroups": [
+      { "id": "highlands-ore", "monsterIds": ["oreling"], "maxCount": 3 },
+      { "id": "highlands-sappers", "monsterIds": ["goblin-sapper"], "maxCount": 3 }
+    ],
+    "monsterIds": ["oreling", "goblin-sapper"],
+    "npcIds": [],
+    "musicKey": "music-ironroot-field",
+    "recommendedElements": ["water", "wind"],
+    "dropHighlights": ["ironroot-ore", "goblin-rivet", "ember-coal"],
+    "tilemapKey": "map-crownfield-meadows"
+  },
+  {
+    "id": "old-quarry",
+    "name": "Old Quarry",
+    "description": "A broken quarry with constructs, goblin scavengers, and crafting-focused loot for midgame upgrades.",
+    "regionId": "ironroot-highlands",
+    "levelRange": { "min": 42, "max": 49 },
+    "type": "field",
+    "portals": [
+      { "id": "highlands-return", "name": "Ironroot Highlands Return", "targetMapId": "ironroot-highlands-field", "targetSpawnName": "QuarryReturn" },
+      { "id": "mine-road-east", "name": "Mine Road", "targetMapId": "mine-road", "targetSpawnName": "QuarryTrailSpawn" }
+    ],
+    "spawnGroups": [
+      { "id": "quarry-constructs", "monsterIds": ["quarry-construct"], "maxCount": 3 },
+      { "id": "quarry-goblin-crew", "monsterIds": ["goblin-sapper", "oreling"], "maxCount": 4 }
+    ],
+    "monsterIds": ["oreling", "goblin-sapper", "quarry-construct"],
+    "npcIds": [],
+    "musicKey": "music-ironroot-field",
+    "recommendedElements": ["water", "lightning"],
+    "dropHighlights": ["quarry-gear", "refined-nickel", "ironroot-ore"],
+    "tilemapKey": "map-crownfield-meadows"
+  },
+  {
+    "id": "mine-road",
+    "name": "Mine Road",
+    "description": "A fortified mine approach with construct pressure, goblin crews, an elite overseer, and the entrance to Ironroot Mine.",
+    "regionId": "ironroot-highlands",
+    "levelRange": { "min": 49, "max": 55 },
+    "type": "field",
+    "portals": [
+      { "id": "old-quarry-return", "name": "Old Quarry Return", "targetMapId": "old-quarry", "targetSpawnName": "MineRoadReturn" },
+      { "id": "ironroot-mine", "name": "Ironroot Mine", "targetMapId": "ironroot-mine", "targetSpawnName": "MineRoadEntrance" }
+    ],
+    "spawnGroups": [
+      { "id": "mine-road-constructs", "monsterIds": ["quarry-construct", "goblin-sapper"], "maxCount": 4 },
+      { "id": "mine-overseer-elite", "monsterIds": ["mine-road-overseer"], "maxCount": 1 }
+    ],
+    "monsterIds": ["goblin-sapper", "quarry-construct", "mine-road-overseer"],
+    "npcIds": [],
+    "musicKey": "music-ironroot-field",
+    "recommendedElements": ["water", "wind"],
+    "dropHighlights": ["refined-nickel", "quarry-gear", "ironroot-ore"],
+    "tilemapKey": "map-crownfield-meadows"
   },
   {
     "id": "moonveil-hub",
     "name": "Moonveil Fenwatch",
     "description": "A cursed marsh hub of warded lanterns, black-reed contract posts, ferry poles, and crooked plank walks.",
     "regionId": "moonveil-marsh",
-    "levelRange": {
-      "min": 41,
-      "max": 48
-    },
+    "levelRange": { "min": 50, "max": 58 },
     "type": "marsh",
     "portals": [
-      {
-        "id": "moonveil-ferry-back",
-        "name": "Fen Ferry",
-        "targetMapId": "ironroot-hub",
-        "targetSpawnName": "PlayerSpawn"
-      },
-      {
-        "id": "moonveil-poison-walk",
-        "name": "Poison Walk",
-        "targetMapId": "moonveil-poison-fen",
-        "targetSpawnName": "FenwatchSpawn"
-      },
-      {
-        "id": "moonveil-bogsanctum-way",
-        "name": "Bogsanctum Way",
-        "targetMapId": "moonveil-bogsanctum",
-        "targetSpawnName": "SanctumApproachSpawn"
-      }
+      { "id": "moonveil-ferry-back", "name": "Fen Ferry", "targetMapId": "ironroot-hub", "targetSpawnName": "PlayerSpawn" },
+      { "id": "moonveil-marsh-walk", "name": "Moonveil Marsh Walk", "targetMapId": "moonveil-marsh-field", "targetSpawnName": "FenwatchSpawn" },
+      { "id": "moonveil-bogsanctum-way", "name": "Bogsanctum Way", "targetMapId": "moonveil-bogsanctum", "targetSpawnName": "SanctumApproachSpawn" }
     ],
     "spawnGroups": [],
     "monsterIds": [],
-    "npcIds": [
-      "moonveil-lantern-keeper",
-      "moonveil-contract-scribe",
-      "moonveil-relic-mender",
-      "moonveil-ferry-witch"
-    ],
+    "npcIds": ["moonveil-lantern-keeper", "moonveil-contract-scribe", "moonveil-relic-mender", "moonveil-ferry-witch"],
     "musicKey": "music-moonveil-hub",
-    "recommendedElements": [
-      "holy",
-      "fire"
-    ],
-    "dropHighlights": [
-      "bog-ichor",
-      "moonlit-reed"
-    ],
+    "recommendedElements": ["holy", "fire"],
+    "dropHighlights": ["bog-ichor", "moonlit-reed"],
     "tilemapKey": "map-moonveil-hub"
+  },
+  {
+    "id": "moonveil-marsh-field",
+    "name": "Moonveil Marsh",
+    "description": "A poison marsh field with undead wisps, cursed water hazards, and late-game reed and ichor materials.",
+    "regionId": "moonveil-marsh",
+    "levelRange": { "min": 50, "max": 57 },
+    "type": "field",
+    "portals": [
+      { "id": "fenwatch-return", "name": "Moonveil Fenwatch Return", "targetMapId": "moonveil-hub", "targetSpawnName": "MarshReturn" },
+      { "id": "cursed-bell-road", "name": "Cursed Bell Road", "targetMapId": "cursed-bell-road", "targetSpawnName": "MarshTrailSpawn" }
+    ],
+    "spawnGroups": [
+      { "id": "marsh-wisps", "monsterIds": ["fen-wisp"], "maxCount": 3 },
+      { "id": "black-reed-hunters", "monsterIds": ["black-reed-stalker"], "maxCount": 3 }
+    ],
+    "monsterIds": ["fen-wisp", "black-reed-stalker"],
+    "npcIds": [],
+    "musicKey": "music-moonveil-field",
+    "recommendedElements": ["holy", "fire"],
+    "dropHighlights": ["moonlit-reed", "bog-ichor", "black-reed-oil"],
+    "tilemapKey": "map-crownfield-meadows"
+  },
+  {
+    "id": "cursed-bell-road",
+    "name": "Cursed Bell Road",
+    "description": "A haunted road where undead bell casters add curse pressure and lead players toward the Cursed Bell Crypt.",
+    "regionId": "moonveil-marsh",
+    "levelRange": { "min": 57, "max": 64 },
+    "type": "field",
+    "portals": [
+      { "id": "marsh-return", "name": "Moonveil Marsh Return", "targetMapId": "moonveil-marsh-field", "targetSpawnName": "BellRoadReturn" },
+      { "id": "rotting-fen-road", "name": "Rotting Fen", "targetMapId": "rotting-fen", "targetSpawnName": "BellTrailSpawn" }
+    ],
+    "spawnGroups": [
+      { "id": "bell-haunts", "monsterIds": ["bell-haunt"], "maxCount": 3 },
+      { "id": "reed-stalkers", "monsterIds": ["black-reed-stalker"], "maxCount": 3 }
+    ],
+    "monsterIds": ["black-reed-stalker", "bell-haunt"],
+    "npcIds": [],
+    "musicKey": "music-moonveil-field",
+    "recommendedElements": ["holy", "fire"],
+    "dropHighlights": ["curse-bell-clapper", "grave-silk", "black-reed-oil"],
+    "tilemapKey": "map-crownfield-meadows"
+  },
+  {
+    "id": "rotting-fen",
+    "name": "Rotting Fen",
+    "description": "A late marsh field with poison pools, undead elites, dark enemies, and the entrance to Cursed Bell Crypt.",
+    "regionId": "moonveil-marsh",
+    "levelRange": { "min": 64, "max": 70 },
+    "type": "field",
+    "portals": [
+      { "id": "bell-road-return", "name": "Cursed Bell Road Return", "targetMapId": "cursed-bell-road", "targetSpawnName": "FenReturn" },
+      { "id": "cursed-bell-crypt", "name": "Cursed Bell Crypt", "targetMapId": "cursed-bell-crypt", "targetSpawnName": "FenEntrance" }
+    ],
+    "spawnGroups": [
+      { "id": "rotting-undead", "monsterIds": ["rotting-knight", "bell-haunt"], "maxCount": 3 },
+      { "id": "fen-poisoners", "monsterIds": ["black-reed-stalker"], "maxCount": 3 }
+    ],
+    "monsterIds": ["black-reed-stalker", "bell-haunt", "rotting-knight"],
+    "npcIds": [],
+    "musicKey": "music-moonveil-field",
+    "recommendedElements": ["holy", "fire"],
+    "dropHighlights": ["grave-silk", "curse-bell-clapper", "black-reed-oil"],
+    "tilemapKey": "map-crownfield-meadows"
+  },
+  {
+    "id": "starfall-approach",
+    "name": "Starfall Approach",
+    "description": "An endgame exterior approach where arcane prowlers and star-metal drops prepare players for the final ascent.",
+    "regionId": "starfall-tower",
+    "levelRange": { "min": 65, "max": 74 },
+    "type": "field",
+    "portals": [
+      { "id": "moonveil-return", "name": "Moonveil Ferry Return", "targetMapId": "moonveil-hub", "targetSpawnName": "StarfallReturn" },
+      { "id": "rune-archive-road", "name": "Rune Archive Exterior", "targetMapId": "rune-archive-exterior", "targetSpawnName": "ApproachTrailSpawn" }
+    ],
+    "spawnGroups": [
+      { "id": "starfall-prowlers", "monsterIds": ["starfall-prowler"], "maxCount": 4 },
+      { "id": "approach-archive-casters", "monsterIds": ["rune-archivist"], "maxCount": 2 }
+    ],
+    "monsterIds": ["starfall-prowler", "rune-archivist"],
+    "npcIds": [],
+    "musicKey": "music-starfall-field",
+    "recommendedElements": ["holy", "dark"],
+    "dropHighlights": ["star-iron", "rune-glass"],
+    "tilemapKey": "map-crownfield-meadows"
+  },
+  {
+    "id": "rune-archive-exterior",
+    "name": "Rune Archive Exterior",
+    "description": "A rune-scarred archive yard with arcane casters, construct guardians, rare glass, and access to endgame archive content.",
+    "regionId": "starfall-tower",
+    "levelRange": { "min": 74, "max": 86 },
+    "type": "field",
+    "portals": [
+      { "id": "starfall-approach-return", "name": "Starfall Approach Return", "targetMapId": "starfall-approach", "targetSpawnName": "ArchiveReturn" },
+      { "id": "fallen-observatory-road", "name": "Fallen Observatory Approach", "targetMapId": "fallen-observatory-approach", "targetSpawnName": "ArchiveTrailSpawn" }
+    ],
+    "spawnGroups": [
+      { "id": "archive-runes", "monsterIds": ["rune-archivist"], "maxCount": 3 },
+      { "id": "archive-constructs", "monsterIds": ["astral-construct"], "maxCount": 2 }
+    ],
+    "monsterIds": ["rune-archivist", "astral-construct"],
+    "npcIds": [],
+    "musicKey": "music-starfall-field",
+    "recommendedElements": ["holy", "lightning"],
+    "dropHighlights": ["rune-glass", "astral-gear", "star-iron"],
+    "tilemapKey": "map-crownfield-meadows"
+  },
+  {
+    "id": "fallen-observatory-approach",
+    "name": "Fallen Observatory Approach",
+    "description": "A high-level exterior route to the fallen observatory with arcane constructs, rare materials, and an elite observer.",
+    "regionId": "starfall-tower",
+    "levelRange": { "min": 86, "max": 99 },
+    "type": "field",
+    "portals": [
+      { "id": "rune-archive-return", "name": "Rune Archive Return", "targetMapId": "rune-archive-exterior", "targetSpawnName": "ObservatoryReturn" },
+      { "id": "fallen-observatory", "name": "Fallen Observatory", "targetMapId": "fallen-observatory", "targetSpawnName": "ApproachEntrance" }
+    ],
+    "spawnGroups": [
+      { "id": "observatory-constructs", "monsterIds": ["astral-construct", "rune-archivist"], "maxCount": 4 },
+      { "id": "fallen-observer-elite", "monsterIds": ["fallen-observer"], "maxCount": 1 }
+    ],
+    "monsterIds": ["rune-archivist", "astral-construct", "fallen-observer"],
+    "npcIds": [],
+    "musicKey": "music-starfall-field",
+    "recommendedElements": ["holy", "lightning"],
+    "dropHighlights": ["observatory-lens", "astral-gear", "star-iron"],
+    "tilemapKey": "map-crownfield-meadows"
   }
 ]
