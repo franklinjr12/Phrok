@@ -237,5 +237,205 @@
       { "itemId": "star-iron", "chance": 0.5, "minQuantity": 1, "maxQuantity": 2 },
       { "type": "gold", "chance": 1, "minQuantity": 240, "maxQuantity": 360 }
     ]
+  },
+  {
+    "id": "bloated-sewer-rat-drops",
+    "entries": [
+      { "itemId": "sewer-moss", "chance": 0.9, "minQuantity": 1, "maxQuantity": 3 },
+      { "itemId": "soft-hide", "chance": 0.3, "minQuantity": 1, "maxQuantity": 1 },
+      { "type": "gold", "chance": 1, "minQuantity": 12, "maxQuantity": 20 }
+    ]
+  },
+  {
+    "id": "sluice-slime-drops",
+    "entries": [
+      { "itemId": "sewer-moss", "chance": 0.8, "minQuantity": 2, "maxQuantity": 4 },
+      { "itemId": "rusted-buckler", "chance": 0.1, "minQuantity": 1, "maxQuantity": 1 },
+      { "type": "gold", "chance": 1, "minQuantity": 14, "maxQuantity": 24 }
+    ]
+  },
+  {
+    "id": "sewer-glutton-drops",
+    "entries": [
+      { "itemId": "glutton-gland", "chance": 0.85, "minQuantity": 1, "maxQuantity": 2 },
+      { "itemId": "rusted-buckler", "chance": 0.35, "minQuantity": 1, "maxQuantity": 1 },
+      { "itemId": "minor-health-potion", "chance": 0.55, "minQuantity": 1, "maxQuantity": 2 },
+      { "type": "gold", "chance": 1, "minQuantity": 45, "maxQuantity": 70 }
+    ]
+  },
+  {
+    "id": "chapel-spirit-drops",
+    "entries": [
+      { "itemId": "moss-fiber", "chance": 0.72, "minQuantity": 1, "maxQuantity": 3 },
+      { "itemId": "chapel-prayer-bead", "chance": 0.16, "minQuantity": 1, "maxQuantity": 1 },
+      { "type": "gold", "chance": 1, "minQuantity": 24, "maxQuantity": 38 }
+    ]
+  },
+  {
+    "id": "thorn-acolyte-drops",
+    "entries": [
+      { "itemId": "thorny-vine", "chance": 0.82, "minQuantity": 1, "maxQuantity": 3 },
+      { "itemId": "chapel-prayer-bead", "chance": 0.24, "minQuantity": 1, "maxQuantity": 1 },
+      { "type": "gold", "chance": 1, "minQuantity": 32, "maxQuantity": 50 }
+    ]
+  },
+  {
+    "id": "thorn-priest-drops",
+    "entries": [
+      { "itemId": "rootbound-sigil", "chance": 0.85, "minQuantity": 1, "maxQuantity": 2 },
+      { "itemId": "chapel-prayer-bead", "chance": 0.6, "minQuantity": 1, "maxQuantity": 2 },
+      { "itemId": "verdant-core", "chance": 0.45, "minQuantity": 1, "maxQuantity": 1 },
+      { "type": "gold", "chance": 1, "minQuantity": 78, "maxQuantity": 118 }
+    ]
+  },
+  {
+    "id": "drowned-raider-drops",
+    "entries": [
+      { "itemId": "corsair-coin", "chance": 0.45, "minQuantity": 1, "maxQuantity": 2 },
+      { "itemId": "tide-shell", "chance": 0.55, "minQuantity": 1, "maxQuantity": 2 },
+      { "type": "gold", "chance": 1, "minQuantity": 40, "maxQuantity": 64 }
+    ]
+  },
+  {
+    "id": "kelp-strangler-drops",
+    "entries": [
+      { "itemId": "abyssal-coral", "chance": 0.26, "minQuantity": 1, "maxQuantity": 1 },
+      { "itemId": "salt-pearl", "chance": 0.5, "minQuantity": 1, "maxQuantity": 2 },
+      { "type": "gold", "chance": 1, "minQuantity": 52, "maxQuantity": 78 }
+    ]
+  },
+  {
+    "id": "sunken-corsair-drops",
+    "entries": [
+      { "itemId": "corsair-coin", "chance": 0.85, "minQuantity": 1, "maxQuantity": 3 },
+      { "itemId": "abyssal-coral", "chance": 0.65, "minQuantity": 1, "maxQuantity": 2 },
+      { "itemId": "waterlogged-rune", "chance": 0.45, "minQuantity": 1, "maxQuantity": 1 },
+      { "type": "gold", "chance": 1, "minQuantity": 120, "maxQuantity": 170 }
+    ]
+  },
+  {
+    "id": "mine-automaton-drops",
+    "entries": [
+      { "itemId": "deep-ore-cluster", "chance": 0.65, "minQuantity": 1, "maxQuantity": 2 },
+      { "itemId": "quarry-gear", "chance": 0.38, "minQuantity": 1, "maxQuantity": 1 },
+      { "type": "gold", "chance": 1, "minQuantity": 56, "maxQuantity": 84 }
+    ]
+  },
+  {
+    "id": "ore-burrower-drops",
+    "entries": [
+      { "itemId": "deep-ore-cluster", "chance": 0.82, "minQuantity": 1, "maxQuantity": 3 },
+      { "itemId": "refined-nickel", "chance": 0.36, "minQuantity": 1, "maxQuantity": 1 },
+      { "type": "gold", "chance": 1, "minQuantity": 82, "maxQuantity": 124 }
+    ]
+  },
+  {
+    "id": "brass-burrower-drops",
+    "entries": [
+      { "itemId": "brass-burrower-plate", "chance": 0.82, "minQuantity": 1, "maxQuantity": 2 },
+      { "itemId": "refined-nickel", "chance": 0.65, "minQuantity": 1, "maxQuantity": 2 },
+      { "itemId": "ironroot-ore", "chance": 0.85, "minQuantity": 2, "maxQuantity": 4 },
+      { "type": "gold", "chance": 1, "minQuantity": 150, "maxQuantity": 220 }
+    ]
+  },
+  {
+    "id": "tomb-sentinel-drops",
+    "entries": [
+      { "itemId": "buried-sun-shard", "chance": 0.48, "minQuantity": 1, "maxQuantity": 2 },
+      { "itemId": "sun-glass", "chance": 0.55, "minQuantity": 1, "maxQuantity": 2 },
+      { "type": "gold", "chance": 1, "minQuantity": 68, "maxQuantity": 100 }
+    ]
+  },
+  {
+    "id": "sunscale-revenant-drops",
+    "entries": [
+      { "itemId": "sun-sigil-fragment", "chance": 0.34, "minQuantity": 1, "maxQuantity": 1 },
+      { "itemId": "tyrant-scale", "chance": 0.26, "minQuantity": 1, "maxQuantity": 1 },
+      { "type": "gold", "chance": 1, "minQuantity": 98, "maxQuantity": 144 }
+    ]
+  },
+  {
+    "id": "dune-tyrant-drops",
+    "entries": [
+      { "itemId": "sun-sigil-fragment", "chance": 0.88, "minQuantity": 1, "maxQuantity": 2 },
+      { "itemId": "tyrant-scale", "chance": 0.72, "minQuantity": 1, "maxQuantity": 2 },
+      { "itemId": "buried-sun-shard", "chance": 0.55, "minQuantity": 1, "maxQuantity": 3 },
+      { "type": "gold", "chance": 1, "minQuantity": 175, "maxQuantity": 260 }
+    ]
+  },
+  {
+    "id": "crypt-bellringer-drops",
+    "entries": [
+      { "itemId": "hallowed-bell-charm", "chance": 0.22, "minQuantity": 1, "maxQuantity": 1 },
+      { "itemId": "grave-silk", "chance": 0.74, "minQuantity": 1, "maxQuantity": 2 },
+      { "type": "gold", "chance": 1, "minQuantity": 104, "maxQuantity": 156 }
+    ]
+  },
+  {
+    "id": "gravebound-paladin-drops",
+    "entries": [
+      { "itemId": "hallowed-bell-charm", "chance": 0.42, "minQuantity": 1, "maxQuantity": 1 },
+      { "itemId": "wraith-ash", "chance": 0.3, "minQuantity": 1, "maxQuantity": 1 },
+      { "type": "gold", "chance": 1, "minQuantity": 134, "maxQuantity": 190 }
+    ]
+  },
+  {
+    "id": "bell-wraith-drops",
+    "entries": [
+      { "itemId": "wraith-ash", "chance": 0.86, "minQuantity": 1, "maxQuantity": 2 },
+      { "itemId": "hallowed-bell-charm", "chance": 0.65, "minQuantity": 1, "maxQuantity": 2 },
+      { "itemId": "curse-bell-clapper", "chance": 0.75, "minQuantity": 1, "maxQuantity": 2 },
+      { "type": "gold", "chance": 1, "minQuantity": 220, "maxQuantity": 320 }
+    ]
+  },
+  {
+    "id": "elemental-rune-drops",
+    "entries": [
+      { "itemId": "rune-glass", "chance": 0.75, "minQuantity": 1, "maxQuantity": 2 },
+      { "itemId": "chimera-runeplate", "chance": 0.18, "minQuantity": 1, "maxQuantity": 1 },
+      { "type": "gold", "chance": 1, "minQuantity": 150, "maxQuantity": 220 }
+    ]
+  },
+  {
+    "id": "tower-guardian-drops",
+    "entries": [
+      { "itemId": "starbound-mantle", "chance": 0.18, "minQuantity": 1, "maxQuantity": 1 },
+      { "itemId": "astral-gear", "chance": 0.7, "minQuantity": 1, "maxQuantity": 2 },
+      { "type": "gold", "chance": 1, "minQuantity": 190, "maxQuantity": 280 }
+    ]
+  },
+  {
+    "id": "rune-chimera-drops",
+    "entries": [
+      { "itemId": "chimera-runeplate", "chance": 0.88, "minQuantity": 1, "maxQuantity": 2 },
+      { "itemId": "starbound-mantle", "chance": 0.42, "minQuantity": 1, "maxQuantity": 1 },
+      { "itemId": "rune-glass", "chance": 0.8, "minQuantity": 2, "maxQuantity": 4 },
+      { "type": "gold", "chance": 1, "minQuantity": 320, "maxQuantity": 460 }
+    ]
+  },
+  {
+    "id": "fallen-astrologer-drops",
+    "entries": [
+      { "itemId": "observatory-lens", "chance": 0.58, "minQuantity": 1, "maxQuantity": 2 },
+      { "itemId": "mythic-meteor-core", "chance": 0.18, "minQuantity": 1, "maxQuantity": 1 },
+      { "type": "gold", "chance": 1, "minQuantity": 220, "maxQuantity": 320 }
+    ]
+  },
+  {
+    "id": "mythic-starbound-drops",
+    "entries": [
+      { "itemId": "mythic-meteor-core", "chance": 0.32, "minQuantity": 1, "maxQuantity": 1 },
+      { "itemId": "fallen-saint-lens", "chance": 0.24, "minQuantity": 1, "maxQuantity": 1 },
+      { "type": "gold", "chance": 1, "minQuantity": 260, "maxQuantity": 380 }
+    ]
+  },
+  {
+    "id": "fallen-star-saint-drops",
+    "entries": [
+      { "itemId": "mythic-meteor-core", "chance": 0.9, "minQuantity": 1, "maxQuantity": 2 },
+      { "itemId": "fallen-saint-lens", "chance": 0.82, "minQuantity": 1, "maxQuantity": 2 },
+      { "itemId": "observatory-lens", "chance": 0.7, "minQuantity": 1, "maxQuantity": 3 },
+      { "type": "gold", "chance": 1, "minQuantity": 450, "maxQuantity": 650 }
+    ]
   }
 ]

@@ -4,6 +4,7 @@ import type {
   DataFileMap,
   DifficultyDefinition,
   DialogueDefinition,
+  DungeonDefinition,
   DropTableDefinition,
   ItemDefinition,
   MapDefinition,
@@ -100,6 +101,18 @@ export class DataRegistry {
 
   getMaps(): MapDefinition[] {
     return Array.from(this.collections.maps.values());
+  }
+
+  getDungeon(id: string): DungeonDefinition {
+    return this.getById("dungeons", id);
+  }
+
+  getDungeons(): DungeonDefinition[] {
+    return Array.from(this.collections.dungeons.values());
+  }
+
+  getDungeonByMapId(mapId: string): DungeonDefinition | undefined {
+    return this.getDungeons().find((dungeon) => dungeon.mapId === mapId);
   }
 
   getDialogue(id: string): DialogueDefinition {
@@ -209,6 +222,7 @@ function createEmptyCollections(): DataCollections {
     regions: new Map(),
     dropTables: new Map(),
     maps: new Map(),
+    dungeons: new Map(),
     dialogues: new Map(),
     npcs: new Map(),
     recipes: new Map(),
@@ -228,6 +242,7 @@ const dataFiles = [
   { key: "regions", fileName: "regions.json", validate: validateRegion },
   { key: "dropTables", fileName: "drop-tables.json", validate: validateDropTable },
   { key: "maps", fileName: "maps.json", validate: validateMap },
+  { key: "dungeons", fileName: "dungeons.json", validate: validateDungeon },
   { key: "dialogues", fileName: "dialogues.json", validate: validateDialogue },
   { key: "npcs", fileName: "npcs.json", validate: validateNpc },
   { key: "recipes", fileName: "recipes.json", validate: validateRecipe },
@@ -455,6 +470,72 @@ function validateMap(source: Record<string, unknown>, fileName: string): MapDefi
     dropHighlights: optionalStringArray(source, "dropHighlights"),
     tilemapKey: optionalString(source, "tilemapKey", `map-${id}`),
   };
+}
+
+function validateDungeon(source: Record<string, unknown>, fileName: string): DungeonDefinition {
+  const id = readId(source, fileName);
+
+  return {
+    id,
+    mapId: requireString(source, "mapId", fileName, id),
+    name: requireString(source, "name", fileName, id),
+    levelRange: validateLevelRange(source, fileName, id),
+    bossId: requireString(source, "bossId", fileName, id),
+    roomPlan: validateDungeonRooms(source.roomPlan, fileName, id),
+    enemyThemes: optionalStringArray(source, "enemyThemes"),
+    hazardIds: optionalStringArray(source, "hazardIds"),
+    hazards: validateDungeonHazards(source.hazards, fileName, id),
+    rewardItemIds: optionalStringArray(source, "rewardItemIds"),
+    rareMaterialIds: optionalStringArray(source, "rareMaterialIds"),
+    replayable: source.replayable !== false,
+    shortcutUnlockId: optionalString(source, "shortcutUnlockId", ""),
+    unlocksMapId: optionalString(source, "unlocksMapId", ""),
+    mechanics: optionalStringArray(source, "mechanics"),
+    bossMechanics: optionalStringArray(source, "bossMechanics"),
+  };
+}
+
+function validateDungeonRooms(
+  rawRooms: unknown,
+  fileName: string,
+  id: string,
+): DungeonDefinition["roomPlan"] {
+  return Array.isArray(rawRooms)
+    ? rawRooms.filter(isRecord).map((room) => {
+      const role = optionalString(room, "encounterRole", "combat");
+
+      return {
+        id: requireString(room, "id", fileName, id),
+        name: requireString(room, "name", fileName, id),
+        encounterRole: normalizeDungeonRoomRole(role),
+      };
+    })
+    : [];
+}
+
+function normalizeDungeonRoomRole(value: string): DungeonDefinition["roomPlan"][number]["encounterRole"] {
+  return value === "entrance"
+    || value === "hazard"
+    || value === "treasure"
+    || value === "miniboss"
+    || value === "boss"
+    || value === "shortcut"
+    ? value
+    : "combat";
+}
+
+function validateDungeonHazards(
+  rawHazards: unknown,
+  fileName: string,
+  id: string,
+): DungeonDefinition["hazards"] {
+  return Array.isArray(rawHazards)
+    ? rawHazards.filter(isRecord).map((hazard) => ({
+      id: requireString(hazard, "id", fileName, id),
+      name: requireString(hazard, "name", fileName, id),
+      effect: requireString(hazard, "effect", fileName, id),
+    }))
+    : [];
 }
 
 function validateLevelRange(

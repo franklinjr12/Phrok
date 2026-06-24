@@ -271,5 +271,117 @@
     "description": "A rare construct part from Starfall's exterior guardians.",
     "type": "material",
     "value": 55
+  },
+  {
+    "id": "rusted-buckler",
+    "name": "Rusted Buckler",
+    "description": "Beginner defensive gear recovered from the Old Sewers.",
+    "type": "armor",
+    "value": 18
+  },
+  {
+    "id": "glutton-gland",
+    "name": "Glutton Gland",
+    "description": "A swollen alchemy organ from the Sewer Glutton.",
+    "type": "material",
+    "value": 24
+  },
+  {
+    "id": "chapel-prayer-bead",
+    "name": "Chapel Prayer Bead",
+    "description": "A class-relevant focus bead for holy and spirit-aligned builds.",
+    "type": "material",
+    "value": 32
+  },
+  {
+    "id": "rootbound-sigil",
+    "name": "Rootbound Sigil",
+    "description": "A mossy sigil left by the Thorn Priest's rites.",
+    "type": "material",
+    "value": 36
+  },
+  {
+    "id": "abyssal-coral",
+    "name": "Abyssal Coral",
+    "description": "A rare Tide Cave crafting material hardened by deep currents.",
+    "type": "material",
+    "value": 42
+  },
+  {
+    "id": "corsair-coin",
+    "name": "Corsair Coin",
+    "description": "A salt-blackened coin traded for pirate and aquatic craftwork.",
+    "type": "material",
+    "value": 40
+  },
+  {
+    "id": "brass-burrower-plate",
+    "name": "Brass Burrower Plate",
+    "description": "A heavy refinement plate from Ironroot Mine's burrowing boss.",
+    "type": "material",
+    "value": 54
+  },
+  {
+    "id": "deep-ore-cluster",
+    "name": "Deep Ore Cluster",
+    "description": "A dense ore bundle used for midgame refinement.",
+    "type": "material",
+    "value": 48
+  },
+  {
+    "id": "sun-sigil-fragment",
+    "name": "Sun Sigil Fragment",
+    "description": "A hot sigil shard from the Buried Sun Tomb.",
+    "type": "material",
+    "value": 58
+  },
+  {
+    "id": "tyrant-scale",
+    "name": "Tyrant Scale",
+    "description": "A reptile scale marked by the Dune Tyrant's tomb magic.",
+    "type": "material",
+    "value": 60
+  },
+  {
+    "id": "hallowed-bell-charm",
+    "name": "Hallowed Bell Charm",
+    "description": "A charm that rewards anti-undead builds in the Cursed Bell Crypt.",
+    "type": "material",
+    "value": 68
+  },
+  {
+    "id": "wraith-ash",
+    "name": "Wraith Ash",
+    "description": "A curse-marked ash left after Bell Wraith encounters.",
+    "type": "material",
+    "value": 70
+  },
+  {
+    "id": "starbound-mantle",
+    "name": "Starbound Mantle",
+    "description": "High-level arcane gear from Starfall Tower.",
+    "type": "armor",
+    "value": 96
+  },
+  {
+    "id": "chimera-runeplate",
+    "name": "Chimera Runeplate",
+    "description": "A high-level material that carries alternating elemental runes.",
+    "type": "material",
+    "value": 92
+  },
+  {
+    "id": "mythic-meteor-core",
+    "name": "Mythic Meteor Core",
+    "description": "A mythic material for endgame builds from the Fallen Observatory.",
+    "type": "material",
+    "value": 130
+  },
+  {
+    "id": "fallen-saint-lens",
+    "name": "Fallen Saint Lens",
+    "description": "A mythic focusing lens from the Fallen Star Saint.",
+    "type": "material",
+    "value": 124
   }
 ]

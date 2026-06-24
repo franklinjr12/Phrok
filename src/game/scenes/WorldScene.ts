@@ -1737,6 +1737,21 @@ export class WorldScene extends Phaser.Scene {
       .join("|");
     this.game.canvas.dataset.currentMapNpcs = map.npcIds.join("|");
     this.game.canvas.dataset.currentMapMonsters = map.monsterIds.join("|");
+    const dungeon = this.dataRegistry?.getDungeonByMapId(map.id);
+
+    this.game.canvas.dataset.currentDungeon = dungeon?.id ?? "";
+    this.game.canvas.dataset.currentDungeonBoss = dungeon?.bossId ?? "";
+    this.game.canvas.dataset.currentDungeonRooms = dungeon
+      ? dungeon.roomPlan.map((room) => `${room.id}:${room.encounterRole}`).join("|")
+      : "";
+    this.game.canvas.dataset.currentDungeonHazards = dungeon
+      ? dungeon.hazards.map((hazard) => `${hazard.id}:${hazard.effect}`).join("|")
+      : "";
+    this.game.canvas.dataset.currentDungeonRewards = dungeon?.rewardItemIds.join("|") ?? "";
+    this.game.canvas.dataset.currentDungeonRareMaterials = dungeon?.rareMaterialIds.join("|") ?? "";
+    this.game.canvas.dataset.currentDungeonReplayable = dungeon ? String(dungeon.replayable) : "false";
+    this.game.canvas.dataset.currentDungeonShortcut = dungeon?.shortcutUnlockId ?? "";
+    this.game.canvas.dataset.currentDungeonBossMechanics = dungeon?.bossMechanics.join("|") ?? "";
   }
 
   private spawnInitialEnemies(collisionLayer: PrototypeTilemapLayer | null): void {

@@ -60,6 +60,26 @@ const validFiles: Record<string, unknown[]> = {
       dropHighlights: ["jelly-gel"],
     },
   ],
+  "dungeons.json": [
+    {
+      id: "old-sewers",
+      mapId: "old-sewers",
+      name: "Old Sewers",
+      levelRange: { min: 5, max: 15 },
+      bossId: "sewer-glutton",
+      roomPlan: [
+        { id: "sluice-gate", name: "Sluice Gate", encounterRole: "entrance" },
+        { id: "cistern", name: "Cistern", encounterRole: "boss" },
+      ],
+      enemyThemes: ["beast"],
+      hazardIds: ["sludge"],
+      hazards: [{ id: "sludge", name: "Sludge", effect: "slow" }],
+      rewardItemIds: ["jelly-gel"],
+      rareMaterialIds: ["jelly-gel"],
+      mechanics: ["dense packs"],
+      bossMechanics: ["devour"],
+    },
+  ],
   "dialogues.json": [
     {
       id: "field-guide-greeting",
@@ -165,6 +185,17 @@ describe("loadDataRegistry", () => {
       maxCount: 2,
     });
     expect(registry.getMaps().map((entry) => entry.id)).toEqual(["crownfield-meadows"]);
+    expect(registry.getDungeon("old-sewers")).toMatchObject({
+      mapId: "old-sewers",
+      bossId: "sewer-glutton",
+      replayable: true,
+      shortcutUnlockId: "",
+      roomPlan: [
+        { id: "sluice-gate", name: "Sluice Gate", encounterRole: "entrance" },
+        { id: "cistern", name: "Cistern", encounterRole: "boss" },
+      ],
+    });
+    expect(registry.getDungeonByMapId("old-sewers")?.id).toBe("old-sewers");
     expect(registry.getDialogue("field-guide-greeting").choices).toContainEqual({
       id: "guide-service",
       label: "Ask for guidance",

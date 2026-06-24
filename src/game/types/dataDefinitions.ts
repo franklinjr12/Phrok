@@ -149,6 +149,37 @@ export interface MapDefinition {
   tilemapKey: string;
 }
 
+export interface DungeonRoomDefinition {
+  id: string;
+  name: string;
+  encounterRole: "entrance" | "combat" | "hazard" | "treasure" | "miniboss" | "boss" | "shortcut";
+}
+
+export interface DungeonHazardDefinition {
+  id: string;
+  name: string;
+  effect: string;
+}
+
+export interface DungeonDefinition {
+  id: string;
+  mapId: string;
+  name: string;
+  levelRange: LevelRangeDefinition;
+  bossId: string;
+  roomPlan: DungeonRoomDefinition[];
+  enemyThemes: string[];
+  hazardIds: string[];
+  hazards: DungeonHazardDefinition[];
+  rewardItemIds: string[];
+  rareMaterialIds: string[];
+  replayable: boolean;
+  shortcutUnlockId: string;
+  unlocksMapId: string;
+  mechanics: string[];
+  bossMechanics: string[];
+}
+
 export interface DialogueChoiceDefinition {
   id: string;
   label: string;
@@ -236,6 +267,7 @@ export interface DataFileMap {
   regions: RegionDefinition;
   dropTables: DropTableDefinition;
   maps: MapDefinition;
+  dungeons: DungeonDefinition;
   dialogues: DialogueDefinition;
   npcs: NpcDefinition;
   recipes: RecipeDefinition;

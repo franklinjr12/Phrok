@@ -547,6 +547,7 @@
     "type": "field",
     "portals": [
       { "id": "moonveil-return", "name": "Moonveil Ferry Return", "targetMapId": "moonveil-hub", "targetSpawnName": "StarfallReturn" },
+      { "id": "starfall-tower-gate", "name": "Starfall Tower Gate", "targetMapId": "starfall-astral-spire", "targetSpawnName": "ApproachEntrance" },
       { "id": "rune-archive-road", "name": "Rune Archive Exterior", "targetMapId": "rune-archive-exterior", "targetSpawnName": "ApproachTrailSpawn" }
     ],
     "spawnGroups": [
@@ -602,6 +603,187 @@
     "musicKey": "music-starfall-field",
     "recommendedElements": ["holy", "lightning"],
     "dropHighlights": ["observatory-lens", "astral-gear", "star-iron"],
+    "tilemapKey": "map-crownfield-meadows"
+  },
+  {
+    "id": "training-sewers",
+    "name": "Old Sewers",
+    "description": "A replayable beginner dungeon of split sluice rooms, dense rat packs, sludge hazards, and the Sewer Glutton boss.",
+    "regionId": "crownfield",
+    "levelRange": { "min": 5, "max": 15 },
+    "type": "dungeon",
+    "portals": [
+      { "id": "sewer-exit", "name": "Sewer Exit", "targetMapId": "training-sewers-entrance", "targetSpawnName": "DungeonReturn" },
+      { "id": "maintenance-shortcut", "name": "Maintenance Shortcut", "targetMapId": "crownfield-old-road", "targetSpawnName": "SewerShortcutReturn" }
+    ],
+    "spawnGroups": [
+      { "id": "sluice-rat-packs", "monsterIds": ["sewer-rat", "bloated-sewer-rat"], "maxCount": 6 },
+      { "id": "cistern-slimes", "monsterIds": ["sluice-slime"], "maxCount": 4 },
+      { "id": "glutton-lair", "monsterIds": ["sewer-glutton"], "maxCount": 1 }
+    ],
+    "monsterIds": ["sewer-rat", "bloated-sewer-rat", "sluice-slime", "sewer-glutton"],
+    "npcIds": [],
+    "musicKey": "music-old-sewers-dungeon",
+    "recommendedElements": ["fire", "neutral"],
+    "dropHighlights": ["sewer-moss", "rusted-buckler", "glutton-gland", "minor-health-potion"],
+    "tilemapKey": "map-crownfield-meadows"
+  },
+  {
+    "id": "green-chapel-ruins",
+    "name": "Green Chapel Ruins",
+    "description": "A ruined chapel dungeon with plant spirits, thorn hazards, a shortcut nave, and the Thorn Priest boss.",
+    "regionId": "mossvale",
+    "levelRange": { "min": 15, "max": 25 },
+    "type": "dungeon",
+    "portals": [
+      { "id": "chapel-road-return", "name": "Chapel Road Return", "targetMapId": "green-chapel-road", "targetSpawnName": "RuinsReturn" },
+      { "id": "nave-shortcut", "name": "Unlocked Nave Shortcut", "targetMapId": "deep-mossvale", "targetSpawnName": "ChapelShortcutReturn" }
+    ],
+    "spawnGroups": [
+      { "id": "chapel-spirits", "monsterIds": ["chapel-spirit", "moss-sprite"], "maxCount": 5 },
+      { "id": "thorn-acolytes", "monsterIds": ["thorn-acolyte", "thorn-runner"], "maxCount": 5 },
+      { "id": "thorn-priest-altar", "monsterIds": ["thorn-priest"], "maxCount": 1 }
+    ],
+    "monsterIds": ["chapel-spirit", "thorn-acolyte", "moss-sprite", "thorn-runner", "thorn-priest"],
+    "npcIds": [],
+    "musicKey": "music-green-chapel-dungeon",
+    "recommendedElements": ["fire", "holy"],
+    "dropHighlights": ["chapel-prayer-bead", "rootbound-sigil", "verdant-core", "mosswood-bowgrip"],
+    "tilemapKey": "map-crownfield-meadows"
+  },
+  {
+    "id": "tide-cave",
+    "name": "Tide Cave",
+    "description": "A waterlogged cave dungeon with slow pools, pirate and aquatic enemies, rare coral, and the Sunken Corsair boss.",
+    "regionId": "blueharbor-coast",
+    "levelRange": { "min": 25, "max": 38 },
+    "type": "dungeon",
+    "portals": [
+      { "id": "sea-cave-return", "name": "Sea Cave Return", "targetMapId": "sea-cave-entrance", "targetSpawnName": "TideCaveReturn" }
+    ],
+    "spawnGroups": [
+      { "id": "flooded-raiders", "monsterIds": ["drowned-raider", "reef-strider"], "maxCount": 5 },
+      { "id": "kelp-pools", "monsterIds": ["kelp-strangler", "foam-wisp"], "maxCount": 5 },
+      { "id": "corsair-wreck", "monsterIds": ["sunken-corsair"], "maxCount": 1 }
+    ],
+    "monsterIds": ["drowned-raider", "kelp-strangler", "reef-strider", "foam-wisp", "sunken-corsair"],
+    "npcIds": [],
+    "musicKey": "music-tide-cave-dungeon",
+    "recommendedElements": ["lightning", "earth"],
+    "dropHighlights": ["abyssal-coral", "corsair-coin", "waterlogged-rune", "salt-pearl"],
+    "tilemapKey": "map-crownfield-meadows"
+  },
+  {
+    "id": "ironroot-mine",
+    "name": "Ironroot Mine",
+    "description": "A replayable mine dungeon of ore rooms, cave-in hazards, construct enemies, and Brass Burrower charge lanes.",
+    "regionId": "ironroot-highlands",
+    "levelRange": { "min": 35, "max": 50 },
+    "type": "dungeon",
+    "portals": [
+      { "id": "mine-road-return", "name": "Mine Road Return", "targetMapId": "mine-road", "targetSpawnName": "MineReturn" },
+      { "id": "ore-cart-shortcut", "name": "Ore Cart Shortcut", "targetMapId": "ironroot-hub", "targetSpawnName": "MineCartReturn" }
+    ],
+    "spawnGroups": [
+      { "id": "automaton-veins", "monsterIds": ["mine-automaton", "quarry-construct"], "maxCount": 5 },
+      { "id": "ore-burrowers", "monsterIds": ["ore-burrower", "oreling"], "maxCount": 5 },
+      { "id": "brass-burrower-nest", "monsterIds": ["brass-burrower"], "maxCount": 1 }
+    ],
+    "monsterIds": ["mine-automaton", "ore-burrower", "quarry-construct", "oreling", "brass-burrower"],
+    "npcIds": [],
+    "musicKey": "music-ironroot-mine-dungeon",
+    "recommendedElements": ["water", "lightning"],
+    "dropHighlights": ["deep-ore-cluster", "brass-burrower-plate", "refined-nickel", "ironroot-ore"],
+    "tilemapKey": "map-crownfield-meadows"
+  },
+  {
+    "id": "buried-sun-tomb",
+    "name": "Buried Sun Tomb",
+    "description": "A desert tomb dungeon with undead and reptile enemies, pressure traps, sigil rewards, and the multi-phase Dune Tyrant.",
+    "regionId": "amber-dunes",
+    "levelRange": { "min": 40, "max": 55 },
+    "type": "dungeon",
+    "portals": [
+      { "id": "approach-return", "name": "Buried Sun Approach Return", "targetMapId": "buried-sun-approach", "targetSpawnName": "TombExit" }
+    ],
+    "spawnGroups": [
+      { "id": "tomb-sentinels", "monsterIds": ["tomb-sentinel", "glass-vulture"], "maxCount": 5 },
+      { "id": "sunscale-dead", "monsterIds": ["sunscale-revenant", "dune-scorpion"], "maxCount": 5 },
+      { "id": "dune-tyrant-sanctum", "monsterIds": ["dune-tyrant"], "maxCount": 1 }
+    ],
+    "monsterIds": ["tomb-sentinel", "sunscale-revenant", "glass-vulture", "dune-scorpion", "dune-tyrant"],
+    "npcIds": [],
+    "musicKey": "music-buried-sun-dungeon",
+    "recommendedElements": ["water", "holy"],
+    "dropHighlights": ["sun-sigil-fragment", "tyrant-scale", "buried-sun-shard", "sun-glass"],
+    "tilemapKey": "map-crownfield-meadows"
+  },
+  {
+    "id": "cursed-bell-crypt",
+    "name": "Cursed Bell Crypt",
+    "description": "A dark crypt dungeon centered on undead, curse bells, sound telegraphs, and anti-undead reward materials.",
+    "regionId": "moonveil-marsh",
+    "levelRange": { "min": 55, "max": 70 },
+    "type": "dungeon",
+    "portals": [
+      { "id": "rotting-fen-return", "name": "Rotting Fen Return", "targetMapId": "rotting-fen", "targetSpawnName": "CryptExit" }
+    ],
+    "spawnGroups": [
+      { "id": "crypt-bellringers", "monsterIds": ["crypt-bellringer", "bell-haunt"], "maxCount": 5 },
+      { "id": "gravebound-paladins", "monsterIds": ["gravebound-paladin", "rotting-knight"], "maxCount": 4 },
+      { "id": "bell-wraith-nave", "monsterIds": ["bell-wraith"], "maxCount": 1 }
+    ],
+    "monsterIds": ["crypt-bellringer", "gravebound-paladin", "bell-haunt", "rotting-knight", "bell-wraith"],
+    "npcIds": [],
+    "musicKey": "music-cursed-bell-dungeon",
+    "recommendedElements": ["holy", "fire"],
+    "dropHighlights": ["hallowed-bell-charm", "wraith-ash", "curse-bell-clapper", "grave-silk"],
+    "tilemapKey": "map-crownfield-meadows"
+  },
+  {
+    "id": "starfall-astral-spire",
+    "name": "Starfall Tower",
+    "description": "An arcane tower dungeon with varied elemental enemies, high-level gear drops, and the Rune Chimera boss that unlocks endgame ascent.",
+    "regionId": "starfall-tower",
+    "levelRange": { "min": 70, "max": 90 },
+    "type": "tower",
+    "portals": [
+      { "id": "starfall-approach-return", "name": "Starfall Approach Return", "targetMapId": "starfall-approach", "targetSpawnName": "TowerExit" },
+      { "id": "endgame-tower-unlock", "name": "Endgame Tower Ascent", "targetMapId": "fallen-observatory", "targetSpawnName": "TowerUnlock" }
+    ],
+    "spawnGroups": [
+      { "id": "elemental-runes", "monsterIds": ["elemental-rune", "rune-archivist"], "maxCount": 5 },
+      { "id": "tower-guardians", "monsterIds": ["tower-guardian", "astral-construct"], "maxCount": 4 },
+      { "id": "rune-chimera-aerie", "monsterIds": ["rune-chimera"], "maxCount": 1 }
+    ],
+    "monsterIds": ["elemental-rune", "tower-guardian", "rune-archivist", "astral-construct", "rune-chimera"],
+    "npcIds": [],
+    "musicKey": "music-starfall-tower-dungeon",
+    "recommendedElements": ["holy", "dark", "lightning", "ice"],
+    "dropHighlights": ["starbound-mantle", "chimera-runeplate", "rune-glass", "astral-gear"],
+    "tilemapKey": "map-crownfield-meadows"
+  },
+  {
+    "id": "fallen-observatory",
+    "name": "Fallen Observatory",
+    "description": "A late-game farming dungeon with mythic materials, complex boss patterns, replay loops, and endgame build checks.",
+    "regionId": "starfall-tower",
+    "levelRange": { "min": 85, "max": 99 },
+    "type": "dungeon",
+    "portals": [
+      { "id": "observatory-approach-return", "name": "Observatory Approach Return", "targetMapId": "fallen-observatory-approach", "targetSpawnName": "ObservatoryExit" },
+      { "id": "tower-return", "name": "Starfall Tower Return", "targetMapId": "starfall-astral-spire", "targetSpawnName": "ObservatoryShortcut" }
+    ],
+    "spawnGroups": [
+      { "id": "fallen-astrologers", "monsterIds": ["fallen-astrologer", "rune-archivist"], "maxCount": 5 },
+      { "id": "mythic-starbound", "monsterIds": ["mythic-starbound", "astral-construct"], "maxCount": 4 },
+      { "id": "fallen-star-saint-sanctum", "monsterIds": ["fallen-star-saint"], "maxCount": 1 }
+    ],
+    "monsterIds": ["fallen-astrologer", "mythic-starbound", "rune-archivist", "astral-construct", "fallen-star-saint"],
+    "npcIds": [],
+    "musicKey": "music-fallen-observatory-dungeon",
+    "recommendedElements": ["holy", "lightning", "dark"],
+    "dropHighlights": ["mythic-meteor-core", "fallen-saint-lens", "observatory-lens", "astral-gear"],
     "tilemapKey": "map-crownfield-meadows"
   }
 ]
