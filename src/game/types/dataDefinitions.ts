@@ -1,3 +1,5 @@
+import type { BaseStats, DerivedStats, EquipmentSlot } from "./gameState";
+
 export interface ClassDefinition {
   id: string;
   name: string;
@@ -64,8 +66,27 @@ export interface ItemDefinition {
   id: string;
   name: string;
   description: string;
-  type: "weapon" | "armor" | "consumable" | "material" | "key";
+  type: "weapon" | "armor" | "accessory" | "sigil" | "support" | "consumable" | "material" | "key";
+  level?: number;
+  rarity?: ItemRarity;
+  icon?: string;
+  equipmentSlot?: EquipmentSlot;
+  validEquipmentSlots?: EquipmentSlot[];
+  weaponType?: string;
+  allowedClassIds?: string[];
+  twoHanded?: boolean;
+  statModifiers?: ItemStatModifiers;
   value: number;
+}
+
+export type ItemRarity = "Common" | "Uncommon" | "Rare" | "Epic" | "Legendary" | "Mythic";
+
+export interface ItemStatModifiers {
+  baseStats?: Partial<BaseStats>;
+  derivedStats?: Partial<Record<keyof DerivedStats, number>>;
+  elementDamage?: Record<string, number>;
+  raceDamage?: Record<string, number>;
+  resistances?: Record<string, number>;
 }
 
 export interface MonsterDefinition {
@@ -109,6 +130,7 @@ export interface RegionDefinition {
 export interface DropTableEntryDefinition {
   itemId?: string;
   type?: "item" | "gold";
+  rarity?: ItemRarity;
   chance: number;
   minQuantity: number;
   maxQuantity: number;

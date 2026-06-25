@@ -7,6 +7,8 @@ import type {
   DungeonDefinition,
   DropTableDefinition,
   ItemDefinition,
+  ItemRarity,
+  ItemStatModifiers,
   MapDefinition,
   MonsterDefinition,
   NpcDefinition,
@@ -77,6 +79,10 @@ export class DataRegistry {
 
   getItem(id: string): ItemDefinition {
     return this.getById("items", id);
+  }
+
+  getItems(): ItemDefinition[] {
+    return Array.from(this.collections.items.values());
   }
 
   getMonster(id: string): MonsterDefinition {
@@ -371,13 +377,116 @@ function optionalNumberRecord(rawRecord: unknown): Record<string, number> | unde
 function validateItem(source: Record<string, unknown>, fileName: string): ItemDefinition {
   const id = readId(source, fileName);
   const type = optionalString(source, "type", "material");
+  const rarity = normalizeItemRarity(optionalString(source, "rarity", "Common"));
+  const equipmentSlot = normalizeEquipmentSlot(optionalString(source, "equipmentSlot", ""));
+  const validEquipmentSlots = validateEquipmentSlots(source.validEquipmentSlots);
 
   return {
     id,
     name: requireString(source, "name", fileName, id),
     description: optionalString(source, "description", ""),
-    type: type === "weapon" || type === "armor" || type === "consumable" || type === "key" ? type : "material",
+    type: normalizeItemType(type),
+    level: Math.max(1, optionalNumber(source, "level", 1)),
+    rarity,
+    icon: optionalString(source, "icon", `placeholder-${id}`),
+    equipmentSlot,
+    validEquipmentSlots: validEquipmentSlots.length > 0
+      ? validEquipmentSlots
+      : getDefaultEquipmentSlots(normalizeItemType(type), equipmentSlot),
+    weaponType: optionalString(source, "weaponType", "") || undefined,
+    allowedClassIds: optionalStringArray(source, "allowedClassIds"),
+    twoHanded: Boolean(source.twoHanded),
+    statModifiers: normalizeItemModifier(source.statModifiers),
     value: optionalNumber(source, "value", 0),
+  };
+}
+
+function normalizeItemType(value: string): ItemDefinition["type"] {
+  return value === "weapon"
+    || value === "armor"
+    || value === "accessory"
+    || value === "sigil"
+    || value === "support"
+    || value === "consumable"
+    || value === "key"
+    ? value
+    : "material";
+}
+
+function normalizeItemRarity(value: string): ItemRarity {
+  return value === "Uncommon"
+    || value === "Rare"
+    || value === "Epic"
+    || value === "Legendary"
+    || value === "Mythic"
+    ? value
+    : "Common";
+}
+
+function normalizeEquipmentSlot(value: string): ItemDefinition["equipmentSlot"] {
+  return value === "weapon"
+    || value === "offhand"
+    || value === "head"
+    || value === "body"
+    || value === "cloak"
+    || value === "boots"
+    || value === "accessory1"
+    || value === "accessory2"
+    || value === "sigil"
+    || value === "supportCharm"
+    ? value
+    : undefined;
+}
+
+function validateEquipmentSlots(rawSlots: unknown): NonNullable<ItemDefinition["validEquipmentSlots"]> {
+  return Array.isArray(rawSlots)
+    ? rawSlots.map((slot) => typeof slot === "string" ? normalizeEquipmentSlot(slot) : undefined)
+      .filter((slot): slot is NonNullable<ItemDefinition["equipmentSlot"]> => Boolean(slot))
+    : [];
+}
+
+function getDefaultEquipmentSlots(
+  type: ItemDefinition["type"],
+  equipmentSlot: ItemDefinition["equipmentSlot"],
+): NonNullable<ItemDefinition["validEquipmentSlots"]> {
+  if (equipmentSlot) {
+    return [equipmentSlot];
+  }
+
+  if (type === "weapon") {
+    return ["weapon"];
+  }
+
+  if (type === "armor") {
+    return ["body"];
+  }
+
+  if (type === "accessory") {
+    return ["accessory1", "accessory2"];
+  }
+
+  if (type === "sigil") {
+    return ["sigil"];
+  }
+
+  if (type === "support") {
+    return ["supportCharm"];
+  }
+
+  return [];
+}
+
+function normalizeItemModifier(rawModifier: unknown): ItemStatModifiers {
+  if (!isRecord(rawModifier)) {
+    return {};
+  }
+
+  return {
+    baseStats: optionalNumberRecord(rawModifier.baseStats),
+    derivedStats: optionalNumberRecord(rawModifier.derivedStats) as ItemStatModifiers["derivedStats"],
+    elementDamage: optionalNumberRecord(rawModifier.elementDamage),
+    raceDamage: optionalNumberRecord(rawModifier.raceDamage),
+    resistances: optionalNumberRecord(rawModifier.resistances),
   };
 }
 
@@ -436,11 +545,15 @@ function validateDropTable(source: Record<string, unknown>, fileName: string): D
     entries: Array.isArray(entries)
       ? entries.filter(isRecord).map((entry) => {
         const type = optionalString(entry, "type", "item");
-        const itemId = type === "gold" ? optionalString(entry, "itemId", "") : requireString(entry, "itemId", fileName, id);
+        const rarity = normalizeItemRarity(optionalString(entry, "rarity", ""));
+        const itemId = type === "gold" || entry.rarity
+          ? optionalString(entry, "itemId", "")
+          : requireString(entry, "itemId", fileName, id);
 
         return {
           itemId: itemId || undefined,
           type: type === "gold" ? "gold" : "item",
+          rarity: entry.rarity ? rarity : undefined,
           chance: requireNumber(entry, "chance", fileName, id),
           minQuantity: optionalNumber(entry, "minQuantity", 1),
           maxQuantity: optionalNumber(entry, "maxQuantity", 1),

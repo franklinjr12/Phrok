@@ -8,6 +8,7 @@ import {
   getEquipmentStats,
   getItemEquipmentSlot,
   getItemRarity,
+  getItemSellValue,
   removeEquipment,
 } from "../systems/equipment";
 import {
@@ -649,7 +650,7 @@ export class UIScene extends Phaser.Scene {
     this.addPanelText(532, 276, entry.source === "equipment" ? "Quantity 1" : `Quantity ${entry.quantity}`, 14, "#cbd5e1");
     this.addPanelText(532, 300, getItemRarity(item), 14, this.getRarityColor(item));
     this.addPanelText(532, 332, this.wrapText(item.description, 20), 13, "#cbd5e1");
-    this.addPanelText(532, 386, `Value ${item.value}`, 13, "#fde68a");
+    this.addPanelText(532, 386, `Sell ${getItemSellValue(item)}`, 13, "#fde68a");
   }
 
   private renderInventoryButtons(item: ItemDefinition | null): void {
@@ -672,7 +673,7 @@ export class UIScene extends Phaser.Scene {
       (id) => dataRegistry.getItem(id),
       (id) => dataRegistry.getStatusEffect(id),
     );
-    this.addPanelText(96, 120, `Attack ${derivedStats.physicalAttack}   Defense ${derivedStats.defense}   Gear +${stats.attack}/+${stats.defense}`, 15, "#bbf7d0");
+    this.addPanelText(96, 120, `Attack ${derivedStats.physicalAttack}   Defense ${derivedStats.defense}   Gear ${this.getEquipmentBonusText(stats)}`, 15, "#bbf7d0");
     this.game.canvas.dataset.equipmentPanel = "visible";
     this.game.canvas.dataset.equipmentSlotsVisible = equipmentSlots.join("|");
 
@@ -776,23 +777,24 @@ export class UIScene extends Phaser.Scene {
   }
 
   private showComparison(item: ItemDefinition): void {
-    if (!this.state || !this.dataRegistry || !getItemEquipmentSlot(item)) {
+    if (!this.state || !this.dataRegistry || !getItemEquipmentSlot(item, this.state.equipment)) {
       this.game.canvas.dataset.itemComparison = "hidden";
       return;
     }
 
-    const slot = getItemEquipmentSlot(item)!;
+    const slot = getItemEquipmentSlot(item, this.state.equipment)!;
     const currentItem = this.state.equipment[slot] ? this.dataRegistry.getItem(this.state.equipment[slot]!) : null;
     const { delta } = compareEquipmentItems(currentItem, item);
     const attackDelta = delta.attack;
     const defenseDelta = delta.defense;
+    const effectText = this.getItemModifierText(item);
     const comparison = [
       `current=${currentItem?.name ?? "Empty"}`,
       `new=${item.name}`,
       `attack=${this.formatDelta(attackDelta)}`,
       `defense=${this.formatDelta(defenseDelta)}`,
-      "requirements=None",
-      "effects=None",
+      `requirements=${this.getItemRequirementText(item)}`,
+      `effects=${effectText}`,
     ].join("|");
 
     this.game.canvas.dataset.itemComparison = "visible";
@@ -807,7 +809,7 @@ export class UIScene extends Phaser.Scene {
       this.addComparisonText(536, 432, this.wrapText(`New: ${item.name}`, 18), 12, "#cbd5e1");
       this.addComparisonText(632, 392, `ATK ${this.formatDelta(attackDelta)}`, 12, attackDelta >= 0 ? "#bbf7d0" : "#fca5a5");
       this.addComparisonText(632, 432, `DEF ${this.formatDelta(defenseDelta)}`, 12, defenseDelta >= 0 ? "#bbf7d0" : "#fca5a5");
-      this.addComparisonText(536, 468, "Req None   FX None", 11, "#94a3b8");
+      this.addComparisonText(536, 468, this.wrapText(`Req ${this.getItemRequirementText(item)}   FX ${effectText}`, 24), 11, "#94a3b8");
     } else if (this.activePanel === "inventory") {
       this.addComparisonRectangle(112, 390, 382, 96, 0x17212b, 0.95)
         .setOrigin(0)
@@ -816,7 +818,7 @@ export class UIScene extends Phaser.Scene {
       this.addComparisonText(128, 430, this.wrapText(`Current: ${currentItem?.name ?? "Empty"}`, 26), 12, "#cbd5e1");
       this.addComparisonText(292, 430, this.wrapText(`New: ${item.name}`, 24), 12, "#cbd5e1");
       this.addComparisonText(128, 468, `ATK ${this.formatDelta(attackDelta)}   DEF ${this.formatDelta(defenseDelta)}`, 12, attackDelta >= 0 && defenseDelta >= 0 ? "#bbf7d0" : "#fca5a5");
-      this.addComparisonText(292, 468, "Req None   FX None", 11, "#94a3b8");
+      this.addComparisonText(292, 468, this.wrapText(`Req ${this.getItemRequirementText(item)}   FX ${effectText}`, 24), 11, "#94a3b8");
     }
   }
 
@@ -834,8 +836,15 @@ export class UIScene extends Phaser.Scene {
     }
 
     if (getItemEquipmentSlot(item)) {
-      equipItem(this.state, item);
-      this.game.canvas.dataset.lastInventoryAction = `equip:${item.id}`;
+      const equipped = equipItem(
+        this.state,
+        item,
+        true,
+        this.dataRegistry.getClass(this.state.character.archetype),
+        undefined,
+        (id) => this.dataRegistry!.getItem(id),
+      );
+      this.game.canvas.dataset.lastInventoryAction = equipped ? `equip:${item.id}` : `equip-failed:${item.id}`;
       return;
     }
 
@@ -1181,6 +1190,10 @@ export class UIScene extends Phaser.Scene {
     this.game.canvas.dataset.equipmentSlots = slotSummary;
     this.game.canvas.dataset.equipmentWeapon = state.equipment.weapon ?? "";
     this.game.canvas.dataset.equipmentAttackBonus = String(stats.attack);
+    this.game.canvas.dataset.equipmentDefenseBonus = String(stats.defense);
+    this.game.canvas.dataset.equipmentMagicAttackBonus = String(stats.magicAttack);
+    this.game.canvas.dataset.equipmentMagicDefenseBonus = String(stats.magicDefense);
+    this.game.canvas.dataset.equipmentBonusSummary = this.getEquipmentBonusText(stats);
     this.game.canvas.dataset.playerAttackStat = String(derivedStats.physicalAttack);
   }
 
@@ -1329,8 +1342,13 @@ export class UIScene extends Phaser.Scene {
       `crit:${stats.crit}`,
       `attackSpeed:${stats.attackSpeed}`,
       `castSpeed:${stats.castSpeed}`,
+      `cooldownReduction:${stats.cooldownReduction}`,
       `moveSpeed:${stats.moveSpeed}`,
       `weightLimit:${stats.weightLimit}`,
+      `dropChance:${stats.dropChance}`,
+      `elementDamage:${JSON.stringify(stats.elementDamage)}`,
+      `raceDamage:${JSON.stringify(stats.raceDamage)}`,
+      `resistances:${JSON.stringify(stats.resistances)}`,
     ].join("|");
   }
 
@@ -1423,6 +1441,64 @@ export class UIScene extends Phaser.Scene {
     return effects;
   }
 
+  private getItemRequirementText(item: ItemDefinition): string {
+    const requirements = [
+      (item.level ?? 1) > 1 ? `Lv ${item.level ?? 1}` : "",
+      item.allowedClassIds && item.allowedClassIds.length > 0 ? item.allowedClassIds.join("/") : "",
+      item.twoHanded === true ? "two-handed" : "",
+    ].filter((entry) => entry.length > 0);
+
+    return requirements.length > 0 ? requirements.join(", ") : "None";
+  }
+
+  private getItemModifierText(item: ItemDefinition): string {
+    const effects: string[] = [];
+
+    const modifiers = item.statModifiers ?? {};
+
+    for (const [stat, value] of Object.entries(modifiers.baseStats ?? {})) {
+      if (typeof value === "number") {
+        effects.push(`${baseStatLabels[stat as BaseStatKey] ?? stat} ${this.formatSigned(value)}`);
+      }
+    }
+
+    for (const [stat, value] of Object.entries(modifiers.derivedStats ?? {})) {
+      if (typeof value === "number") {
+        effects.push(`${stat} ${this.formatSigned(value)}`);
+      }
+    }
+
+    for (const [element, value] of Object.entries(modifiers.elementDamage ?? {})) {
+      effects.push(`${element} damage ${this.formatSigned(value)}`);
+    }
+
+    for (const [race, value] of Object.entries(modifiers.raceDamage ?? {})) {
+      effects.push(`${race} damage ${this.formatSigned(value)}`);
+    }
+
+    for (const [resist, value] of Object.entries(modifiers.resistances ?? {})) {
+      effects.push(`${resist} resist ${this.formatSigned(value)}`);
+    }
+
+    return effects.length > 0 ? effects.join(", ") : "None";
+  }
+
+  private getEquipmentBonusText(stats: ReturnType<typeof getEquipmentStats>): string {
+    const bonuses = [
+      stats.attack ? `ATK +${stats.attack}` : "",
+      stats.magicAttack ? `MATK +${stats.magicAttack}` : "",
+      stats.defense ? `DEF +${stats.defense}` : "",
+      stats.magicDefense ? `MDEF +${stats.magicDefense}` : "",
+      stats.hp ? `HP +${stats.hp}` : "",
+      stats.sp ? `SP +${stats.sp}` : "",
+      stats.crit ? `Crit +${stats.crit}` : "",
+      stats.moveSpeed ? `Move +${stats.moveSpeed}` : "",
+      stats.dropChance ? `Drop +${stats.dropChance}` : "",
+    ].filter((entry) => entry.length > 0);
+
+    return bonuses.length > 0 ? bonuses.join(" ") : "None";
+  }
+
   private formatSigned(value: number): string {
     return value > 0 ? `+${value}` : String(value);
   }
@@ -1503,6 +1579,18 @@ export class UIScene extends Phaser.Scene {
       return 0x475569;
     }
 
+    if (item.type === "accessory") {
+      return 0xa16207;
+    }
+
+    if (item.type === "sigil") {
+      return 0x7c3aed;
+    }
+
+    if (item.type === "support") {
+      return 0x0891b2;
+    }
+
     if (item.type === "consumable") {
       return 0xdc2626;
     }
@@ -1513,15 +1601,16 @@ export class UIScene extends Phaser.Scene {
   private getRarityColor(item: ItemDefinition): string {
     const rarity = getItemRarity(item);
 
-    if (rarity === "Rare") {
-      return "#c4b5fd";
-    }
+    const colors = {
+      Common: "#cbd5e1",
+      Uncommon: "#86efac",
+      Rare: "#93c5fd",
+      Epic: "#c4b5fd",
+      Legendary: "#fde68a",
+      Mythic: "#f9a8d4",
+    };
 
-    if (rarity === "Uncommon") {
-      return "#93c5fd";
-    }
-
-    return "#cbd5e1";
+    return colors[rarity];
   }
 
   private formatDelta(value: number): string {

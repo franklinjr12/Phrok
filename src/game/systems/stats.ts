@@ -150,27 +150,40 @@ export function calculateDerivedStats(
   getStatusEffect?: (id: string) => StatusEffectDefinition,
 ): DerivedStats {
   const modifiers = getAllStatModifiers(state, getStatusEffect);
-  const stats = getTotalBaseStats(state, getStatusEffect);
   const gear = getEquipmentStats(state.equipment, getItem);
+  const stats = getTotalBaseStats(state, getStatusEffect);
+
+  for (const key of baseStatKeys) {
+    stats[key] += gear.baseStats[key] ?? 0;
+  }
+
   const levelBonus = Math.max(0, state.playerProfile.level - 1);
   const derived: DerivedStats = {
     maxHp: Math.round(playerClass.baseStats.hp + levelBonus * playerClass.growthRates.hp + stats.vit * 5 + stats.str),
     maxSp: Math.round(playerClass.baseStats.sp + levelBonus * playerClass.growthRates.sp + stats.int * 3 + stats.vit),
-    physicalAttack: Math.round(playerClass.baseStats.attack + levelBonus * playerClass.growthRates.attack + stats.str * 2 + stats.dex + gear.attack),
-    rangedAttack: Math.round(playerClass.baseStats.attack + levelBonus * playerClass.growthRates.attack + stats.dex * 2 + stats.agi + gear.attack),
-    magicAttack: Math.round(playerClass.baseStats.attack + levelBonus * playerClass.growthRates.attack + stats.int * 3 + gear.attack),
-    defense: Math.round(playerClass.baseStats.defense + levelBonus * playerClass.growthRates.defense + stats.vit * 2 + gear.defense),
+    physicalAttack: Math.round(playerClass.baseStats.attack + levelBonus * playerClass.growthRates.attack + stats.str * 2 + stats.dex),
+    rangedAttack: Math.round(playerClass.baseStats.attack + levelBonus * playerClass.growthRates.attack + stats.dex * 2 + stats.agi),
+    magicAttack: Math.round(playerClass.baseStats.attack + levelBonus * playerClass.growthRates.attack + stats.int * 3),
+    defense: Math.round(playerClass.baseStats.defense + levelBonus * playerClass.growthRates.defense + stats.vit * 2),
     magicDefense: Math.round(stats.int * 2 + stats.vit),
     hit: Math.round(75 + stats.dex * 2 + stats.luk),
     dodge: Math.round(4 + stats.agi * 1.5 + stats.luk * 0.4),
     crit: Math.round(4 + stats.luk * 0.6 + stats.dex * 0.2),
     attackSpeed: Math.round(100 + stats.agi * 1.5 + stats.dex * 0.5),
     castSpeed: Math.round(100 + stats.int + stats.dex * 0.5),
+    cooldownReduction: gear.cooldownReduction,
     moveSpeed: Math.round(100 + stats.agi * 0.4),
     weightLimit: Math.round(60 + stats.str * 8 + stats.vit * 4),
+    dropChance: gear.dropChance,
+    elementDamage: { ...gear.elementDamage },
+    raceDamage: { ...gear.raceDamage },
+    resistances: { ...gear.resistances },
   };
 
-  return applyDerivedModifiers(derived, modifiers);
+  return applyDerivedModifiers(derived, [
+    ...modifiers,
+    { id: "equipment", derivedStats: gear.derivedStats },
+  ]);
 }
 
 export function syncCharacterVitalsToDerivedStats(
@@ -192,8 +205,11 @@ function applyDerivedModifiers(derived: DerivedStats, modifiers: StatModifier[])
 
   for (const modifier of modifiers) {
     for (const [key, value] of Object.entries(modifier.derivedStats ?? {})) {
-      if (typeof value === "number") {
-        next[key as keyof DerivedStats] += value;
+      const statKey = key as keyof DerivedStats;
+      const currentValue = next[statKey];
+
+      if (typeof value === "number" && typeof currentValue === "number") {
+        (next as Record<string, unknown>)[statKey] = currentValue + value;
       }
     }
   }

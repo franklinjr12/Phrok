@@ -1,5 +1,6 @@
 import type { DataRegistry } from "../data/dataRegistry";
 import type { DropTableDefinition } from "../types/dataDefinitions";
+import { getItemRarity } from "./equipment";
 
 export type LootDrop =
   | { kind: "item"; itemId: string; quantity: number }
@@ -33,15 +34,35 @@ export function generateLootDrops(
       continue;
     }
 
-    if (!entry.itemId) {
+    const itemId = entry.itemId ?? pickRarityItemId(entry.rarity, dataRegistry, random);
+
+    if (!itemId) {
       continue;
     }
 
-    dataRegistry.getItem(entry.itemId);
-    drops.push({ kind: "item", itemId: entry.itemId, quantity });
+    dataRegistry.getItem(itemId);
+    drops.push({ kind: "item", itemId, quantity });
   }
 
   return drops;
+}
+
+function pickRarityItemId(
+  rarity: DropTableDefinition["entries"][number]["rarity"],
+  dataRegistry: DataRegistry,
+  random: RandomSource,
+): string | null {
+  if (!rarity) {
+    return null;
+  }
+
+  const items = dataRegistry.getItems().filter((item) => getItemRarity(item) === rarity);
+
+  if (items.length === 0) {
+    return null;
+  }
+
+  return items[Math.floor(random() * items.length)].id;
 }
 
 function getQualityChance(baseChance: number, quality: LootQuality): number {

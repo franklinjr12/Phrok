@@ -2,7 +2,1629 @@
   {
     "id": "training-sword-repair",
     "name": "Training Sword Repair",
-    "ingredientItemIds": ["training-sword"],
+    "ingredientItemIds": [
+      "training-sword"
+    ],
     "resultItemId": "training-sword"
+  },
+  {
+    "id": "recipe-consumable-common-health-draught-1",
+    "name": "Common Health Draught 1 Pattern",
+    "ingredientItemIds": [
+      "jelly-gel",
+      "soft-hide"
+    ],
+    "resultItemId": "consumable-common-health-draught-1"
+  },
+  {
+    "id": "recipe-weapon-ashen-bow-1",
+    "name": "Ashen Bow 1 Pattern",
+    "ingredientItemIds": [
+      "jelly-gel",
+      "soft-hide"
+    ],
+    "resultItemId": "weapon-ashen-bow-1"
+  },
+  {
+    "id": "recipe-weapon-ashen-sword-1",
+    "name": "Ashen Sword 1 Pattern",
+    "ingredientItemIds": [
+      "jelly-gel",
+      "soft-hide"
+    ],
+    "resultItemId": "weapon-ashen-sword-1"
+  },
+  {
+    "id": "recipe-armor-canvas-boots-1",
+    "name": "Canvas Boots 1 Pattern",
+    "ingredientItemIds": [
+      "jelly-gel",
+      "soft-hide"
+    ],
+    "resultItemId": "armor-canvas-boots-1"
+  },
+  {
+    "id": "recipe-armor-canvas-cap-1",
+    "name": "Canvas Cap 1 Pattern",
+    "ingredientItemIds": [
+      "jelly-gel",
+      "soft-hide"
+    ],
+    "resultItemId": "armor-canvas-cap-1"
+  },
+  {
+    "id": "recipe-weapon-ashen-crossbow-1",
+    "name": "Ashen Crossbow 1 Pattern",
+    "ingredientItemIds": [
+      "jelly-gel",
+      "soft-hide"
+    ],
+    "resultItemId": "weapon-ashen-crossbow-1"
+  },
+  {
+    "id": "recipe-weapon-ashen-greatblade-1",
+    "name": "Ashen Greatblade 1 Pattern",
+    "ingredientItemIds": [
+      "jelly-gel",
+      "soft-hide"
+    ],
+    "resultItemId": "weapon-ashen-greatblade-1"
+  },
+  {
+    "id": "recipe-armor-canvas-guard-1",
+    "name": "Canvas Guard 1 Pattern",
+    "ingredientItemIds": [
+      "jelly-gel",
+      "soft-hide"
+    ],
+    "resultItemId": "armor-canvas-guard-1"
+  },
+  {
+    "id": "recipe-armor-canvas-vest-1",
+    "name": "Canvas Vest 1 Pattern",
+    "ingredientItemIds": [
+      "jelly-gel",
+      "soft-hide"
+    ],
+    "resultItemId": "armor-canvas-vest-1"
+  },
+  {
+    "id": "recipe-weapon-ashen-dagger-1",
+    "name": "Ashen Dagger 1 Pattern",
+    "ingredientItemIds": [
+      "jelly-gel",
+      "soft-hide"
+    ],
+    "resultItemId": "weapon-ashen-dagger-1"
+  },
+  {
+    "id": "recipe-weapon-ashen-staff-1",
+    "name": "Ashen Staff 1 Pattern",
+    "ingredientItemIds": [
+      "jelly-gel",
+      "soft-hide"
+    ],
+    "resultItemId": "weapon-ashen-staff-1"
+  },
+  {
+    "id": "recipe-accessory-copperleaf-ring-1",
+    "name": "Copperleaf Ring 1 Pattern",
+    "ingredientItemIds": [
+      "jelly-gel",
+      "soft-hide"
+    ],
+    "resultItemId": "accessory-copperleaf-ring-1"
+  },
+  {
+    "id": "recipe-accessory-copperleaf-seal-1",
+    "name": "Copperleaf Seal 1 Pattern",
+    "ingredientItemIds": [
+      "jelly-gel",
+      "soft-hide"
+    ],
+    "resultItemId": "accessory-copperleaf-seal-1"
+  },
+  {
+    "id": "recipe-armor-canvas-cloak-1",
+    "name": "Canvas Cloak 1 Pattern",
+    "ingredientItemIds": [
+      "jelly-gel",
+      "soft-hide"
+    ],
+    "resultItemId": "armor-canvas-cloak-1"
+  },
+  {
+    "id": "recipe-consumable-common-spirit-draught-1",
+    "name": "Common Spirit Draught 1 Pattern",
+    "ingredientItemIds": [
+      "jelly-gel",
+      "soft-hide"
+    ],
+    "resultItemId": "consumable-common-spirit-draught-1"
+  },
+  {
+    "id": "recipe-weapon-ashen-shortblade-1",
+    "name": "Ashen Shortblade 1 Pattern",
+    "ingredientItemIds": [
+      "jelly-gel",
+      "soft-hide"
+    ],
+    "resultItemId": "weapon-ashen-shortblade-1"
+  },
+  {
+    "id": "recipe-weapon-ashen-wand-1",
+    "name": "Ashen Wand 1 Pattern",
+    "ingredientItemIds": [
+      "jelly-gel",
+      "soft-hide"
+    ],
+    "resultItemId": "weapon-ashen-wand-1"
+  },
+  {
+    "id": "recipe-accessory-copperleaf-charm-1",
+    "name": "Copperleaf Charm 1 Pattern",
+    "ingredientItemIds": [
+      "jelly-gel",
+      "soft-hide"
+    ],
+    "resultItemId": "accessory-copperleaf-charm-1"
+  },
+  {
+    "id": "recipe-accessory-copperleaf-band-1",
+    "name": "Copperleaf Band 1 Pattern",
+    "ingredientItemIds": [
+      "jelly-gel",
+      "soft-hide"
+    ],
+    "resultItemId": "accessory-copperleaf-band-1"
+  },
+  {
+    "id": "recipe-accessory-copperleaf-pin-1",
+    "name": "Copperleaf Pin 1 Pattern",
+    "ingredientItemIds": [
+      "jelly-gel",
+      "soft-hide"
+    ],
+    "resultItemId": "accessory-copperleaf-pin-1"
+  },
+  {
+    "id": "recipe-consumable-common-guard-tonic-1",
+    "name": "Common Guard Tonic 1 Pattern",
+    "ingredientItemIds": [
+      "jelly-gel",
+      "soft-hide"
+    ],
+    "resultItemId": "consumable-common-guard-tonic-1"
+  },
+  {
+    "id": "recipe-armor-mossguard-guard-2",
+    "name": "Mossguard Guard 2 Pattern",
+    "ingredientItemIds": [
+      "jelly-gel",
+      "soft-hide"
+    ],
+    "resultItemId": "armor-mossguard-guard-2"
+  },
+  {
+    "id": "recipe-armor-mossguard-vest-2",
+    "name": "Mossguard Vest 2 Pattern",
+    "ingredientItemIds": [
+      "jelly-gel",
+      "soft-hide"
+    ],
+    "resultItemId": "armor-mossguard-vest-2"
+  },
+  {
+    "id": "recipe-minor-health-potion",
+    "name": "Minor Health Potion Pattern",
+    "ingredientItemIds": [
+      "jelly-gel",
+      "soft-hide"
+    ],
+    "resultItemId": "minor-health-potion"
+  },
+  {
+    "id": "recipe-sigil-flame-sigil-1",
+    "name": "Flame Sigil 1 Pattern",
+    "ingredientItemIds": [
+      "jelly-gel",
+      "soft-hide"
+    ],
+    "resultItemId": "sigil-flame-sigil-1"
+  },
+  {
+    "id": "recipe-armor-mossguard-cloak-2",
+    "name": "Mossguard Cloak 2 Pattern",
+    "ingredientItemIds": [
+      "jelly-gel",
+      "soft-hide"
+    ],
+    "resultItemId": "armor-mossguard-cloak-2"
+  },
+  {
+    "id": "recipe-weapon-riverglass-bow-2",
+    "name": "Riverglass Bow 2 Pattern",
+    "ingredientItemIds": [
+      "jelly-gel",
+      "soft-hide"
+    ],
+    "resultItemId": "weapon-riverglass-bow-2"
+  },
+  {
+    "id": "recipe-weapon-riverglass-sword-2",
+    "name": "Riverglass Sword 2 Pattern",
+    "ingredientItemIds": [
+      "jelly-gel",
+      "soft-hide"
+    ],
+    "resultItemId": "weapon-riverglass-sword-2"
+  },
+  {
+    "id": "recipe-armor-mossguard-boots-2",
+    "name": "Mossguard Boots 2 Pattern",
+    "ingredientItemIds": [
+      "jelly-gel",
+      "soft-hide"
+    ],
+    "resultItemId": "armor-mossguard-boots-2"
+  },
+  {
+    "id": "recipe-armor-mossguard-cap-2",
+    "name": "Mossguard Cap 2 Pattern",
+    "ingredientItemIds": [
+      "jelly-gel",
+      "soft-hide"
+    ],
+    "resultItemId": "armor-mossguard-cap-2"
+  },
+  {
+    "id": "recipe-consumable-common-fleet-tonic-1",
+    "name": "Common Fleet Tonic 1 Pattern",
+    "ingredientItemIds": [
+      "jelly-gel",
+      "soft-hide"
+    ],
+    "resultItemId": "consumable-common-fleet-tonic-1"
+  },
+  {
+    "id": "recipe-sigil-tide-sigil-1",
+    "name": "Tide Sigil 1 Pattern",
+    "ingredientItemIds": [
+      "jelly-gel",
+      "soft-hide"
+    ],
+    "resultItemId": "sigil-tide-sigil-1"
+  },
+  {
+    "id": "recipe-weapon-riverglass-crossbow-2",
+    "name": "Riverglass Crossbow 2 Pattern",
+    "ingredientItemIds": [
+      "jelly-gel",
+      "soft-hide"
+    ],
+    "resultItemId": "weapon-riverglass-crossbow-2"
+  },
+  {
+    "id": "recipe-weapon-riverglass-greatblade-2",
+    "name": "Riverglass Greatblade 2 Pattern",
+    "ingredientItemIds": [
+      "jelly-gel",
+      "soft-hide"
+    ],
+    "resultItemId": "weapon-riverglass-greatblade-2"
+  },
+  {
+    "id": "recipe-accessory-pearlmark-pin-2",
+    "name": "Pearlmark Pin 2 Pattern",
+    "ingredientItemIds": [
+      "jelly-gel",
+      "soft-hide"
+    ],
+    "resultItemId": "accessory-pearlmark-pin-2"
+  },
+  {
+    "id": "recipe-weapon-riverglass-dagger-2",
+    "name": "Riverglass Dagger 2 Pattern",
+    "ingredientItemIds": [
+      "jelly-gel",
+      "soft-hide"
+    ],
+    "resultItemId": "weapon-riverglass-dagger-2"
+  },
+  {
+    "id": "recipe-weapon-riverglass-staff-2",
+    "name": "Riverglass Staff 2 Pattern",
+    "ingredientItemIds": [
+      "jelly-gel",
+      "soft-hide"
+    ],
+    "resultItemId": "weapon-riverglass-staff-2"
+  },
+  {
+    "id": "recipe-accessory-pearlmark-ring-2",
+    "name": "Pearlmark Ring 2 Pattern",
+    "ingredientItemIds": [
+      "jelly-gel",
+      "soft-hide"
+    ],
+    "resultItemId": "accessory-pearlmark-ring-2"
+  },
+  {
+    "id": "recipe-accessory-pearlmark-seal-2",
+    "name": "Pearlmark Seal 2 Pattern",
+    "ingredientItemIds": [
+      "jelly-gel",
+      "soft-hide"
+    ],
+    "resultItemId": "accessory-pearlmark-seal-2"
+  },
+  {
+    "id": "recipe-sigil-grave-sigil-1",
+    "name": "Grave Sigil 1 Pattern",
+    "ingredientItemIds": [
+      "jelly-gel",
+      "soft-hide"
+    ],
+    "resultItemId": "sigil-grave-sigil-1"
+  },
+  {
+    "id": "recipe-weapon-riverglass-shortblade-2",
+    "name": "Riverglass Shortblade 2 Pattern",
+    "ingredientItemIds": [
+      "jelly-gel",
+      "soft-hide"
+    ],
+    "resultItemId": "weapon-riverglass-shortblade-2"
+  },
+  {
+    "id": "recipe-weapon-riverglass-wand-2",
+    "name": "Riverglass Wand 2 Pattern",
+    "ingredientItemIds": [
+      "jelly-gel",
+      "soft-hide"
+    ],
+    "resultItemId": "weapon-riverglass-wand-2"
+  },
+  {
+    "id": "recipe-accessory-pearlmark-charm-2",
+    "name": "Pearlmark Charm 2 Pattern",
+    "ingredientItemIds": [
+      "jelly-gel",
+      "soft-hide"
+    ],
+    "resultItemId": "accessory-pearlmark-charm-2"
+  },
+  {
+    "id": "recipe-consumable-common-focus-tea-1",
+    "name": "Common Focus Tea 1 Pattern",
+    "ingredientItemIds": [
+      "jelly-gel",
+      "soft-hide"
+    ],
+    "resultItemId": "consumable-common-focus-tea-1"
+  },
+  {
+    "id": "recipe-practice-daggers",
+    "name": "Practice Daggers Pattern",
+    "ingredientItemIds": [
+      "jelly-gel",
+      "soft-hide"
+    ],
+    "resultItemId": "practice-daggers"
+  },
+  {
+    "id": "recipe-accessory-pearlmark-band-2",
+    "name": "Pearlmark Band 2 Pattern",
+    "ingredientItemIds": [
+      "jelly-gel",
+      "soft-hide"
+    ],
+    "resultItemId": "accessory-pearlmark-band-2"
+  },
+  {
+    "id": "recipe-armor-tideward-cloak-3",
+    "name": "Tideward Cloak 3 Pattern",
+    "ingredientItemIds": [
+      "jelly-gel",
+      "soft-hide"
+    ],
+    "resultItemId": "armor-tideward-cloak-3"
+  },
+  {
+    "id": "recipe-support-courier-support-charm-1",
+    "name": "Courier Support Charm 1 Pattern",
+    "ingredientItemIds": [
+      "jelly-gel",
+      "soft-hide"
+    ],
+    "resultItemId": "support-courier-support-charm-1"
+  },
+  {
+    "id": "recipe-training-sword",
+    "name": "Training Sword Pattern",
+    "ingredientItemIds": [
+      "jelly-gel",
+      "soft-hide"
+    ],
+    "resultItemId": "training-sword"
+  },
+  {
+    "id": "recipe-armor-tideward-boots-3",
+    "name": "Tideward Boots 3 Pattern",
+    "ingredientItemIds": [
+      "jelly-gel",
+      "soft-hide"
+    ],
+    "resultItemId": "armor-tideward-boots-3"
+  },
+  {
+    "id": "recipe-armor-tideward-cap-3",
+    "name": "Tideward Cap 3 Pattern",
+    "ingredientItemIds": [
+      "jelly-gel",
+      "soft-hide"
+    ],
+    "resultItemId": "armor-tideward-cap-3"
+  },
+  {
+    "id": "recipe-shortbow",
+    "name": "Shortbow Pattern",
+    "ingredientItemIds": [
+      "jelly-gel",
+      "soft-hide"
+    ],
+    "resultItemId": "shortbow"
+  },
+  {
+    "id": "recipe-armor-tideward-guard-3",
+    "name": "Tideward Guard 3 Pattern",
+    "ingredientItemIds": [
+      "jelly-gel",
+      "soft-hide"
+    ],
+    "resultItemId": "armor-tideward-guard-3"
+  },
+  {
+    "id": "recipe-armor-tideward-vest-3",
+    "name": "Tideward Vest 3 Pattern",
+    "ingredientItemIds": [
+      "jelly-gel",
+      "soft-hide"
+    ],
+    "resultItemId": "armor-tideward-vest-3"
+  },
+  {
+    "id": "recipe-consumable-common-health-draught-2",
+    "name": "Common Health Draught 2 Pattern",
+    "ingredientItemIds": [
+      "jelly-gel",
+      "soft-hide"
+    ],
+    "resultItemId": "consumable-common-health-draught-2"
+  },
+  {
+    "id": "recipe-support-forager-support-charm-1",
+    "name": "Forager Support Charm 1 Pattern",
+    "ingredientItemIds": [
+      "jelly-gel",
+      "soft-hide"
+    ],
+    "resultItemId": "support-forager-support-charm-1"
+  },
+  {
+    "id": "recipe-apprentice-staff",
+    "name": "Apprentice Staff Pattern",
+    "ingredientItemIds": [
+      "jelly-gel",
+      "soft-hide"
+    ],
+    "resultItemId": "apprentice-staff"
+  },
+  {
+    "id": "recipe-weapon-mossline-bow-3",
+    "name": "Mossline Bow 3 Pattern",
+    "ingredientItemIds": [
+      "jelly-gel",
+      "soft-hide"
+    ],
+    "resultItemId": "weapon-mossline-bow-3"
+  },
+  {
+    "id": "recipe-weapon-mossline-sword-3",
+    "name": "Mossline Sword 3 Pattern",
+    "ingredientItemIds": [
+      "jelly-gel",
+      "soft-hide"
+    ],
+    "resultItemId": "weapon-mossline-sword-3"
+  },
+  {
+    "id": "recipe-accessory-amberglass-band-3",
+    "name": "Amberglass Band 3 Pattern",
+    "ingredientItemIds": [
+      "jelly-gel",
+      "soft-hide"
+    ],
+    "resultItemId": "accessory-amberglass-band-3"
+  },
+  {
+    "id": "recipe-sigil-flame-sigil-2",
+    "name": "Flame Sigil 2 Pattern",
+    "ingredientItemIds": [
+      "jelly-gel",
+      "soft-hide"
+    ],
+    "resultItemId": "sigil-flame-sigil-2"
+  },
+  {
+    "id": "recipe-weapon-mossline-crossbow-3",
+    "name": "Mossline Crossbow 3 Pattern",
+    "ingredientItemIds": [
+      "jelly-gel",
+      "soft-hide"
+    ],
+    "resultItemId": "weapon-mossline-crossbow-3"
+  },
+  {
+    "id": "recipe-weapon-mossline-greatblade-3",
+    "name": "Mossline Greatblade 3 Pattern",
+    "ingredientItemIds": [
+      "jelly-gel",
+      "soft-hide"
+    ],
+    "resultItemId": "weapon-mossline-greatblade-3"
+  },
+  {
+    "id": "recipe-accessory-amberglass-pin-3",
+    "name": "Amberglass Pin 3 Pattern",
+    "ingredientItemIds": [
+      "jelly-gel",
+      "soft-hide"
+    ],
+    "resultItemId": "accessory-amberglass-pin-3"
+  },
+  {
+    "id": "recipe-consumable-uncommon-spirit-draught-2",
+    "name": "Uncommon Spirit Draught 2 Pattern",
+    "ingredientItemIds": [
+      "jelly-gel",
+      "soft-hide"
+    ],
+    "resultItemId": "consumable-uncommon-spirit-draught-2"
+  },
+  {
+    "id": "recipe-weapon-mossline-dagger-3",
+    "name": "Mossline Dagger 3 Pattern",
+    "ingredientItemIds": [
+      "jelly-gel",
+      "soft-hide"
+    ],
+    "resultItemId": "weapon-mossline-dagger-3"
+  },
+  {
+    "id": "recipe-weapon-mossline-staff-3",
+    "name": "Mossline Staff 3 Pattern",
+    "ingredientItemIds": [
+      "jelly-gel",
+      "soft-hide"
+    ],
+    "resultItemId": "weapon-mossline-staff-3"
+  },
+  {
+    "id": "recipe-accessory-amberglass-ring-3",
+    "name": "Amberglass Ring 3 Pattern",
+    "ingredientItemIds": [
+      "jelly-gel",
+      "soft-hide"
+    ],
+    "resultItemId": "accessory-amberglass-ring-3"
+  },
+  {
+    "id": "recipe-accessory-amberglass-seal-3",
+    "name": "Amberglass Seal 3 Pattern",
+    "ingredientItemIds": [
+      "jelly-gel",
+      "soft-hide"
+    ],
+    "resultItemId": "accessory-amberglass-seal-3"
+  },
+  {
+    "id": "recipe-armor-sunplate-boots-4",
+    "name": "Sunplate Boots 4 Pattern",
+    "ingredientItemIds": [
+      "jelly-gel",
+      "soft-hide"
+    ],
+    "resultItemId": "armor-sunplate-boots-4"
+  },
+  {
+    "id": "recipe-armor-sunplate-cap-4",
+    "name": "Sunplate Cap 4 Pattern",
+    "ingredientItemIds": [
+      "jelly-gel",
+      "soft-hide"
+    ],
+    "resultItemId": "armor-sunplate-cap-4"
+  },
+  {
+    "id": "recipe-sigil-tide-sigil-2",
+    "name": "Tide Sigil 2 Pattern",
+    "ingredientItemIds": [
+      "jelly-gel",
+      "soft-hide"
+    ],
+    "resultItemId": "sigil-tide-sigil-2"
+  },
+  {
+    "id": "recipe-weapon-mossline-shortblade-3",
+    "name": "Mossline Shortblade 3 Pattern",
+    "ingredientItemIds": [
+      "jelly-gel",
+      "soft-hide"
+    ],
+    "resultItemId": "weapon-mossline-shortblade-3"
+  },
+  {
+    "id": "recipe-weapon-mossline-wand-3",
+    "name": "Mossline Wand 3 Pattern",
+    "ingredientItemIds": [
+      "jelly-gel",
+      "soft-hide"
+    ],
+    "resultItemId": "weapon-mossline-wand-3"
+  },
+  {
+    "id": "recipe-accessory-amberglass-charm-3",
+    "name": "Amberglass Charm 3 Pattern",
+    "ingredientItemIds": [
+      "jelly-gel",
+      "soft-hide"
+    ],
+    "resultItemId": "accessory-amberglass-charm-3"
+  },
+  {
+    "id": "recipe-armor-sunplate-guard-4",
+    "name": "Sunplate Guard 4 Pattern",
+    "ingredientItemIds": [
+      "jelly-gel",
+      "soft-hide"
+    ],
+    "resultItemId": "armor-sunplate-guard-4"
+  },
+  {
+    "id": "recipe-armor-sunplate-vest-4",
+    "name": "Sunplate Vest 4 Pattern",
+    "ingredientItemIds": [
+      "jelly-gel",
+      "soft-hide"
+    ],
+    "resultItemId": "armor-sunplate-vest-4"
+  },
+  {
+    "id": "recipe-armor-sunplate-cloak-4",
+    "name": "Sunplate Cloak 4 Pattern",
+    "ingredientItemIds": [
+      "jelly-gel",
+      "soft-hide"
+    ],
+    "resultItemId": "armor-sunplate-cloak-4"
+  },
+  {
+    "id": "recipe-consumable-uncommon-guard-tonic-2",
+    "name": "Uncommon Guard Tonic 2 Pattern",
+    "ingredientItemIds": [
+      "jelly-gel",
+      "soft-hide"
+    ],
+    "resultItemId": "consumable-uncommon-guard-tonic-2"
+  },
+  {
+    "id": "recipe-sigil-grave-sigil-2",
+    "name": "Grave Sigil 2 Pattern",
+    "ingredientItemIds": [
+      "jelly-gel",
+      "soft-hide"
+    ],
+    "resultItemId": "sigil-grave-sigil-2"
+  },
+  {
+    "id": "recipe-support-courier-support-charm-2",
+    "name": "Courier Support Charm 2 Pattern",
+    "ingredientItemIds": [
+      "jelly-gel",
+      "soft-hide"
+    ],
+    "resultItemId": "support-courier-support-charm-2"
+  },
+  {
+    "id": "recipe-accessory-nickelstar-charm-4",
+    "name": "Nickelstar Charm 4 Pattern",
+    "ingredientItemIds": [
+      "jelly-gel",
+      "soft-hide"
+    ],
+    "resultItemId": "accessory-nickelstar-charm-4"
+  },
+  {
+    "id": "recipe-consumable-uncommon-fleet-tonic-2",
+    "name": "Uncommon Fleet Tonic 2 Pattern",
+    "ingredientItemIds": [
+      "jelly-gel",
+      "soft-hide"
+    ],
+    "resultItemId": "consumable-uncommon-fleet-tonic-2"
+  },
+  {
+    "id": "recipe-rusted-buckler",
+    "name": "Rusted Buckler Pattern",
+    "ingredientItemIds": [
+      "jelly-gel",
+      "soft-hide"
+    ],
+    "resultItemId": "rusted-buckler"
+  },
+  {
+    "id": "recipe-weapon-brassbound-bow-4",
+    "name": "Brassbound Bow 4 Pattern",
+    "ingredientItemIds": [
+      "jelly-gel",
+      "soft-hide"
+    ],
+    "resultItemId": "weapon-brassbound-bow-4"
+  },
+  {
+    "id": "recipe-weapon-brassbound-sword-4",
+    "name": "Brassbound Sword 4 Pattern",
+    "ingredientItemIds": [
+      "jelly-gel",
+      "soft-hide"
+    ],
+    "resultItemId": "weapon-brassbound-sword-4"
+  },
+  {
+    "id": "recipe-accessory-nickelstar-band-4",
+    "name": "Nickelstar Band 4 Pattern",
+    "ingredientItemIds": [
+      "jelly-gel",
+      "soft-hide"
+    ],
+    "resultItemId": "accessory-nickelstar-band-4"
+  },
+  {
+    "id": "recipe-armor-ironroot-guard-5",
+    "name": "Ironroot Guard 5 Pattern",
+    "ingredientItemIds": [
+      "jelly-gel",
+      "soft-hide"
+    ],
+    "resultItemId": "armor-ironroot-guard-5"
+  },
+  {
+    "id": "recipe-armor-ironroot-vest-5",
+    "name": "Ironroot Vest 5 Pattern",
+    "ingredientItemIds": [
+      "jelly-gel",
+      "soft-hide"
+    ],
+    "resultItemId": "armor-ironroot-vest-5"
+  },
+  {
+    "id": "recipe-support-forager-support-charm-2",
+    "name": "Forager Support Charm 2 Pattern",
+    "ingredientItemIds": [
+      "jelly-gel",
+      "soft-hide"
+    ],
+    "resultItemId": "support-forager-support-charm-2"
+  },
+  {
+    "id": "recipe-weapon-brassbound-crossbow-4",
+    "name": "Brassbound Crossbow 4 Pattern",
+    "ingredientItemIds": [
+      "jelly-gel",
+      "soft-hide"
+    ],
+    "resultItemId": "weapon-brassbound-crossbow-4"
+  },
+  {
+    "id": "recipe-weapon-brassbound-greatblade-4",
+    "name": "Brassbound Greatblade 4 Pattern",
+    "ingredientItemIds": [
+      "jelly-gel",
+      "soft-hide"
+    ],
+    "resultItemId": "weapon-brassbound-greatblade-4"
+  },
+  {
+    "id": "recipe-accessory-nickelstar-pin-4",
+    "name": "Nickelstar Pin 4 Pattern",
+    "ingredientItemIds": [
+      "jelly-gel",
+      "soft-hide"
+    ],
+    "resultItemId": "accessory-nickelstar-pin-4"
+  },
+  {
+    "id": "recipe-armor-ironroot-cloak-5",
+    "name": "Ironroot Cloak 5 Pattern",
+    "ingredientItemIds": [
+      "jelly-gel",
+      "soft-hide"
+    ],
+    "resultItemId": "armor-ironroot-cloak-5"
+  },
+  {
+    "id": "recipe-weapon-brassbound-dagger-4",
+    "name": "Brassbound Dagger 4 Pattern",
+    "ingredientItemIds": [
+      "jelly-gel",
+      "soft-hide"
+    ],
+    "resultItemId": "weapon-brassbound-dagger-4"
+  },
+  {
+    "id": "recipe-weapon-brassbound-staff-4",
+    "name": "Brassbound Staff 4 Pattern",
+    "ingredientItemIds": [
+      "jelly-gel",
+      "soft-hide"
+    ],
+    "resultItemId": "weapon-brassbound-staff-4"
+  },
+  {
+    "id": "recipe-accessory-nickelstar-ring-4",
+    "name": "Nickelstar Ring 4 Pattern",
+    "ingredientItemIds": [
+      "jelly-gel",
+      "soft-hide"
+    ],
+    "resultItemId": "accessory-nickelstar-ring-4"
+  },
+  {
+    "id": "recipe-accessory-nickelstar-seal-4",
+    "name": "Nickelstar Seal 4 Pattern",
+    "ingredientItemIds": [
+      "jelly-gel",
+      "soft-hide"
+    ],
+    "resultItemId": "accessory-nickelstar-seal-4"
+  },
+  {
+    "id": "recipe-armor-ironroot-boots-5",
+    "name": "Ironroot Boots 5 Pattern",
+    "ingredientItemIds": [
+      "jelly-gel",
+      "soft-hide"
+    ],
+    "resultItemId": "armor-ironroot-boots-5"
+  },
+  {
+    "id": "recipe-armor-ironroot-cap-5",
+    "name": "Ironroot Cap 5 Pattern",
+    "ingredientItemIds": [
+      "jelly-gel",
+      "soft-hide"
+    ],
+    "resultItemId": "armor-ironroot-cap-5"
+  },
+  {
+    "id": "recipe-consumable-uncommon-focus-tea-2",
+    "name": "Uncommon Focus Tea 2 Pattern",
+    "ingredientItemIds": [
+      "jelly-gel",
+      "soft-hide"
+    ],
+    "resultItemId": "consumable-uncommon-focus-tea-2"
+  },
+  {
+    "id": "recipe-sigil-flame-sigil-3",
+    "name": "Flame Sigil 3 Pattern",
+    "ingredientItemIds": [
+      "jelly-gel",
+      "soft-hide"
+    ],
+    "resultItemId": "sigil-flame-sigil-3"
+  },
+  {
+    "id": "recipe-weapon-brassbound-shortblade-4",
+    "name": "Brassbound Shortblade 4 Pattern",
+    "ingredientItemIds": [
+      "jelly-gel",
+      "soft-hide"
+    ],
+    "resultItemId": "weapon-brassbound-shortblade-4"
+  },
+  {
+    "id": "recipe-weapon-brassbound-wand-4",
+    "name": "Brassbound Wand 4 Pattern",
+    "ingredientItemIds": [
+      "jelly-gel",
+      "soft-hide"
+    ],
+    "resultItemId": "weapon-brassbound-wand-4"
+  },
+  {
+    "id": "recipe-sigil-tide-sigil-3",
+    "name": "Tide Sigil 3 Pattern",
+    "ingredientItemIds": [
+      "jelly-gel",
+      "soft-hide"
+    ],
+    "resultItemId": "sigil-tide-sigil-3"
+  },
+  {
+    "id": "recipe-consumable-uncommon-health-draught-3",
+    "name": "Uncommon Health Draught 3 Pattern",
+    "ingredientItemIds": [
+      "jelly-gel",
+      "soft-hide"
+    ],
+    "resultItemId": "consumable-uncommon-health-draught-3"
+  },
+  {
+    "id": "recipe-accessory-reedlight-ring-5",
+    "name": "Reedlight Ring 5 Pattern",
+    "ingredientItemIds": [
+      "jelly-gel",
+      "soft-hide"
+    ],
+    "resultItemId": "accessory-reedlight-ring-5"
+  },
+  {
+    "id": "recipe-accessory-reedlight-seal-5",
+    "name": "Reedlight Seal 5 Pattern",
+    "ingredientItemIds": [
+      "jelly-gel",
+      "soft-hide"
+    ],
+    "resultItemId": "accessory-reedlight-seal-5"
+  },
+  {
+    "id": "recipe-armor-bellwoven-cloak-6",
+    "name": "Bellwoven Cloak 6 Pattern",
+    "ingredientItemIds": [
+      "jelly-gel",
+      "soft-hide"
+    ],
+    "resultItemId": "armor-bellwoven-cloak-6"
+  },
+  {
+    "id": "recipe-sigil-grave-sigil-3",
+    "name": "Grave Sigil 3 Pattern",
+    "ingredientItemIds": [
+      "jelly-gel",
+      "soft-hide"
+    ],
+    "resultItemId": "sigil-grave-sigil-3"
+  },
+  {
+    "id": "recipe-accessory-reedlight-charm-5",
+    "name": "Reedlight Charm 5 Pattern",
+    "ingredientItemIds": [
+      "jelly-gel",
+      "soft-hide"
+    ],
+    "resultItemId": "accessory-reedlight-charm-5"
+  },
+  {
+    "id": "recipe-armor-bellwoven-boots-6",
+    "name": "Bellwoven Boots 6 Pattern",
+    "ingredientItemIds": [
+      "jelly-gel",
+      "soft-hide"
+    ],
+    "resultItemId": "armor-bellwoven-boots-6"
+  },
+  {
+    "id": "recipe-armor-bellwoven-cap-6",
+    "name": "Bellwoven Cap 6 Pattern",
+    "ingredientItemIds": [
+      "jelly-gel",
+      "soft-hide"
+    ],
+    "resultItemId": "armor-bellwoven-cap-6"
+  },
+  {
+    "id": "recipe-weapon-sunwake-bow-5",
+    "name": "Sunwake Bow 5 Pattern",
+    "ingredientItemIds": [
+      "jelly-gel",
+      "soft-hide"
+    ],
+    "resultItemId": "weapon-sunwake-bow-5"
+  },
+  {
+    "id": "recipe-weapon-sunwake-sword-5",
+    "name": "Sunwake Sword 5 Pattern",
+    "ingredientItemIds": [
+      "jelly-gel",
+      "soft-hide"
+    ],
+    "resultItemId": "weapon-sunwake-sword-5"
+  },
+  {
+    "id": "recipe-accessory-reedlight-band-5",
+    "name": "Reedlight Band 5 Pattern",
+    "ingredientItemIds": [
+      "jelly-gel",
+      "soft-hide"
+    ],
+    "resultItemId": "accessory-reedlight-band-5"
+  },
+  {
+    "id": "recipe-armor-bellwoven-guard-6",
+    "name": "Bellwoven Guard 6 Pattern",
+    "ingredientItemIds": [
+      "jelly-gel",
+      "soft-hide"
+    ],
+    "resultItemId": "armor-bellwoven-guard-6"
+  },
+  {
+    "id": "recipe-armor-bellwoven-vest-6",
+    "name": "Bellwoven Vest 6 Pattern",
+    "ingredientItemIds": [
+      "jelly-gel",
+      "soft-hide"
+    ],
+    "resultItemId": "armor-bellwoven-vest-6"
+  },
+  {
+    "id": "recipe-consumable-uncommon-spirit-draught-3",
+    "name": "Uncommon Spirit Draught 3 Pattern",
+    "ingredientItemIds": [
+      "jelly-gel",
+      "soft-hide"
+    ],
+    "resultItemId": "consumable-uncommon-spirit-draught-3"
+  },
+  {
+    "id": "recipe-support-courier-support-charm-3",
+    "name": "Courier Support Charm 3 Pattern",
+    "ingredientItemIds": [
+      "jelly-gel",
+      "soft-hide"
+    ],
+    "resultItemId": "support-courier-support-charm-3"
+  },
+  {
+    "id": "recipe-weapon-sunwake-crossbow-5",
+    "name": "Sunwake Crossbow 5 Pattern",
+    "ingredientItemIds": [
+      "jelly-gel",
+      "soft-hide"
+    ],
+    "resultItemId": "weapon-sunwake-crossbow-5"
+  },
+  {
+    "id": "recipe-weapon-sunwake-greatblade-5",
+    "name": "Sunwake Greatblade 5 Pattern",
+    "ingredientItemIds": [
+      "jelly-gel",
+      "soft-hide"
+    ],
+    "resultItemId": "weapon-sunwake-greatblade-5"
+  },
+  {
+    "id": "recipe-accessory-reedlight-pin-5",
+    "name": "Reedlight Pin 5 Pattern",
+    "ingredientItemIds": [
+      "jelly-gel",
+      "soft-hide"
+    ],
+    "resultItemId": "accessory-reedlight-pin-5"
+  },
+  {
+    "id": "recipe-weapon-sunwake-dagger-5",
+    "name": "Sunwake Dagger 5 Pattern",
+    "ingredientItemIds": [
+      "jelly-gel",
+      "soft-hide"
+    ],
+    "resultItemId": "weapon-sunwake-dagger-5"
+  },
+  {
+    "id": "recipe-weapon-sunwake-staff-5",
+    "name": "Sunwake Staff 5 Pattern",
+    "ingredientItemIds": [
+      "jelly-gel",
+      "soft-hide"
+    ],
+    "resultItemId": "weapon-sunwake-staff-5"
+  },
+  {
+    "id": "recipe-support-forager-support-charm-3",
+    "name": "Forager Support Charm 3 Pattern",
+    "ingredientItemIds": [
+      "jelly-gel",
+      "ironroot-ore"
+    ],
+    "resultItemId": "support-forager-support-charm-3"
+  },
+  {
+    "id": "recipe-weapon-sunwake-shortblade-5",
+    "name": "Sunwake Shortblade 5 Pattern",
+    "ingredientItemIds": [
+      "jelly-gel",
+      "ironroot-ore"
+    ],
+    "resultItemId": "weapon-sunwake-shortblade-5"
+  },
+  {
+    "id": "recipe-weapon-sunwake-wand-5",
+    "name": "Sunwake Wand 5 Pattern",
+    "ingredientItemIds": [
+      "jelly-gel",
+      "ironroot-ore"
+    ],
+    "resultItemId": "weapon-sunwake-wand-5"
+  },
+  {
+    "id": "recipe-consumable-rare-guard-tonic-3",
+    "name": "Rare Guard Tonic 3 Pattern",
+    "ingredientItemIds": [
+      "jelly-gel",
+      "ironroot-ore"
+    ],
+    "resultItemId": "consumable-rare-guard-tonic-3"
+  },
+  {
+    "id": "recipe-armor-astral-boots-7",
+    "name": "Astral Boots 7 Pattern",
+    "ingredientItemIds": [
+      "jelly-gel",
+      "ironroot-ore"
+    ],
+    "resultItemId": "armor-astral-boots-7"
+  },
+  {
+    "id": "recipe-armor-astral-cap-7",
+    "name": "Astral Cap 7 Pattern",
+    "ingredientItemIds": [
+      "jelly-gel",
+      "ironroot-ore"
+    ],
+    "resultItemId": "armor-astral-cap-7"
+  },
+  {
+    "id": "recipe-sigil-flame-sigil-4",
+    "name": "Flame Sigil 4 Pattern",
+    "ingredientItemIds": [
+      "jelly-gel",
+      "ironroot-ore"
+    ],
+    "resultItemId": "sigil-flame-sigil-4"
+  },
+  {
+    "id": "recipe-accessory-saintfall-pin-6",
+    "name": "Saintfall Pin 6 Pattern",
+    "ingredientItemIds": [
+      "jelly-gel",
+      "ironroot-ore"
+    ],
+    "resultItemId": "accessory-saintfall-pin-6"
+  },
+  {
+    "id": "recipe-armor-astral-guard-7",
+    "name": "Astral Guard 7 Pattern",
+    "ingredientItemIds": [
+      "jelly-gel",
+      "ironroot-ore"
+    ],
+    "resultItemId": "armor-astral-guard-7"
+  },
+  {
+    "id": "recipe-armor-astral-vest-7",
+    "name": "Astral Vest 7 Pattern",
+    "ingredientItemIds": [
+      "jelly-gel",
+      "ironroot-ore"
+    ],
+    "resultItemId": "armor-astral-vest-7"
+  },
+  {
+    "id": "recipe-accessory-saintfall-ring-6",
+    "name": "Saintfall Ring 6 Pattern",
+    "ingredientItemIds": [
+      "jelly-gel",
+      "ironroot-ore"
+    ],
+    "resultItemId": "accessory-saintfall-ring-6"
+  },
+  {
+    "id": "recipe-accessory-saintfall-seal-6",
+    "name": "Saintfall Seal 6 Pattern",
+    "ingredientItemIds": [
+      "jelly-gel",
+      "ironroot-ore"
+    ],
+    "resultItemId": "accessory-saintfall-seal-6"
+  },
+  {
+    "id": "recipe-armor-astral-cloak-7",
+    "name": "Astral Cloak 7 Pattern",
+    "ingredientItemIds": [
+      "jelly-gel",
+      "ironroot-ore"
+    ],
+    "resultItemId": "armor-astral-cloak-7"
+  },
+  {
+    "id": "recipe-consumable-rare-fleet-tonic-3",
+    "name": "Rare Fleet Tonic 3 Pattern",
+    "ingredientItemIds": [
+      "jelly-gel",
+      "ironroot-ore"
+    ],
+    "resultItemId": "consumable-rare-fleet-tonic-3"
+  },
+  {
+    "id": "recipe-sigil-tide-sigil-4",
+    "name": "Tide Sigil 4 Pattern",
+    "ingredientItemIds": [
+      "jelly-gel",
+      "ironroot-ore"
+    ],
+    "resultItemId": "sigil-tide-sigil-4"
+  },
+  {
+    "id": "recipe-accessory-saintfall-charm-6",
+    "name": "Saintfall Charm 6 Pattern",
+    "ingredientItemIds": [
+      "jelly-gel",
+      "ironroot-ore"
+    ],
+    "resultItemId": "accessory-saintfall-charm-6"
+  },
+  {
+    "id": "recipe-weapon-moonveiled-bow-6",
+    "name": "Moonveiled Bow 6 Pattern",
+    "ingredientItemIds": [
+      "jelly-gel",
+      "ironroot-ore"
+    ],
+    "resultItemId": "weapon-moonveiled-bow-6"
+  },
+  {
+    "id": "recipe-weapon-moonveiled-sword-6",
+    "name": "Moonveiled Sword 6 Pattern",
+    "ingredientItemIds": [
+      "jelly-gel",
+      "ironroot-ore"
+    ],
+    "resultItemId": "weapon-moonveiled-sword-6"
+  },
+  {
+    "id": "recipe-accessory-saintfall-band-6",
+    "name": "Saintfall Band 6 Pattern",
+    "ingredientItemIds": [
+      "jelly-gel",
+      "ironroot-ore"
+    ],
+    "resultItemId": "accessory-saintfall-band-6"
+  },
+  {
+    "id": "recipe-sigil-grave-sigil-4",
+    "name": "Grave Sigil 4 Pattern",
+    "ingredientItemIds": [
+      "jelly-gel",
+      "ironroot-ore"
+    ],
+    "resultItemId": "sigil-grave-sigil-4"
+  },
+  {
+    "id": "recipe-weapon-moonveiled-crossbow-6",
+    "name": "Moonveiled Crossbow 6 Pattern",
+    "ingredientItemIds": [
+      "jelly-gel",
+      "ironroot-ore"
+    ],
+    "resultItemId": "weapon-moonveiled-crossbow-6"
+  },
+  {
+    "id": "recipe-weapon-moonveiled-greatblade-6",
+    "name": "Moonveiled Greatblade 6 Pattern",
+    "ingredientItemIds": [
+      "jelly-gel",
+      "ironroot-ore"
+    ],
+    "resultItemId": "weapon-moonveiled-greatblade-6"
+  },
+  {
+    "id": "recipe-consumable-rare-focus-tea-3",
+    "name": "Rare Focus Tea 3 Pattern",
+    "ingredientItemIds": [
+      "jelly-gel",
+      "ironroot-ore"
+    ],
+    "resultItemId": "consumable-rare-focus-tea-3"
+  },
+  {
+    "id": "recipe-weapon-moonveiled-dagger-6",
+    "name": "Moonveiled Dagger 6 Pattern",
+    "ingredientItemIds": [
+      "jelly-gel",
+      "ironroot-ore"
+    ],
+    "resultItemId": "weapon-moonveiled-dagger-6"
+  },
+  {
+    "id": "recipe-weapon-moonveiled-staff-6",
+    "name": "Moonveiled Staff 6 Pattern",
+    "ingredientItemIds": [
+      "jelly-gel",
+      "ironroot-ore"
+    ],
+    "resultItemId": "weapon-moonveiled-staff-6"
+  },
+  {
+    "id": "recipe-armor-meteor-guard-8",
+    "name": "Meteor Guard 8 Pattern",
+    "ingredientItemIds": [
+      "jelly-gel",
+      "ironroot-ore"
+    ],
+    "resultItemId": "armor-meteor-guard-8"
+  },
+  {
+    "id": "recipe-armor-meteor-vest-8",
+    "name": "Meteor Vest 8 Pattern",
+    "ingredientItemIds": [
+      "jelly-gel",
+      "ironroot-ore"
+    ],
+    "resultItemId": "armor-meteor-vest-8"
+  },
+  {
+    "id": "recipe-support-courier-support-charm-4",
+    "name": "Courier Support Charm 4 Pattern",
+    "ingredientItemIds": [
+      "jelly-gel",
+      "ironroot-ore"
+    ],
+    "resultItemId": "support-courier-support-charm-4"
+  },
+  {
+    "id": "recipe-weapon-moonveiled-shortblade-6",
+    "name": "Moonveiled Shortblade 6 Pattern",
+    "ingredientItemIds": [
+      "jelly-gel",
+      "ironroot-ore"
+    ],
+    "resultItemId": "weapon-moonveiled-shortblade-6"
+  },
+  {
+    "id": "recipe-weapon-moonveiled-wand-6",
+    "name": "Moonveiled Wand 6 Pattern",
+    "ingredientItemIds": [
+      "jelly-gel",
+      "ironroot-ore"
+    ],
+    "resultItemId": "weapon-moonveiled-wand-6"
+  },
+  {
+    "id": "recipe-armor-meteor-cloak-8",
+    "name": "Meteor Cloak 8 Pattern",
+    "ingredientItemIds": [
+      "jelly-gel",
+      "ironroot-ore"
+    ],
+    "resultItemId": "armor-meteor-cloak-8"
+  },
+  {
+    "id": "recipe-accessory-copperleaf-band-7",
+    "name": "Copperleaf Band 7 Pattern",
+    "ingredientItemIds": [
+      "jelly-gel",
+      "ironroot-ore"
+    ],
+    "resultItemId": "accessory-copperleaf-band-7"
+  },
+  {
+    "id": "recipe-armor-meteor-boots-8",
+    "name": "Meteor Boots 8 Pattern",
+    "ingredientItemIds": [
+      "jelly-gel",
+      "ironroot-ore"
+    ],
+    "resultItemId": "armor-meteor-boots-8"
+  },
+  {
+    "id": "recipe-armor-meteor-cap-8",
+    "name": "Meteor Cap 8 Pattern",
+    "ingredientItemIds": [
+      "jelly-gel",
+      "ironroot-ore"
+    ],
+    "resultItemId": "armor-meteor-cap-8"
+  },
+  {
+    "id": "recipe-consumable-rare-health-draught-4",
+    "name": "Rare Health Draught 4 Pattern",
+    "ingredientItemIds": [
+      "jelly-gel",
+      "ironroot-ore"
+    ],
+    "resultItemId": "consumable-rare-health-draught-4"
+  },
+  {
+    "id": "recipe-support-forager-support-charm-4",
+    "name": "Forager Support Charm 4 Pattern",
+    "ingredientItemIds": [
+      "jelly-gel",
+      "ironroot-ore"
+    ],
+    "resultItemId": "support-forager-support-charm-4"
+  },
+  {
+    "id": "recipe-accessory-copperleaf-pin-7",
+    "name": "Copperleaf Pin 7 Pattern",
+    "ingredientItemIds": [
+      "jelly-gel",
+      "ironroot-ore"
+    ],
+    "resultItemId": "accessory-copperleaf-pin-7"
+  },
+  {
+    "id": "recipe-accessory-copperleaf-ring-7",
+    "name": "Copperleaf Ring 7 Pattern",
+    "ingredientItemIds": [
+      "jelly-gel",
+      "ironroot-ore"
+    ],
+    "resultItemId": "accessory-copperleaf-ring-7"
+  },
+  {
+    "id": "recipe-accessory-copperleaf-seal-7",
+    "name": "Copperleaf Seal 7 Pattern",
+    "ingredientItemIds": [
+      "jelly-gel",
+      "ironroot-ore"
+    ],
+    "resultItemId": "accessory-copperleaf-seal-7"
+  },
+  {
+    "id": "recipe-sigil-flame-sigil-5",
+    "name": "Flame Sigil 5 Pattern",
+    "ingredientItemIds": [
+      "jelly-gel",
+      "ironroot-ore"
+    ],
+    "resultItemId": "sigil-flame-sigil-5"
+  },
+  {
+    "id": "recipe-accessory-copperleaf-charm-7",
+    "name": "Copperleaf Charm 7 Pattern",
+    "ingredientItemIds": [
+      "jelly-gel",
+      "ironroot-ore"
+    ],
+    "resultItemId": "accessory-copperleaf-charm-7"
+  },
+  {
+    "id": "recipe-consumable-rare-spirit-draught-4",
+    "name": "Rare Spirit Draught 4 Pattern",
+    "ingredientItemIds": [
+      "jelly-gel",
+      "ironroot-ore"
+    ],
+    "resultItemId": "consumable-rare-spirit-draught-4"
+  },
+  {
+    "id": "recipe-weapon-starforged-bow-7",
+    "name": "Starforged Bow 7 Pattern",
+    "ingredientItemIds": [
+      "jelly-gel",
+      "ironroot-ore"
+    ],
+    "resultItemId": "weapon-starforged-bow-7"
+  },
+  {
+    "id": "recipe-weapon-starforged-sword-7",
+    "name": "Starforged Sword 7 Pattern",
+    "ingredientItemIds": [
+      "jelly-gel",
+      "ironroot-ore"
+    ],
+    "resultItemId": "weapon-starforged-sword-7"
+  },
+  {
+    "id": "recipe-armor-canvas-cloak-9",
+    "name": "Canvas Cloak 9 Pattern",
+    "ingredientItemIds": [
+      "jelly-gel",
+      "ironroot-ore"
+    ],
+    "resultItemId": "armor-canvas-cloak-9"
+  },
+  {
+    "id": "recipe-sigil-tide-sigil-5",
+    "name": "Tide Sigil 5 Pattern",
+    "ingredientItemIds": [
+      "jelly-gel",
+      "ironroot-ore"
+    ],
+    "resultItemId": "sigil-tide-sigil-5"
+  },
+  {
+    "id": "recipe-weapon-starforged-crossbow-7",
+    "name": "Starforged Crossbow 7 Pattern",
+    "ingredientItemIds": [
+      "jelly-gel",
+      "ironroot-ore"
+    ],
+    "resultItemId": "weapon-starforged-crossbow-7"
+  },
+  {
+    "id": "recipe-weapon-starforged-greatblade-7",
+    "name": "Starforged Greatblade 7 Pattern",
+    "ingredientItemIds": [
+      "jelly-gel",
+      "ironroot-ore"
+    ],
+    "resultItemId": "weapon-starforged-greatblade-7"
+  },
+  {
+    "id": "recipe-armor-canvas-boots-9",
+    "name": "Canvas Boots 9 Pattern",
+    "ingredientItemIds": [
+      "jelly-gel",
+      "ironroot-ore"
+    ],
+    "resultItemId": "armor-canvas-boots-9"
+  },
+  {
+    "id": "recipe-armor-canvas-cap-9",
+    "name": "Canvas Cap 9 Pattern",
+    "ingredientItemIds": [
+      "jelly-gel",
+      "ironroot-ore"
+    ],
+    "resultItemId": "armor-canvas-cap-9"
+  },
+  {
+    "id": "recipe-weapon-starforged-dagger-7",
+    "name": "Starforged Dagger 7 Pattern",
+    "ingredientItemIds": [
+      "jelly-gel",
+      "ironroot-ore"
+    ],
+    "resultItemId": "weapon-starforged-dagger-7"
+  },
+  {
+    "id": "recipe-weapon-starforged-staff-7",
+    "name": "Starforged Staff 7 Pattern",
+    "ingredientItemIds": [
+      "jelly-gel",
+      "ironroot-ore"
+    ],
+    "resultItemId": "weapon-starforged-staff-7"
+  },
+  {
+    "id": "recipe-armor-canvas-guard-9",
+    "name": "Canvas Guard 9 Pattern",
+    "ingredientItemIds": [
+      "jelly-gel",
+      "ironroot-ore"
+    ],
+    "resultItemId": "armor-canvas-guard-9"
+  },
+  {
+    "id": "recipe-armor-canvas-vest-9",
+    "name": "Canvas Vest 9 Pattern",
+    "ingredientItemIds": [
+      "jelly-gel",
+      "ironroot-ore"
+    ],
+    "resultItemId": "armor-canvas-vest-9"
+  },
+  {
+    "id": "recipe-consumable-epic-guard-tonic-4",
+    "name": "Epic Guard Tonic 4 Pattern",
+    "ingredientItemIds": [
+      "jelly-gel",
+      "ironroot-ore"
+    ],
+    "resultItemId": "consumable-epic-guard-tonic-4"
   }
 ]

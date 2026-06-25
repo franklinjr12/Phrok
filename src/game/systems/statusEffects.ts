@@ -95,7 +95,7 @@ export function getStatusStatModifiers(
       sourceStatusEffectId: effect.id,
       expiresAt: effect.expiresAt,
       baseStats: multiplyNumberRecord(definition.statModifiers.baseStats, effect.stacks) as Partial<Record<BaseStatKey, number>>,
-      derivedStats: multiplyNumberRecord(definition.statModifiers.derivedStats, effect.stacks) as Partial<DerivedStats>,
+      derivedStats: multiplyNumberRecord(definition.statModifiers.derivedStats, effect.stacks) as Partial<Record<keyof DerivedStats, number>>,
     };
   });
 }

@@ -1,6 +1,6 @@
 import { eventBus } from "./eventBus";
-import type { ItemDefinition } from "../types/dataDefinitions";
-import type { EquipmentData, EquipmentSlot, GameState } from "../types/gameState";
+import type { ClassDefinition, ItemDefinition, ItemRarity, ItemStatModifiers } from "../types/dataDefinitions";
+import type { BaseStatKey, BaseStats, DerivedStats, EquipmentData, EquipmentSlot, GameState } from "../types/gameState";
 
 export const equipmentSlots: EquipmentSlot[] = [
   "weapon",
@@ -30,7 +30,22 @@ export const equipmentSlotLabels: Record<EquipmentSlot, string> = {
 
 export interface EquipmentStats {
   attack: number;
+  magicAttack: number;
   defense: number;
+  magicDefense: number;
+  hp: number;
+  sp: number;
+  crit: number;
+  attackSpeed: number;
+  castSpeed: number;
+  cooldownReduction: number;
+  moveSpeed: number;
+  dropChance: number;
+  baseStats: Partial<BaseStats>;
+  derivedStats: Partial<Record<keyof DerivedStats, number>>;
+  elementDamage: Record<string, number>;
+  raceDamage: Record<string, number>;
+  resistances: Record<string, number>;
 }
 
 export interface EquipmentComparison {
@@ -54,29 +69,106 @@ export function createEmptyEquipment(): EquipmentData {
   };
 }
 
-export function getItemEquipmentSlot(item: ItemDefinition): EquipmentSlot | null {
+export function getValidEquipmentSlots(item: ItemDefinition): EquipmentSlot[] {
+  if (item.validEquipmentSlots && item.validEquipmentSlots.length > 0) {
+    return [...item.validEquipmentSlots];
+  }
+
   if (item.type === "weapon") {
-    return "weapon";
+    return ["weapon"];
   }
 
   if (item.type === "armor") {
-    return "body";
+    return item.equipmentSlot ? [item.equipmentSlot] : ["body"];
   }
 
-  return null;
+  if (item.type === "accessory") {
+    return ["accessory1", "accessory2"];
+  }
+
+  if (item.type === "sigil") {
+    return ["sigil"];
+  }
+
+  if (item.type === "support") {
+    return ["supportCharm"];
+  }
+
+  return [];
 }
 
-export function equipItem(state: GameState, item: ItemDefinition, emitChange = true): boolean {
-  const slot = getItemEquipmentSlot(item);
+export function getItemEquipmentSlot(item: ItemDefinition, equipment?: EquipmentData): EquipmentSlot | null {
+  const slots = getValidEquipmentSlots(item);
 
-  if (!slot || !playerOwnsItem(state, item.id)) {
+  if (slots.length === 0) {
+    return null;
+  }
+
+  if (!equipment) {
+    return slots[0];
+  }
+
+  return slots.find((slot) => !equipment[slot]) ?? slots[0];
+}
+
+export function equipItem(
+  state: GameState,
+  item: ItemDefinition,
+  emitChange = true,
+  playerClass?: ClassDefinition,
+  preferredSlot?: EquipmentSlot,
+  getItem?: (id: string) => ItemDefinition,
+): boolean {
+  const validSlots = getValidEquipmentSlots(item);
+  const slot = preferredSlot && validSlots.includes(preferredSlot)
+    ? preferredSlot
+    : getItemEquipmentSlot(item, state.equipment);
+
+  if (!slot || !playerOwnsItem(state, item.id) || !canEquipItem(state, item, playerClass, slot, getItem)) {
     return false;
+  }
+
+  if (slot === "weapon" && item.twoHanded === true) {
+    state.equipment.offhand = null;
   }
 
   state.equipment[slot] = item.id;
 
   if (emitChange) {
     eventBus.emit("equipmentChanged", { slot, itemId: item.id });
+  }
+
+  return true;
+}
+
+export function canEquipItem(
+  state: GameState,
+  item: ItemDefinition,
+  playerClass?: ClassDefinition,
+  slot = getItemEquipmentSlot(item, state.equipment),
+  getItem?: (id: string) => ItemDefinition,
+): boolean {
+  if (!slot || !getValidEquipmentSlots(item).includes(slot)) {
+    return false;
+  }
+
+  if (item.type === "weapon" && playerClass?.allowedWeaponTypes.length && item.weaponType) {
+    if (!playerClass.allowedWeaponTypes.includes(item.weaponType)) {
+      return false;
+    }
+  }
+
+  const allowedClassIds = item.allowedClassIds ?? [];
+
+  if (allowedClassIds.length > 0 && !allowedClassIds.includes(state.character.archetype)) {
+    return false;
+  }
+
+  if (slot === "offhand" && state.equipment.weapon && getItem) {
+    const weapon = getItem(state.equipment.weapon);
+    if (weapon.twoHanded === true) {
+      return false;
+    }
   }
 
   return true;
@@ -97,33 +189,46 @@ export function removeEquipment(state: GameState, slot: EquipmentSlot, emitChang
 }
 
 export function getWeaponAttack(item: ItemDefinition | null): number {
-  return item?.type === "weapon" ? Math.max(1, Math.floor(item.value / 5)) : 0;
+  return item?.type === "weapon" ? scaleByRarity(Math.max(1, Math.floor(item.value / 5)), item.rarity ?? "Common") : 0;
 }
 
 export function getItemEquipmentStats(item: ItemDefinition | null): EquipmentStats {
+  const stats = createEmptyEquipmentStats();
+
   if (!item) {
-    return { attack: 0, defense: 0 };
+    return stats;
   }
 
-  return {
-    attack: getWeaponAttack(item),
-    defense: item.type === "armor" ? Math.max(1, Math.floor(item.value / 6)) : 0,
-  };
+  const modifiers = item.statModifiers ?? {};
+
+  mergeItemModifiers(stats, modifiers, getRarityStatMultiplier(item.rarity ?? "Common"));
+
+  if (Object.keys(modifiers.derivedStats ?? {}).length === 0) {
+    if (item.type === "weapon") {
+      stats.attack += getWeaponAttack(item);
+      stats.derivedStats.physicalAttack = (stats.derivedStats.physicalAttack ?? 0) + stats.attack;
+      stats.derivedStats.rangedAttack = (stats.derivedStats.rangedAttack ?? 0) + stats.attack;
+    } else if (item.type === "armor") {
+      stats.defense += scaleByRarity(Math.max(1, Math.floor(item.value / 6)), item.rarity ?? "Common");
+      stats.derivedStats.defense = (stats.derivedStats.defense ?? 0) + stats.defense;
+    }
+  }
+
+  return stats;
 }
 
 export function getEquipmentStats(
   equipment: EquipmentData,
   getItem: (id: string) => ItemDefinition,
 ): EquipmentStats {
-  const weapon = equipment.weapon ? getItem(equipment.weapon) : null;
-  const body = equipment.body ? getItem(equipment.body) : null;
-  const weaponStats = getItemEquipmentStats(weapon);
-  const bodyStats = getItemEquipmentStats(body);
+  const total = createEmptyEquipmentStats();
 
-  return {
-    attack: weaponStats.attack,
-    defense: bodyStats.defense,
-  };
+  for (const slot of equipmentSlots) {
+    const itemId = equipment[slot];
+    mergeEquipmentStats(total, itemId ? getItemEquipmentStats(getItem(itemId)) : createEmptyEquipmentStats());
+  }
+
+  return total;
 }
 
 export function compareEquipmentItems(
@@ -138,12 +243,35 @@ export function compareEquipmentItems(
     next,
     delta: {
       attack: next.attack - current.attack,
+      magicAttack: next.magicAttack - current.magicAttack,
       defense: next.defense - current.defense,
+      magicDefense: next.magicDefense - current.magicDefense,
+      hp: next.hp - current.hp,
+      sp: next.sp - current.sp,
+      crit: next.crit - current.crit,
+      attackSpeed: next.attackSpeed - current.attackSpeed,
+      castSpeed: next.castSpeed - current.castSpeed,
+      cooldownReduction: next.cooldownReduction - current.cooldownReduction,
+      moveSpeed: next.moveSpeed - current.moveSpeed,
+      dropChance: next.dropChance - current.dropChance,
+      baseStats: subtractNumberRecords(current.baseStats, next.baseStats) as Partial<BaseStats>,
+      derivedStats: subtractNumberRecords(current.derivedStats, next.derivedStats) as Partial<Record<keyof DerivedStats, number>>,
+      elementDamage: subtractNumberRecords(current.elementDamage, next.elementDamage) as Record<string, number>,
+      raceDamage: subtractNumberRecords(current.raceDamage, next.raceDamage) as Record<string, number>,
+      resistances: subtractNumberRecords(current.resistances, next.resistances) as Record<string, number>,
     },
   };
 }
 
-export function getItemRarity(item: ItemDefinition): "Common" | "Uncommon" | "Rare" {
+export function getItemRarity(item: ItemDefinition): ItemRarity {
+  if (item.rarity) {
+    return item.rarity;
+  }
+
+  if (item.value >= 80) {
+    return "Epic";
+  }
+
   if (item.value >= 25) {
     return "Rare";
   }
@@ -155,7 +283,143 @@ export function getItemRarity(item: ItemDefinition): "Common" | "Uncommon" | "Ra
   return "Common";
 }
 
+export function getRarityStatMultiplier(rarity: ItemRarity): number {
+  return rarityStatMultipliers[rarity];
+}
+
+export function getItemSellValue(item: ItemDefinition): number {
+  return Math.max(0, Math.floor(item.value * raritySellMultipliers[getItemRarity(item)]));
+}
+
+export function createEmptyEquipmentStats(): EquipmentStats {
+  return {
+    attack: 0,
+    magicAttack: 0,
+    defense: 0,
+    magicDefense: 0,
+    hp: 0,
+    sp: 0,
+    crit: 0,
+    attackSpeed: 0,
+    castSpeed: 0,
+    cooldownReduction: 0,
+    moveSpeed: 0,
+    dropChance: 0,
+    baseStats: {},
+    derivedStats: {},
+    elementDamage: {},
+    raceDamage: {},
+    resistances: {},
+  };
+}
+
 function playerOwnsItem(state: GameState, itemId: string): boolean {
   return state.inventory.items.some((entry) => entry.id === itemId && entry.quantity > 0)
     || state.inventory.equipmentInstances.some((entry) => entry.itemId === itemId);
+}
+
+const rarityStatMultipliers: Record<ItemRarity, number> = {
+  Common: 1,
+  Uncommon: 1.15,
+  Rare: 1.35,
+  Epic: 1.65,
+  Legendary: 2,
+  Mythic: 2.5,
+};
+
+const raritySellMultipliers: Record<ItemRarity, number> = {
+  Common: 1,
+  Uncommon: 1.2,
+  Rare: 1.55,
+  Epic: 2.1,
+  Legendary: 3,
+  Mythic: 4.5,
+};
+
+function mergeItemModifiers(stats: EquipmentStats, modifiers: ItemStatModifiers, multiplier: number): void {
+  mergeScaledRecord(stats.baseStats, modifiers.baseStats, multiplier);
+  mergeScaledRecord(stats.derivedStats, modifiers.derivedStats, multiplier);
+  mergeScaledRecord(stats.elementDamage, modifiers.elementDamage, multiplier);
+  mergeScaledRecord(stats.raceDamage, modifiers.raceDamage, multiplier);
+  mergeScaledRecord(stats.resistances, modifiers.resistances, multiplier);
+
+  stats.attack += Math.max(
+    getNumericModifier(modifiers.derivedStats, "physicalAttack", multiplier),
+    getNumericModifier(modifiers.derivedStats, "rangedAttack", multiplier),
+  );
+  stats.magicAttack += getNumericModifier(modifiers.derivedStats, "magicAttack", multiplier);
+  stats.defense += getNumericModifier(modifiers.derivedStats, "defense", multiplier);
+  stats.magicDefense += getNumericModifier(modifiers.derivedStats, "magicDefense", multiplier);
+  stats.hp += getNumericModifier(modifiers.derivedStats, "maxHp", multiplier);
+  stats.sp += getNumericModifier(modifiers.derivedStats, "maxSp", multiplier);
+  stats.crit += getNumericModifier(modifiers.derivedStats, "crit", multiplier);
+  stats.attackSpeed += getNumericModifier(modifiers.derivedStats, "attackSpeed", multiplier);
+  stats.castSpeed += getNumericModifier(modifiers.derivedStats, "castSpeed", multiplier);
+  stats.cooldownReduction += getNumericModifier(modifiers.derivedStats, "cooldownReduction", multiplier);
+  stats.moveSpeed += getNumericModifier(modifiers.derivedStats, "moveSpeed", multiplier);
+  stats.dropChance += getNumericModifier(modifiers.derivedStats, "dropChance", multiplier);
+}
+
+function mergeEquipmentStats(target: EquipmentStats, source: EquipmentStats): void {
+  target.attack += source.attack;
+  target.magicAttack += source.magicAttack;
+  target.defense += source.defense;
+  target.magicDefense += source.magicDefense;
+  target.hp += source.hp;
+  target.sp += source.sp;
+  target.crit += source.crit;
+  target.attackSpeed += source.attackSpeed;
+  target.castSpeed += source.castSpeed;
+  target.cooldownReduction += source.cooldownReduction;
+  target.moveSpeed += source.moveSpeed;
+  target.dropChance += source.dropChance;
+  mergeScaledRecord(target.baseStats, source.baseStats, 1);
+  mergeScaledRecord(target.derivedStats, source.derivedStats, 1);
+  mergeScaledRecord(target.elementDamage, source.elementDamage, 1);
+  mergeScaledRecord(target.raceDamage, source.raceDamage, 1);
+  mergeScaledRecord(target.resistances, source.resistances, 1);
+}
+
+function mergeScaledRecord(
+  target: Partial<Record<string, number>>,
+  source: Partial<Record<string, number>> | undefined,
+  multiplier: number,
+): void {
+  for (const [key, value] of Object.entries(source ?? {})) {
+    if (typeof value === "number") {
+      target[key] = (target[key] ?? 0) + scaleByRarity(value, multiplier);
+    }
+  }
+}
+
+function getNumericModifier(
+  source: ItemStatModifiers["derivedStats"],
+  key: keyof DerivedStats,
+  multiplier: number,
+): number {
+  const value = source?.[key];
+  return typeof value === "number" ? scaleByRarity(value, multiplier) : 0;
+}
+
+function scaleByRarity(value: number, rarityOrMultiplier: ItemRarity | number): number {
+  const multiplier = typeof rarityOrMultiplier === "number" ? rarityOrMultiplier : getRarityStatMultiplier(rarityOrMultiplier);
+  if (value === 0) {
+    return 0;
+  }
+
+  const scaled = Math.round(value * multiplier);
+  return value > 0 ? Math.max(1, scaled) : Math.min(-1, scaled);
+}
+
+function subtractNumberRecords(
+  current: Partial<Record<string, number>>,
+  next: Partial<Record<string, number>>,
+): Partial<Record<string, number>> {
+  const delta: Record<string, number> = {};
+
+  for (const key of new Set([...Object.keys(current), ...Object.keys(next)])) {
+    delta[key] = (next[key] ?? 0) - (current[key] ?? 0);
+  }
+
+  return delta;
 }

@@ -31,8 +31,13 @@ export interface DerivedStats {
   crit: number;
   attackSpeed: number;
   castSpeed: number;
+  cooldownReduction: number;
   moveSpeed: number;
   weightLimit: number;
+  dropChance: number;
+  elementDamage: Record<string, number>;
+  raceDamage: Record<string, number>;
+  resistances: Record<string, number>;
 }
 
 export interface StatModifier {
@@ -41,7 +46,7 @@ export interface StatModifier {
   sourceStatusEffectId?: string;
   expiresAt?: number;
   baseStats?: Partial<BaseStats>;
-  derivedStats?: Partial<DerivedStats>;
+  derivedStats?: Partial<Record<keyof DerivedStats, number>>;
 }
 
 export interface ActiveStatusEffect {

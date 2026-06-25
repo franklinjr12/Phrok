@@ -16,7 +16,7 @@ const validFiles: Record<string, unknown[]> = {
   ],
   "skills.json": [{ id: "power-slash", name: "Power Slash", classId: "swordsman", power: 12 }],
   "items.json": [
-    { id: "training-sword", name: "Training Sword", type: "weapon" },
+    { id: "training-sword", name: "Training Sword", type: "weapon", rarity: "Uncommon", weaponType: "sword" },
     { id: "jelly-gel", name: "Jelly Gel", type: "material" },
   ],
   "monsters.json": [{ id: "green-jelly", name: "Green Jelly", hp: 10, attack: 2, dropTableId: "green-jelly-drops" }],
@@ -36,6 +36,7 @@ const validFiles: Record<string, unknown[]> = {
       id: "green-jelly-drops",
       entries: [
         { itemId: "jelly-gel", chance: 1 },
+        { rarity: "Rare", chance: 0.2 },
         { type: "gold", chance: 1, minQuantity: 3, maxQuantity: 5 },
       ],
     },
@@ -138,7 +139,14 @@ describe("loadDataRegistry", () => {
       icon: "power-slash",
     });
     expect(registry.getSkillsByClass("swordsman").map((skill) => skill.id)).toEqual(["power-slash"]);
-    expect(registry.getItem("training-sword")).toMatchObject({ value: 0 });
+    expect(registry.getItems().map((entry) => entry.id)).toEqual(["training-sword", "jelly-gel"]);
+    expect(registry.getItem("training-sword")).toMatchObject({
+      value: 0,
+      rarity: "Uncommon",
+      icon: "placeholder-training-sword",
+      validEquipmentSlots: ["weapon"],
+      weaponType: "sword",
+    });
     expect(registry.getMonster("green-jelly")).toMatchObject({
       dropTableId: "green-jelly-drops",
       behavior: "passive",
@@ -162,9 +170,18 @@ describe("loadDataRegistry", () => {
     expect(registry.getDropTable("green-jelly-drops").entries).toContainEqual({
       itemId: undefined,
       type: "gold",
+      rarity: undefined,
       chance: 1,
       minQuantity: 3,
       maxQuantity: 5,
+    });
+    expect(registry.getDropTable("green-jelly-drops").entries).toContainEqual({
+      itemId: undefined,
+      type: "item",
+      rarity: "Rare",
+      chance: 0.2,
+      minQuantity: 1,
+      maxQuantity: 1,
     });
     expect(registry.getMap("crownfield-meadows")).toMatchObject({
       regionId: "crownfield",

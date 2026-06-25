@@ -23,7 +23,7 @@ test("world ui hotkeys show inventory, equipment, comparison, and block gameplay
   await canvas.hover({ position: { x: 140, y: 196 } });
   await expect(canvas).toHaveAttribute("data-item-comparison", "visible");
   await expect(canvas).toHaveAttribute("data-item-comparison-text", /current=Training Sword\|new=Training Sword/);
-  await expect(canvas).toHaveAttribute("data-item-comparison-text", /requirements=None\|effects=None/);
+  await expect(canvas).toHaveAttribute("data-item-comparison-text", /requirements=None\|effects=physicalAttack \+2, rangedAttack \+2/);
 
   await canvas.click({ position: { x: 560, y: 300 } });
   await page.waitForTimeout(150);

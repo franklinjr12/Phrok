@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { createNewGameState } from "../data/gameState";
-import { compareEquipmentItems, equipItem, getEquipmentStats, getItemEquipmentStats, removeEquipment } from "./equipment";
+import { compareEquipmentItems, equipItem, getEquipmentStats, getItemEquipmentStats, getItemSellValue, removeEquipment } from "./equipment";
 import { eventBus } from "./eventBus";
 import type { ItemDefinition } from "../types/dataDefinitions";
 
@@ -59,10 +59,70 @@ describe("equipment", () => {
   it("compares current and next equipment stats", () => {
     const comparison = compareEquipmentItems(getItem("training-sword"), getItem("strong-sword"));
 
-    expect(comparison.current).toEqual({ attack: 2, defense: 0 });
-    expect(comparison.next).toEqual({ attack: 5, defense: 0 });
-    expect(comparison.delta).toEqual({ attack: 3, defense: 0 });
-    expect(getItemEquipmentStats(getItem("leather-vest"))).toEqual({ attack: 0, defense: 2 });
+    expect(comparison.current).toMatchObject({ attack: 2, defense: 0 });
+    expect(comparison.next).toMatchObject({ attack: 5, defense: 0 });
+    expect(comparison.delta).toMatchObject({ attack: 3, defense: 0 });
+    expect(getItemEquipmentStats(getItem("leather-vest"))).toMatchObject({ attack: 0, defense: 2 });
+  });
+
+  it("stacks multiple slots and supports two accessories", () => {
+    const state = createNewGameState();
+    state.inventory.items.push(
+      { id: "swift-ring", quantity: 1 },
+      { id: "lucky-ring", quantity: 1 },
+      { id: "leather-vest", quantity: 1 },
+    );
+
+    expect(equipItem(state, getItem("swift-ring"), false)).toBe(true);
+    expect(equipItem(state, getItem("lucky-ring"), false)).toBe(true);
+    expect(equipItem(state, getItem("leather-vest"), false)).toBe(true);
+
+    expect(state.equipment.accessory1).toBe("swift-ring");
+    expect(state.equipment.accessory2).toBe("lucky-ring");
+    expect(state.equipment.body).toBe("leather-vest");
+    expect(getEquipmentStats(state.equipment, getItem)).toMatchObject({
+      attack: 2,
+      defense: 2,
+      crit: 1,
+      dropChance: 2,
+    });
+  });
+
+  it("enforces class weapon restrictions and two-handed offhand rules", () => {
+    const state = createNewGameState();
+    state.inventory.items.push(
+      { id: "apprentice-staff", quantity: 1 },
+      { id: "rusted-buckler", quantity: 1 },
+    );
+
+    expect(equipItem(state, getItem("apprentice-staff"), false, {
+      id: "swordsman",
+      name: "Swordsman",
+      description: "",
+      roleSummary: "",
+      recommendedStats: [],
+      difficultyRating: "Easy",
+      baseStats: { hp: 1, sp: 1, attack: 1, defense: 1 },
+      growthRates: { hp: 1, sp: 1, attack: 1, defense: 1 },
+      startingWeaponId: "training-sword",
+      allowedWeaponTypes: ["sword"],
+      startingSkillIds: [],
+      startingItemIds: [],
+      advancedClassOptions: [],
+    })).toBe(false);
+
+    expect(equipItem(state, getItem("apprentice-staff"), false, undefined, undefined, getItem)).toBe(true);
+    expect(equipItem(state, getItem("rusted-buckler"), false, undefined, "offhand", getItem)).toBe(false);
+  });
+
+  it("applies rarity to declared item stats and sell value", () => {
+    const item = getItem("legendary-guard");
+
+    expect(getItemEquipmentStats(item)).toMatchObject({
+      defense: 8,
+      magicDefense: 4,
+    });
+    expect(getItemSellValue(item)).toBe(180);
   });
 });
 
@@ -94,6 +154,69 @@ function getItem(id: string): ItemDefinition {
       description: "",
       type: "armor",
       value: 12,
+    };
+  }
+
+  if (id === "swift-ring") {
+    return {
+      id,
+      name: "Swift Ring",
+      description: "",
+      type: "accessory",
+      value: 18,
+      validEquipmentSlots: ["accessory1", "accessory2"],
+      statModifiers: { derivedStats: { crit: 1 } },
+    };
+  }
+
+  if (id === "lucky-ring") {
+    return {
+      id,
+      name: "Lucky Ring",
+      description: "",
+      type: "accessory",
+      value: 20,
+      validEquipmentSlots: ["accessory1", "accessory2"],
+      statModifiers: { derivedStats: { dropChance: 2 } },
+    };
+  }
+
+  if (id === "apprentice-staff") {
+    return {
+      id,
+      name: "Apprentice Staff",
+      description: "",
+      type: "weapon",
+      value: 12,
+      weaponType: "staff",
+      twoHanded: true,
+    };
+  }
+
+  if (id === "rusted-buckler") {
+    return {
+      id,
+      name: "Rusted Buckler",
+      description: "",
+      type: "armor",
+      value: 12,
+      equipmentSlot: "offhand",
+      validEquipmentSlots: ["offhand"],
+      statModifiers: { derivedStats: { defense: 2 } },
+    };
+  }
+
+  if (id === "legendary-guard") {
+    return {
+      id,
+      name: "Legendary Guard",
+      description: "",
+      type: "armor",
+      value: 60,
+      rarity: "Legendary",
+      equipmentSlot: "body",
+      validEquipmentSlots: ["body"],
+      statModifiers: { derivedStats: { defense: 4, magicDefense: 2 } },
     };
   }
 

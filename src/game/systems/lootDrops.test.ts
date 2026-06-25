@@ -35,6 +35,19 @@ describe("generateLootDrops", () => {
       { kind: "gold", quantity: 6 },
     ]);
   });
+
+  it("can resolve item drops by rarity", () => {
+    const drops = generateLootDrops({
+      id: "rare-cache",
+      entries: [
+        { type: "item", rarity: "Rare", chance: 1, minQuantity: 1, maxQuantity: 1 },
+      ],
+    }, createRegistry(), createRandom([0, 0.75]));
+
+    expect(drops).toEqual([
+      { kind: "item", itemId: "rare-lens", quantity: 1 },
+    ]);
+  });
 });
 
 function createRegistry(): DataRegistry {
@@ -44,8 +57,27 @@ function createRegistry(): DataRegistry {
       name: id,
       description: "",
       type: "material",
+      rarity: id === "rare-lens" ? "Rare" : "Common",
       value: 0,
     }),
+    getItems: () => [
+      {
+        id: "jelly-gel",
+        name: "Jelly Gel",
+        description: "",
+        type: "material",
+        rarity: "Common",
+        value: 0,
+      },
+      {
+        id: "rare-lens",
+        name: "Rare Lens",
+        description: "",
+        type: "material",
+        rarity: "Rare",
+        value: 0,
+      },
+    ],
   } as DataRegistry;
 }
 
