@@ -22,6 +22,12 @@ import {
   statResetCost,
 } from "../systems/stats";
 import { writeSaveSlot } from "../systems/autosave";
+import {
+  cycleAutoPotionThreshold,
+  getAutoPotionSettingsSummary,
+  getConsumableCooldownSummary,
+  useConsumableItem,
+} from "../systems/consumables";
 import { eventBus } from "../systems/eventBus";
 import { removeInventoryItem } from "../systems/inventory";
 import { allocateSkillPoint, assignHotbarAction, getLearnedSkillLevel, hotbarSlotCount } from "../systems/skills";
@@ -64,6 +70,8 @@ export class UIScene extends Phaser.Scene {
   private unsubscribeMapChanged?: () => void;
   private unsubscribeSaveCompleted?: () => void;
   private unsubscribeSkillPointsChanged?: () => void;
+  private unsubscribeConsumableUsed?: () => void;
+  private unsubscribeAutoPotionSettingsChanged?: () => void;
   private unsubscribeHotbarChanged?: () => void;
   private unsubscribeHotbarUsed?: () => void;
   private unsubscribeStatusEffectsChanged?: () => void;
@@ -153,6 +161,8 @@ export class UIScene extends Phaser.Scene {
       this.unsubscribeMapChanged?.();
       this.unsubscribeSaveCompleted?.();
       this.unsubscribeSkillPointsChanged?.();
+      this.unsubscribeConsumableUsed?.();
+      this.unsubscribeAutoPotionSettingsChanged?.();
       this.unsubscribeHotbarChanged?.();
       this.unsubscribeHotbarUsed?.();
       this.unsubscribeStatusEffectsChanged?.();
@@ -300,6 +310,21 @@ export class UIScene extends Phaser.Scene {
       this.refreshOpenPanel();
     });
 
+    this.unsubscribeConsumableUsed = eventBus.on("consumableUsed", (result) => {
+      this.game.canvas.dataset.lastConsumableUse = result.success
+        ? `${result.itemId}:success:hp:${result.restoredHp}:sp:${result.restoredSp}:status:${result.appliedStatusEffectIds.join(",")}`
+        : `${result.itemId}:failed:${result.reason}`;
+      this.game.canvas.dataset.lastConsumableAutomatic = String(result.automatic);
+      this.game.canvas.dataset.consumableCooldowns = getConsumableCooldownSummary(state);
+      this.syncVitalsDataset(state);
+      this.refreshOpenPanel();
+    });
+
+    this.unsubscribeAutoPotionSettingsChanged = eventBus.on("autoPotionSettingsChanged", ({ hpThresholdPercent, spThresholdPercent }) => {
+      this.game.canvas.dataset.autoPotionSettings = `hp:${hpThresholdPercent}|sp:${spThresholdPercent}`;
+      this.refreshOpenPanel();
+    });
+
     this.unsubscribeHotbarChanged = eventBus.on("hotbarChanged", ({ hotbar }) => {
       this.game.canvas.dataset.hotbarAssignments = hotbar.map((entry) => `${entry.slot}:${entry.type}:${entry.id}`).join("|");
       this.refreshOpenPanel();
@@ -316,6 +341,7 @@ export class UIScene extends Phaser.Scene {
 
       if (targetKind === "player") {
         this.game.canvas.dataset.playerStatusEffects = summary;
+        this.game.canvas.dataset.playerStatusEffectIcons = this.getPlayerStatusIcons(state, dataRegistry);
         this.statusText?.setText(this.getPlayerStatusText(state, dataRegistry));
         this.syncDerivedStatsDataset(state, dataRegistry);
         this.refreshCombatText(state, dataRegistry);
@@ -361,6 +387,9 @@ export class UIScene extends Phaser.Scene {
       state.character.statusEffects,
       (id) => dataRegistry.getStatusEffect(id),
     );
+    this.game.canvas.dataset.playerStatusEffectIcons = this.getPlayerStatusIcons(state, dataRegistry);
+    this.game.canvas.dataset.consumableCooldowns = getConsumableCooldownSummary(state);
+    this.game.canvas.dataset.autoPotionSettings = getAutoPotionSettingsSummary(state);
     this.xpBarFill.displayWidth = state.playerProfile.xp > 0 ? 1 : 0;
   }
 
@@ -418,6 +447,12 @@ export class UIScene extends Phaser.Scene {
       .join(", ");
 
     return `Status ${names}`;
+  }
+
+  private getPlayerStatusIcons(state: GameState, dataRegistry: DataRegistry): string {
+    return state.character.statusEffects
+      .map((effect) => dataRegistry.getStatusEffect(effect.id).visualIcon)
+      .join("|");
   }
 
   private toggleInventoryPanel(): void {
@@ -762,10 +797,15 @@ export class UIScene extends Phaser.Scene {
       this.addPanelText(x + 104, y, String(value), 13, "#f8fafc");
     });
 
+    this.addPanelText(84, 420, `Auto HP ${state.character.consumables.autoPotion.hpThresholdPercent}%`, 13, "#fca5a5");
+    this.addPanelText(204, 420, `Auto SP ${state.character.consumables.autoPotion.spThresholdPercent}%`, 13, "#93c5fd");
+    this.addPanelButton(84, 440, 92, 28, "HP Auto", () => this.cycleAutoPotion("hp"));
+    this.addPanelButton(188, 440, 92, 28, "SP Auto", () => this.cycleAutoPotion("sp"));
     this.addPanelButton(84, 468, 120, 34, "Confirm", () => this.confirmStats());
     this.addPanelButton(216, 468, 120, 34, "Reset", () => this.requestStatReset());
     this.addPanelButton(348, 468, 86, 34, "Close", () => this.closePanel());
-    this.game.canvas.dataset.characterPanelButtons = "Confirm|Reset|Close";
+    this.game.canvas.dataset.characterPanelButtons = "HP Auto|SP Auto|Confirm|Reset|Close";
+    this.game.canvas.dataset.autoPotionSettings = getAutoPotionSettingsSummary(state);
   }
 
   private renderComparisonFrame(): void {
@@ -845,6 +885,18 @@ export class UIScene extends Phaser.Scene {
         (id) => this.dataRegistry!.getItem(id),
       );
       this.game.canvas.dataset.lastInventoryAction = equipped ? `equip:${item.id}` : `equip-failed:${item.id}`;
+      return;
+    }
+
+    if (item.type === "consumable") {
+      const result = useConsumableItem(
+        this.state,
+        item,
+        (id) => this.dataRegistry!.getStatusEffect(id),
+      );
+      this.game.canvas.dataset.lastInventoryAction = result.success
+        ? `use:${item.id}`
+        : `use-failed:${item.id}:${result.reason}`;
       return;
     }
 
@@ -1128,6 +1180,9 @@ export class UIScene extends Phaser.Scene {
     this.game.canvas.dataset.playerStatPoints = String(state.playerProfile.statPoints);
     this.game.canvas.dataset.playerSkillPoints = String(state.playerProfile.skillPoints);
     this.game.canvas.dataset.playerClass = playerClass.id;
+    this.game.canvas.dataset.consumableCooldowns = getConsumableCooldownSummary(state);
+    this.game.canvas.dataset.autoPotionSettings = getAutoPotionSettingsSummary(state);
+    this.game.canvas.dataset.playerStatusEffectIcons = this.getPlayerStatusIcons(state, dataRegistry);
     this.syncAdvancedClassDataset(state, dataRegistry);
     this.game.canvas.dataset.inventoryItem = firstInventoryItem?.id ?? "";
     this.game.canvas.dataset.inventoryItemName = firstInventoryItem?.name ?? "";
@@ -1265,6 +1320,17 @@ export class UIScene extends Phaser.Scene {
         gold: this.state.inventory.gold,
       });
     }
+  }
+
+  private cycleAutoPotion(kind: "hp" | "sp"): void {
+    if (!this.state) {
+      return;
+    }
+
+    const threshold = cycleAutoPotionThreshold(this.state, kind);
+    this.game.canvas.dataset.lastAutoPotionSetting = `${kind}:${threshold}`;
+    this.game.canvas.dataset.autoPotionSettings = getAutoPotionSettingsSummary(this.state);
+    this.refreshOpenPanel();
   }
 
   private levelSelectedSkill(): void {

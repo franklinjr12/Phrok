@@ -1,4 +1,5 @@
 import type { ActiveStatusEffect, BaseStatKey, DerivedStats, HotbarSlotState, InventoryState } from "../types/gameState";
+import type { ConsumableUseResult } from "./consumables";
 
 export interface GameEventMap {
   playerHealthChanged: { hp: number; maxHp: number };
@@ -22,6 +23,8 @@ export interface GameEventMap {
   statResetFailed: { reason: "insufficient-gold" | "no-allocated-stats"; cost: number; gold: number };
   skillUsed: { skillId: string; actorId: string };
   skillPointsChanged: { skillId: string; skillLevel: number; skillPoints: number };
+  consumableUsed: ConsumableUseResult;
+  autoPotionSettingsChanged: { hpThresholdPercent: number; spThresholdPercent: number };
   hotbarChanged: { hotbar: HotbarSlotState[] };
   hotbarUsed: { slot: number; type: "skill" | "item"; id: string; success: boolean };
   hotbarActionRequested: { slot: number };

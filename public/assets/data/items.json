@@ -10,7 +10,13 @@
     "value": 4,
     "allowedClassIds": [],
     "twoHanded": false,
-    "statModifiers": {}
+    "statModifiers": {},
+    "consumableEffect": {
+      "restoreHp": 32,
+      "cooldownMs": 8000,
+      "statusEffectIds": [],
+      "persistThroughMapTransition": false
+    }
   },
   {
     "id": "material-crownfield-thread-1",
@@ -380,7 +386,13 @@
     "value": 6,
     "allowedClassIds": [],
     "twoHanded": false,
-    "statModifiers": {}
+    "statModifiers": {},
+    "consumableEffect": {
+      "restoreSp": 19,
+      "cooldownMs": 8000,
+      "statusEffectIds": [],
+      "persistThroughMapTransition": false
+    }
   },
   {
     "id": "sewer-moss",
@@ -561,7 +573,14 @@
     "value": 9,
     "allowedClassIds": [],
     "twoHanded": false,
-    "statModifiers": {}
+    "statModifiers": {},
+    "consumableEffect": {
+      "cooldownMs": 14000,
+      "statusEffectIds": [
+        "consumable-guarded"
+      ],
+      "persistThroughMapTransition": false
+    }
   },
   {
     "id": "material-amber-dunes-thread-4",
@@ -633,7 +652,13 @@
     "icon": "placeholder-consumable-minor-health-potion",
     "allowedClassIds": [],
     "twoHanded": false,
-    "statModifiers": {}
+    "statModifiers": {},
+    "consumableEffect": {
+      "restoreHp": 35,
+      "cooldownMs": 8000,
+      "statusEffectIds": [],
+      "persistThroughMapTransition": false
+    }
   },
   {
     "id": "sigil-flame-sigil-1",
@@ -795,7 +820,14 @@
     "value": 12,
     "allowedClassIds": [],
     "twoHanded": false,
-    "statModifiers": {}
+    "statModifiers": {},
+    "consumableEffect": {
+      "cooldownMs": 14000,
+      "statusEffectIds": [
+        "consumable-fleet"
+      ],
+      "persistThroughMapTransition": true
+    }
   },
   {
     "id": "sigil-tide-sigil-1",
@@ -1120,7 +1152,14 @@
     "value": 15,
     "allowedClassIds": [],
     "twoHanded": false,
-    "statModifiers": {}
+    "statModifiers": {},
+    "consumableEffect": {
+      "cooldownMs": 14000,
+      "statusEffectIds": [
+        "consumable-focused"
+      ],
+      "persistThroughMapTransition": true
+    }
   },
   {
     "id": "material-starfall-thread-7",
@@ -1396,7 +1435,13 @@
     "value": 18,
     "allowedClassIds": [],
     "twoHanded": false,
-    "statModifiers": {}
+    "statModifiers": {},
+    "consumableEffect": {
+      "restoreHp": 65,
+      "cooldownMs": 8000,
+      "statusEffectIds": [],
+      "persistThroughMapTransition": false
+    }
   },
   {
     "id": "support-forager-support-charm-1",
@@ -1643,7 +1688,13 @@
     "value": 24,
     "allowedClassIds": [],
     "twoHanded": false,
-    "statModifiers": {}
+    "statModifiers": {},
+    "consumableEffect": {
+      "restoreSp": 39,
+      "cooldownMs": 8000,
+      "statusEffectIds": [],
+      "persistThroughMapTransition": false
+    }
   },
   {
     "id": "material-mossvale-stone-10",
@@ -2010,7 +2061,14 @@
     "value": 27,
     "allowedClassIds": [],
     "twoHanded": false,
-    "statModifiers": {}
+    "statModifiers": {},
+    "consumableEffect": {
+      "cooldownMs": 14000,
+      "statusEffectIds": [
+        "consumable-guarded"
+      ],
+      "persistThroughMapTransition": false
+    }
   },
   {
     "id": "salt-pearl",
@@ -2129,7 +2187,14 @@
     "value": 30,
     "allowedClassIds": [],
     "twoHanded": false,
-    "statModifiers": {}
+    "statModifiers": {},
+    "consumableEffect": {
+      "cooldownMs": 14000,
+      "statusEffectIds": [
+        "consumable-fleet"
+      ],
+      "persistThroughMapTransition": true
+    }
   },
   {
     "id": "goblin-rivet",
@@ -2611,7 +2676,14 @@
     "value": 33,
     "allowedClassIds": [],
     "twoHanded": false,
-    "statModifiers": {}
+    "statModifiers": {},
+    "consumableEffect": {
+      "cooldownMs": 14000,
+      "statusEffectIds": [
+        "consumable-focused"
+      ],
+      "persistThroughMapTransition": true
+    }
   },
   {
     "id": "ember-coal",
@@ -2771,7 +2843,13 @@
     "value": 36,
     "allowedClassIds": [],
     "twoHanded": false,
-    "statModifiers": {}
+    "statModifiers": {},
+    "consumableEffect": {
+      "restoreHp": 106,
+      "cooldownMs": 8000,
+      "statusEffectIds": [],
+      "persistThroughMapTransition": false
+    }
   },
   {
     "id": "ironroot-ore",
@@ -3122,7 +3200,13 @@
     "value": 39,
     "allowedClassIds": [],
     "twoHanded": false,
-    "statModifiers": {}
+    "statModifiers": {},
+    "consumableEffect": {
+      "restoreSp": 56,
+      "cooldownMs": 8000,
+      "statusEffectIds": [],
+      "persistThroughMapTransition": false
+    }
   },
   {
     "id": "glutton-gland",
@@ -3401,7 +3485,14 @@
     "value": 45,
     "allowedClassIds": [],
     "twoHanded": false,
-    "statModifiers": {}
+    "statModifiers": {},
+    "consumableEffect": {
+      "cooldownMs": 14000,
+      "statusEffectIds": [
+        "consumable-guarded"
+      ],
+      "persistThroughMapTransition": false
+    }
   },
   {
     "id": "material-blueharbor-resin-19",
@@ -3665,7 +3756,14 @@
     "value": 48,
     "allowedClassIds": [],
     "twoHanded": false,
-    "statModifiers": {}
+    "statModifiers": {},
+    "consumableEffect": {
+      "cooldownMs": 14000,
+      "statusEffectIds": [
+        "consumable-fleet"
+      ],
+      "persistThroughMapTransition": true
+    }
   },
   {
     "id": "sigil-tide-sigil-4",
@@ -3895,7 +3993,14 @@
     "value": 51,
     "allowedClassIds": [],
     "twoHanded": false,
-    "statModifiers": {}
+    "statModifiers": {},
+    "consumableEffect": {
+      "cooldownMs": 14000,
+      "statusEffectIds": [
+        "consumable-focused"
+      ],
+      "persistThroughMapTransition": true
+    }
   },
   {
     "id": "grave-silk",
@@ -4215,7 +4320,13 @@
     "value": 54,
     "allowedClassIds": [],
     "twoHanded": false,
-    "statModifiers": {}
+    "statModifiers": {},
+    "consumableEffect": {
+      "restoreHp": 149,
+      "cooldownMs": 8000,
+      "statusEffectIds": [],
+      "persistThroughMapTransition": false
+    }
   },
   {
     "id": "support-forager-support-charm-4",
@@ -4371,7 +4482,13 @@
     "value": 57,
     "allowedClassIds": [],
     "twoHanded": false,
-    "statModifiers": {}
+    "statModifiers": {},
+    "consumableEffect": {
+      "restoreSp": 76,
+      "cooldownMs": 8000,
+      "statusEffectIds": [],
+      "persistThroughMapTransition": false
+    }
   },
   {
     "id": "curse-bell-clapper",
@@ -4734,7 +4851,14 @@
     "value": 62,
     "allowedClassIds": [],
     "twoHanded": false,
-    "statModifiers": {}
+    "statModifiers": {},
+    "consumableEffect": {
+      "cooldownMs": 14000,
+      "statusEffectIds": [
+        "consumable-guarded"
+      ],
+      "persistThroughMapTransition": false
+    }
   },
   {
     "id": "sigil-grave-sigil-5",
@@ -4921,7 +5045,14 @@
     "value": 65,
     "allowedClassIds": [],
     "twoHanded": false,
-    "statModifiers": {}
+    "statModifiers": {},
+    "consumableEffect": {
+      "cooldownMs": 14000,
+      "statusEffectIds": [
+        "consumable-fleet"
+      ],
+      "persistThroughMapTransition": true
+    }
   },
   {
     "id": "material-amber-dunes-scale-28",
@@ -5199,7 +5330,14 @@
     "value": 68,
     "allowedClassIds": [],
     "twoHanded": false,
-    "statModifiers": {}
+    "statModifiers": {},
+    "consumableEffect": {
+      "cooldownMs": 14000,
+      "statusEffectIds": [
+        "consumable-focused"
+      ],
+      "persistThroughMapTransition": true
+    }
   },
   {
     "id": "sigil-flame-sigil-6",
@@ -5499,7 +5637,13 @@
     "value": 71,
     "allowedClassIds": [],
     "twoHanded": false,
-    "statModifiers": {}
+    "statModifiers": {},
+    "consumableEffect": {
+      "restoreHp": 194,
+      "cooldownMs": 8000,
+      "statusEffectIds": [],
+      "persistThroughMapTransition": false
+    }
   },
   {
     "id": "material-starfall-scale-31",
@@ -5731,7 +5875,13 @@
     "value": 74,
     "allowedClassIds": [],
     "twoHanded": false,
-    "statModifiers": {}
+    "statModifiers": {},
+    "consumableEffect": {
+      "restoreSp": 98,
+      "cooldownMs": 8000,
+      "statusEffectIds": [],
+      "persistThroughMapTransition": false
+    }
   },
   {
     "id": "star-iron",
@@ -5933,7 +6083,14 @@
     "value": 77,
     "allowedClassIds": [],
     "twoHanded": false,
-    "statModifiers": {}
+    "statModifiers": {},
+    "consumableEffect": {
+      "cooldownMs": 14000,
+      "statusEffectIds": [
+        "consumable-guarded"
+      ],
+      "persistThroughMapTransition": false
+    }
   },
   {
     "id": "deep-ore-cluster",
@@ -6306,7 +6463,14 @@
     "value": 83,
     "allowedClassIds": [],
     "twoHanded": false,
-    "statModifiers": {}
+    "statModifiers": {},
+    "consumableEffect": {
+      "cooldownMs": 14000,
+      "statusEffectIds": [
+        "consumable-fleet"
+      ],
+      "persistThroughMapTransition": true
+    }
   },
   {
     "id": "sigil-tide-sigil-7",
@@ -6380,7 +6544,14 @@
     "value": 86,
     "allowedClassIds": [],
     "twoHanded": false,
-    "statModifiers": {}
+    "statModifiers": {},
+    "consumableEffect": {
+      "cooldownMs": 14000,
+      "statusEffectIds": [
+        "consumable-focused"
+      ],
+      "persistThroughMapTransition": true
+    }
   },
   {
     "id": "material-ironroot-filament-37",
@@ -6815,7 +6986,13 @@
     "value": 89,
     "allowedClassIds": [],
     "twoHanded": false,
-    "statModifiers": {}
+    "statModifiers": {},
+    "consumableEffect": {
+      "restoreHp": 243,
+      "cooldownMs": 8000,
+      "statusEffectIds": [],
+      "persistThroughMapTransition": false
+    }
   },
   {
     "id": "support-forager-support-charm-7",
@@ -6968,7 +7145,13 @@
     "value": 92,
     "allowedClassIds": [],
     "twoHanded": false,
-    "statModifiers": {}
+    "statModifiers": {},
+    "consumableEffect": {
+      "restoreSp": 120,
+      "cooldownMs": 8000,
+      "statusEffectIds": [],
+      "persistThroughMapTransition": false
+    }
   },
   {
     "id": "material-observatory-filament-40",
@@ -7249,7 +7432,14 @@
     "value": 95,
     "allowedClassIds": [],
     "twoHanded": false,
-    "statModifiers": {}
+    "statModifiers": {},
+    "consumableEffect": {
+      "cooldownMs": 14000,
+      "statusEffectIds": [
+        "consumable-guarded"
+      ],
+      "persistThroughMapTransition": false
+    }
   },
   {
     "id": "sigil-grave-sigil-8",
@@ -7549,7 +7739,14 @@
     "value": 98,
     "allowedClassIds": [],
     "twoHanded": false,
-    "statModifiers": {}
+    "statModifiers": {},
+    "consumableEffect": {
+      "cooldownMs": 14000,
+      "statusEffectIds": [
+        "consumable-fleet"
+      ],
+      "persistThroughMapTransition": true
+    }
   },
   {
     "id": "material-blueharbor-cog-43",
@@ -7721,7 +7918,14 @@
     "value": 104,
     "allowedClassIds": [],
     "twoHanded": false,
-    "statModifiers": {}
+    "statModifiers": {},
+    "consumableEffect": {
+      "cooldownMs": 14000,
+      "statusEffectIds": [
+        "consumable-focused"
+      ],
+      "persistThroughMapTransition": true
+    }
   },
   {
     "id": "material-ironroot-cog-45",

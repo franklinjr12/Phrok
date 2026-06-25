@@ -18,6 +18,16 @@ const validFiles: Record<string, unknown[]> = {
   "items.json": [
     { id: "training-sword", name: "Training Sword", type: "weapon", rarity: "Uncommon", weaponType: "sword" },
     { id: "jelly-gel", name: "Jelly Gel", type: "material" },
+    {
+      id: "minor-health-potion",
+      name: "Minor Health Potion",
+      type: "consumable",
+      consumableEffect: {
+        restoreHp: 35,
+        cooldownMs: 8000,
+        statusEffectIds: [],
+      },
+    },
   ],
   "monsters.json": [{ id: "green-jelly", name: "Green Jelly", hp: 10, attack: 2, dropTableId: "green-jelly-drops" }],
   "regions.json": [
@@ -139,13 +149,20 @@ describe("loadDataRegistry", () => {
       icon: "power-slash",
     });
     expect(registry.getSkillsByClass("swordsman").map((skill) => skill.id)).toEqual(["power-slash"]);
-    expect(registry.getItems().map((entry) => entry.id)).toEqual(["training-sword", "jelly-gel"]);
+    expect(registry.getItems().map((entry) => entry.id)).toEqual(["training-sword", "jelly-gel", "minor-health-potion"]);
     expect(registry.getItem("training-sword")).toMatchObject({
       value: 0,
       rarity: "Uncommon",
       icon: "placeholder-training-sword",
       validEquipmentSlots: ["weapon"],
       weaponType: "sword",
+    });
+    expect(registry.getItem("minor-health-potion").consumableEffect).toEqual({
+      restoreHp: 35,
+      restoreSp: undefined,
+      cooldownMs: 8000,
+      statusEffectIds: [],
+      persistThroughMapTransition: false,
     });
     expect(registry.getMonster("green-jelly")).toMatchObject({
       dropTableId: "green-jelly-drops",

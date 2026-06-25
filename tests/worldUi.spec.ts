@@ -36,8 +36,12 @@ test("world ui hotkeys show inventory, equipment, comparison, and block gameplay
   await page.keyboard.press("KeyC");
   await expect(canvas).toHaveAttribute("data-ui-panel", "character");
   await expect(canvas).toHaveAttribute("data-character-panel", "visible");
-  await expect(canvas).toHaveAttribute("data-character-panel-buttons", "Confirm|Reset|Close");
+  await expect(canvas).toHaveAttribute("data-character-panel-buttons", "HP Auto|SP Auto|Confirm|Reset|Close");
   await expect(canvas).toHaveAttribute("data-stat-allocation-points", "0");
+  await expect(canvas).toHaveAttribute("data-auto-potion-settings", "hp:0|sp:0");
+  await canvas.click({ position: { x: 126, y: 454 } });
+  await expect(canvas).toHaveAttribute("data-last-auto-potion-setting", "hp:25");
+  await expect(canvas).toHaveAttribute("data-auto-potion-settings", "hp:25|sp:0");
 
   await page.keyboard.press("KeyP");
   await expect(canvas).toHaveAttribute("data-ui-panel", "equipment");

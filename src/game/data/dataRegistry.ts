@@ -397,6 +397,7 @@ function validateItem(source: Record<string, unknown>, fileName: string): ItemDe
     allowedClassIds: optionalStringArray(source, "allowedClassIds"),
     twoHanded: Boolean(source.twoHanded),
     statModifiers: normalizeItemModifier(source.statModifiers),
+    consumableEffect: normalizeConsumableEffect(source.consumableEffect),
     value: optionalNumber(source, "value", 0),
   };
 }
@@ -488,6 +489,28 @@ function normalizeItemModifier(rawModifier: unknown): ItemStatModifiers {
     raceDamage: optionalNumberRecord(rawModifier.raceDamage),
     resistances: optionalNumberRecord(rawModifier.resistances),
   };
+}
+
+function normalizeConsumableEffect(rawEffect: unknown): ItemDefinition["consumableEffect"] {
+  if (!isRecord(rawEffect)) {
+    return undefined;
+  }
+
+  return {
+    restoreHp: optionalPositiveNumber(rawEffect, "restoreHp"),
+    restoreSp: optionalPositiveNumber(rawEffect, "restoreSp"),
+    cooldownMs: Math.max(0, optionalNumber(rawEffect, "cooldownMs", 0)),
+    statusEffectIds: optionalStringArray(rawEffect, "statusEffectIds"),
+    persistThroughMapTransition: Boolean(rawEffect.persistThroughMapTransition),
+  };
+}
+
+function optionalPositiveNumber(source: Record<string, unknown>, key: string): number | undefined {
+  const value = source[key];
+
+  return typeof value === "number" && Number.isFinite(value)
+    ? Math.max(0, value)
+    : undefined;
 }
 
 function validateMonster(source: Record<string, unknown>, fileName: string): MonsterDefinition {

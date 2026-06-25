@@ -44,6 +44,13 @@ export function createNewGameState(): GameState {
       skillIds: ["power-slash"],
       skills: createInitialSkillState(["power-slash"]),
       hotbar: createInitialHotbar(["power-slash"]),
+      consumables: {
+        cooldowns: {},
+        autoPotion: {
+          hpThresholdPercent: 0,
+          spThresholdPercent: 0,
+        },
+      },
     },
     inventory: {
       items: [{ id: "training-sword", quantity: 1 }],
@@ -96,6 +103,13 @@ export function createCharacterGameState(name: string, playerClass: ClassDefinit
   state.character.skillIds = [...playerClass.startingSkillIds];
   state.character.skills = createInitialSkillState(playerClass.startingSkillIds);
   state.character.hotbar = createInitialHotbar(playerClass.startingSkillIds);
+  state.character.consumables = {
+    cooldowns: {},
+    autoPotion: {
+      hpThresholdPercent: 0,
+      spThresholdPercent: 0,
+    },
+  };
   state.inventory.items = startingItemIds.map((id) => ({ id, quantity: 1 }));
   state.inventory.gold = state.playerProfile.gold;
   state.inventory.equipmentInstances = [];

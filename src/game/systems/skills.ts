@@ -1,5 +1,5 @@
 import { eventBus } from "./eventBus";
-import { removeInventoryItem } from "./inventory";
+import { useConsumableItem } from "./consumables";
 import { applyStatusEffect, emitStatusEffectsChanged } from "./statusEffects";
 import type { SkillDefinition, ItemDefinition, StatusEffectDefinition } from "../types/dataDefinitions";
 import type { BaseStatKey, GameState, HotbarSlotState, StatModifier } from "../types/gameState";
@@ -140,17 +140,11 @@ export function useHotbarSlot(
 
   if (action.type === "item") {
     const item = getItem(action.id);
-    const used = removeInventoryItem(state.inventory, item.id, 1);
+    const result = getStatusEffect
+      ? useConsumableItem(state, item, getStatusEffect)
+      : { success: false };
 
-    if (used && item.type === "consumable") {
-      state.character.stats.hp = Math.min(state.character.stats.maxHp, state.character.stats.hp + 25);
-      eventBus.emit("playerHealthChanged", {
-        hp: state.character.stats.hp,
-        maxHp: state.character.stats.maxHp,
-      });
-    }
-
-    eventBus.emit("hotbarUsed", { slot, type: action.type, id: action.id, success: used });
+    eventBus.emit("hotbarUsed", { slot, type: action.type, id: action.id, success: result.success });
     return null;
   }
 

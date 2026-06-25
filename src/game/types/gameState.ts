@@ -52,6 +52,8 @@ export interface StatModifier {
 export interface ActiveStatusEffect {
   id: string;
   sourceId: string;
+  sourceKind?: "skill" | "item" | "enemy" | "unknown";
+  persistThroughMapTransition?: boolean;
   stacks: number;
   appliedAt: number;
   expiresAt: number;
@@ -77,6 +79,16 @@ export interface SkillState {
   activeToggleIds: string[];
 }
 
+export interface AutoPotionSettings {
+  hpThresholdPercent: number;
+  spThresholdPercent: number;
+}
+
+export interface ConsumableState {
+  cooldowns: Record<string, number>;
+  autoPotion: AutoPotionSettings;
+}
+
 export interface CharacterData {
   id: string;
   archetype: string;
@@ -89,6 +101,7 @@ export interface CharacterData {
   skillIds: string[];
   skills: SkillState;
   hotbar: HotbarSlotState[];
+  consumables: ConsumableState;
 }
 
 export interface AdvancedClassState {

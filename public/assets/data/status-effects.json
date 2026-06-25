@@ -188,5 +188,44 @@
     "statModifiers": { "derivedStats": { "defense": 5 } },
     "visualIcon": "icon-status-guarded",
     "dispelRules": { "dispellable": true, "categories": ["boon"] }
+  },
+  {
+    "id": "consumable-guarded",
+    "name": "Guard Tonic",
+    "description": "Defense and magic defense are temporarily improved by a tonic.",
+    "type": "buff",
+    "duration": 30000,
+    "tickInterval": 1000,
+    "stackBehavior": "refresh",
+    "maxStacks": 1,
+    "statModifiers": { "derivedStats": { "defense": 6, "magicDefense": 4 } },
+    "visualIcon": "icon-consumable-guard",
+    "dispelRules": { "dispellable": true, "categories": ["boon", "consumable"] }
+  },
+  {
+    "id": "consumable-fleet",
+    "name": "Fleet Tonic",
+    "description": "Movement and attack speed are temporarily improved by a tonic.",
+    "type": "buff",
+    "duration": 45000,
+    "tickInterval": 1000,
+    "stackBehavior": "refresh",
+    "maxStacks": 1,
+    "statModifiers": { "derivedStats": { "moveSpeed": 18, "attackSpeed": 10 } },
+    "visualIcon": "icon-consumable-fleet",
+    "dispelRules": { "dispellable": true, "categories": ["boon", "consumable"] }
+  },
+  {
+    "id": "consumable-focused",
+    "name": "Focus Tea",
+    "description": "Magic attack and cast speed are temporarily improved by tea.",
+    "type": "buff",
+    "duration": 45000,
+    "tickInterval": 1000,
+    "stackBehavior": "refresh",
+    "maxStacks": 1,
+    "statModifiers": { "derivedStats": { "magicAttack": 8, "castSpeed": 10 } },
+    "visualIcon": "icon-consumable-focus",
+    "dispelRules": { "dispellable": true, "categories": ["boon", "consumable"] }
   }
 ]

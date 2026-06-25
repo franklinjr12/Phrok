@@ -2,6 +2,7 @@ import type { SaveData } from "../types/saveData";
 import type { GameState } from "../types/gameState";
 import { createNewGameState } from "../data/gameState";
 import { baseStatKeys, createEmptyBaseStats } from "./stats";
+import { createInitialConsumableState } from "./consumables";
 import { createInitialHotbar, createInitialSkillState, hotbarSlotCount } from "./skills";
 
 export const autosaveStorageKey = "prok-autosave";
@@ -179,6 +180,7 @@ function normalizeCharacter(rawCharacter: unknown, fallback: GameState["characte
     skillIds: stringArray(source.skillIds, fallback.skillIds),
     skills: normalizeSkillState(source.skills, fallback.skills, stringArray(source.skillIds, fallback.skillIds)),
     hotbar: normalizeHotbar(source.hotbar, fallback.hotbar, stringArray(source.skillIds, fallback.skillIds)),
+    consumables: normalizeConsumableState(source.consumables, fallback.consumables),
   };
 }
 
@@ -211,11 +213,15 @@ function normalizeStatusEffects(rawStatusEffects: unknown, fallback: GameState["
   return source
     .filter(isRecord)
     .map((effect) => ({
-      id: stringValue(effect.id, ""),
-      sourceId: stringValue(effect.sourceId, "unknown"),
-      stacks: Math.max(1, numberValue(effect.stacks, 1)),
-      appliedAt: numberValue(effect.appliedAt, 0),
-      expiresAt: numberValue(effect.expiresAt, 0),
+        id: stringValue(effect.id, ""),
+        sourceId: stringValue(effect.sourceId, "unknown"),
+        sourceKind: normalizeStatusSourceKind(effect.sourceKind),
+        persistThroughMapTransition: typeof effect.persistThroughMapTransition === "boolean"
+          ? effect.persistThroughMapTransition
+          : undefined,
+        stacks: Math.max(1, numberValue(effect.stacks, 1)),
+        appliedAt: numberValue(effect.appliedAt, 0),
+        expiresAt: numberValue(effect.expiresAt, 0),
       nextTickAt: numberValue(effect.nextTickAt, 0),
     }))
     .filter((effect) => effect.id.length > 0 && effect.expiresAt > 0);
@@ -238,6 +244,23 @@ function normalizeSkillState(rawSkillState: unknown, fallback: GameState["charac
     learned: learned.length > 0 ? learned : createInitialSkillState(skillIds).learned,
     cooldowns: normalizeNumberRecord(source.cooldowns),
     activeToggleIds: stringArray(source.activeToggleIds, defaultState.activeToggleIds),
+  };
+}
+
+function normalizeConsumableState(
+  rawConsumables: unknown,
+  fallback: GameState["character"]["consumables"],
+): GameState["character"]["consumables"] {
+  const source = isRecord(rawConsumables) ? rawConsumables : {};
+  const defaultState = fallback ?? createInitialConsumableState();
+  const rawAutoPotion = isRecord(source.autoPotion) ? source.autoPotion : {};
+
+  return {
+    cooldowns: normalizeNumberRecord(source.cooldowns),
+    autoPotion: {
+      hpThresholdPercent: normalizeThreshold(rawAutoPotion.hpThresholdPercent, defaultState.autoPotion.hpThresholdPercent),
+      spThresholdPercent: normalizeThreshold(rawAutoPotion.spThresholdPercent, defaultState.autoPotion.spThresholdPercent),
+    },
   };
 }
 
@@ -358,6 +381,20 @@ function normalizeNumberRecord(rawRecord: unknown): Record<string, number> {
   return Object.fromEntries(
     Object.entries(source).filter((entry): entry is [string, number] => typeof entry[1] === "number" && Number.isFinite(entry[1])),
   );
+}
+
+function normalizeThreshold(value: unknown, fallback: number): number {
+  if (typeof value !== "number" || !Number.isFinite(value)) {
+    return fallback;
+  }
+
+  return Math.max(0, Math.min(100, Math.round(value)));
+}
+
+function normalizeStatusSourceKind(value: unknown): GameState["character"]["statusEffects"][number]["sourceKind"] {
+  return value === "skill" || value === "item" || value === "enemy" || value === "unknown"
+    ? value
+    : undefined;
 }
 
 function normalizeRecord<T extends Record<string, unknown>>(rawRecord: unknown, fallback: T): T {

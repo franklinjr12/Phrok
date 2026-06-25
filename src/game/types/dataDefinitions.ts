@@ -76,6 +76,7 @@ export interface ItemDefinition {
   allowedClassIds?: string[];
   twoHanded?: boolean;
   statModifiers?: ItemStatModifiers;
+  consumableEffect?: ConsumableEffectDefinition;
   value: number;
 }
 
@@ -87,6 +88,14 @@ export interface ItemStatModifiers {
   elementDamage?: Record<string, number>;
   raceDamage?: Record<string, number>;
   resistances?: Record<string, number>;
+}
+
+export interface ConsumableEffectDefinition {
+  restoreHp?: number;
+  restoreSp?: number;
+  cooldownMs: number;
+  statusEffectIds: string[];
+  persistThroughMapTransition: boolean;
 }
 
 export interface MonsterDefinition {

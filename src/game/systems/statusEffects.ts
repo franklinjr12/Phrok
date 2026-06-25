@@ -10,11 +10,17 @@ export interface StatusEffectTickResult {
   tickedIds: string[];
 }
 
+export interface StatusEffectApplicationOptions {
+  sourceKind?: ActiveStatusEffect["sourceKind"];
+  persistThroughMapTransition?: boolean;
+}
+
 export function applyStatusEffect(
   activeEffects: ActiveStatusEffect[],
   definition: StatusEffectDefinition,
   sourceId: string,
   now = Date.now(),
+  options: StatusEffectApplicationOptions = {},
 ): ActiveStatusEffect[] {
   const existing = activeEffects.find((effect) => effect.id === definition.id);
   const duration = Math.max(0, definition.duration);
@@ -32,6 +38,8 @@ export function applyStatusEffect(
     }
 
     existing.sourceId = sourceId;
+    existing.sourceKind = options.sourceKind ?? existing.sourceKind;
+    existing.persistThroughMapTransition = options.persistThroughMapTransition ?? existing.persistThroughMapTransition;
     existing.appliedAt = now;
     existing.expiresAt = now + duration;
     existing.nextTickAt = nextTickAt;
@@ -41,6 +49,8 @@ export function applyStatusEffect(
   activeEffects.push({
     id: definition.id,
     sourceId,
+    sourceKind: options.sourceKind,
+    persistThroughMapTransition: options.persistThroughMapTransition,
     stacks: 1,
     appliedAt: now,
     expiresAt: now + duration,

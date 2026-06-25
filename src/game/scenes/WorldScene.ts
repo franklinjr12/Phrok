@@ -16,6 +16,12 @@ import { generateLootDrops, type LootDrop } from "../systems/lootDrops";
 import { awardXp, getLevelXpThreshold } from "../systems/progression";
 import { autosaveSlot, writeAutosave, writeSaveSlot } from "../systems/autosave";
 import { getAdvancedClassOptionsForBase, isAdvancedClassServiceAvailable } from "../systems/advancedClasses";
+import {
+  getAutoPotionSettingsSummary,
+  getConsumableCooldownSummary,
+  removeNonPersistentConsumableStatusEffects,
+  updateAutoPotion,
+} from "../systems/consumables";
 import { getEquipmentStats } from "../systems/equipment";
 import {
   decideEnemyAiIntent,
@@ -268,6 +274,9 @@ export class WorldScene extends Phaser.Scene {
     this.game.canvas.dataset.lastCombatFormula = "";
     this.game.canvas.dataset.lastSkillUse = "";
     this.game.canvas.dataset.skillCooldowns = "";
+    this.game.canvas.dataset.consumableCooldowns = getConsumableCooldownSummary(state);
+    this.game.canvas.dataset.autoPotionSettings = getAutoPotionSettingsSummary(state);
+    this.game.canvas.dataset.lastAutoPotionUse = "";
     this.game.canvas.dataset.lastXpGain = "";
     this.game.canvas.dataset.lastLevelUp = "";
     this.game.canvas.dataset.lastLootDrop = "";
@@ -348,6 +357,7 @@ export class WorldScene extends Phaser.Scene {
   update(_time: number, delta: number): void {
     if (this.state) {
       expireSkillBuffs(this.state);
+      this.updateAutoPotion();
       this.updatePlayerStatusEffects();
     }
     this.player?.update(delta);
@@ -703,6 +713,9 @@ export class WorldScene extends Phaser.Scene {
 
     if (!result) {
       this.game.canvas.dataset.lastSkillUse = `${slot}:item`;
+      this.game.canvas.dataset.consumableCooldowns = getConsumableCooldownSummary(this.state);
+      this.game.canvas.dataset.playerHp = `${this.state.character.stats.hp}/${this.state.character.stats.maxHp}`;
+      this.game.canvas.dataset.playerSp = `${this.state.character.stats.sp}/${this.state.character.stats.maxSp}`;
       this.syncPlayerDataset();
       return;
     }
@@ -772,6 +785,29 @@ export class WorldScene extends Phaser.Scene {
         this.syncEnemyDataset();
       },
     };
+  }
+
+  private updateAutoPotion(): void {
+    if (!this.state || !this.dataRegistry) {
+      return;
+    }
+
+    const result = updateAutoPotion(
+      this.state,
+      (id) => this.dataRegistry!.getItem(id),
+      (id) => this.dataRegistry!.getStatusEffect(id),
+    );
+
+    if (!result) {
+      return;
+    }
+
+    this.game.canvas.dataset.lastAutoPotionUse = result.success
+      ? `${result.itemId}:success:hp:${result.restoredHp}:sp:${result.restoredSp}`
+      : `${result.itemId}:failed:${result.reason}`;
+    this.game.canvas.dataset.consumableCooldowns = getConsumableCooldownSummary(this.state);
+    this.game.canvas.dataset.playerHp = `${this.state.character.stats.hp}/${this.state.character.stats.maxHp}`;
+    this.game.canvas.dataset.playerSp = `${this.state.character.stats.sp}/${this.state.character.stats.maxSp}`;
   }
 
   private updatePlayerStatusEffects(): void {
@@ -1404,6 +1440,10 @@ export class WorldScene extends Phaser.Scene {
     this.game.canvas.dataset.playerStatusEffects = this.dataRegistry && this.state
       ? getStatusSummary(this.state.character.statusEffects, (id) => this.dataRegistry!.getStatusEffect(id))
       : "";
+    if (this.state) {
+      this.game.canvas.dataset.consumableCooldowns = getConsumableCooldownSummary(this.state);
+      this.game.canvas.dataset.autoPotionSettings = getAutoPotionSettingsSummary(this.state);
+    }
   }
 
   private syncEnemyDataset(): void {
@@ -1581,11 +1621,13 @@ export class WorldScene extends Phaser.Scene {
     this.player.clearDestination();
     this.state.currentMapId = portal.targetMapId;
     this.state.position = { x: this.player.sprite.x, y: this.player.sprite.y };
+    const removedStatusIds = removeNonPersistentConsumableStatusEffects(this.state);
     const saveData = this.state.currentSaveSlot
       ? writeSaveSlot(this.state.currentSaveSlot, this.state)
       : writeAutosave(this.state);
     const savedSlot = this.state.currentSaveSlot ?? autosaveSlot;
     this.game.canvas.dataset.lastTransition = `${portal.name}:${portal.targetMapId}:${portal.targetSpawnName}`;
+    this.game.canvas.dataset.lastTransitionExpiredBuffs = removedStatusIds.join(",");
     this.game.canvas.dataset.lastAutosaveSlot = String(savedSlot);
     this.game.canvas.dataset.lastAutosaveMap = saveData.gameState.currentMapId;
     eventBus.emit("saveCompleted", { saveSlot: savedSlot });

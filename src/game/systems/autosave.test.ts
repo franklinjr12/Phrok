@@ -127,6 +127,13 @@ describe("autosave", () => {
             learned: [{ id: "fire-bolt", level: 2 }],
             cooldowns: { "fire-bolt": 123 },
           },
+          consumables: {
+            cooldowns: {},
+            autoPotion: {
+              hpThresholdPercent: 0,
+              spThresholdPercent: 0,
+            },
+          },
           advancedClass: {
             id: "elementalist",
             name: "Elementalist",
@@ -152,6 +159,9 @@ describe("autosave", () => {
     state.playerProfile.name = "Lyra";
     state.playerProfile.level = 3;
     state.playerProfile.xp = 225;
+    state.character.consumables.cooldowns["minor-health-potion"] = 12345;
+    state.character.consumables.autoPotion.hpThresholdPercent = 50;
+    state.character.consumables.autoPotion.spThresholdPercent = 25;
     state.inventory.items.push({ id: "jelly-gel", quantity: 2 });
     state.position = { x: 512, y: 300 };
     writeSaveSlot(2, state, storage);
@@ -172,8 +182,25 @@ describe("autosave", () => {
             { id: "jelly-gel", quantity: 2 },
           ],
         },
+        character: {
+          consumables: {
+            cooldowns: { "minor-health-potion": 12345 },
+            autoPotion: {
+              hpThresholdPercent: 50,
+              spThresholdPercent: 25,
+            },
+          },
+        },
       },
     });
-    expect(readSaveSlot(2, storage)?.gameState.playerProfile.name).toBe("Lyra");
+    const restored = readSaveSlot(2, storage)?.gameState;
+    expect(restored?.playerProfile.name).toBe("Lyra");
+    expect(restored?.character.consumables).toMatchObject({
+      cooldowns: { "minor-health-potion": 12345 },
+      autoPotion: {
+        hpThresholdPercent: 50,
+        spThresholdPercent: 25,
+      },
+    });
   });
 });
