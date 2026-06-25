@@ -560,6 +560,17 @@ export class WorldScene extends Phaser.Scene {
       return;
     }
 
+    const shop = dataRegistry.getShopByNpcId(npc.id);
+    if (shop && (npc.serviceType === "merchant" || npc.serviceType === "appraiser")) {
+      this.pendingNpcInteraction = undefined;
+      this.player?.clearDestination();
+      this.game.canvas.dataset.pendingNpcInteraction = "";
+      this.game.canvas.dataset.lastOpenedShop = shop.id;
+      this.game.canvas.dataset.lastOpenedShopNpc = npc.id;
+      eventBus.emit("shopOpened", { shopId: shop.id, npcId: npc.id });
+      return;
+    }
+
     const dialogue = dataRegistry.getDialogue(npc.dialogueId);
     const advancedClassOptions = npc.serviceType === "advanced-class" && this.state
       ? getAdvancedClassOptionsForBase(dataRegistry.getClass(this.state.character.archetype))

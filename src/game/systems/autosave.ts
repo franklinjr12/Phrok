@@ -301,6 +301,7 @@ function normalizeInventory(rawInventory: unknown, fallback: GameState["inventor
         itemId: stringValue(item.itemId, ""),
       }))
       .filter((item) => item.instanceId.length > 0 && item.itemId.length > 0),
+    appraisedItemIds: stringArray(source.appraisedItemIds, fallback.appraisedItemIds),
   };
 }
 

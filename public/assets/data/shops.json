@@ -1,0 +1,106 @@
+[
+  {
+    "id": "crownfield-market",
+    "name": "Crownfield Beginner Market",
+    "regionId": "crownfield",
+    "mapId": "crownfield-town",
+    "npcId": "tessa-vale",
+    "serviceType": "shop",
+    "stock": [
+      { "itemId": "minor-health-potion", "quantity": 8, "priceMultiplier": 1.4 },
+      { "itemId": "consumable-common-spirit-draught-1", "quantity": 6, "priceMultiplier": 1.5 },
+      { "itemId": "practice-daggers", "quantity": 1, "priceMultiplier": 1.6 },
+      { "itemId": "shortbow", "quantity": 1, "priceMultiplier": 1.7 },
+      { "itemId": "armor-canvas-vest-1", "quantity": 1, "priceMultiplier": 1.6 }
+    ]
+  },
+  {
+    "id": "mossvale-provisions",
+    "name": "Mossvale Forest Provisions",
+    "regionId": "mossvale",
+    "mapId": "mossvale-hub",
+    "npcId": "mossvale-provisioner",
+    "serviceType": "shop",
+    "stock": [
+      { "itemId": "consumable-common-health-draught-2", "quantity": 8, "priceMultiplier": 1.45 },
+      { "itemId": "consumable-uncommon-guard-tonic-2", "quantity": 4, "priceMultiplier": 1.55 },
+      { "itemId": "moss-fiber", "quantity": 10, "priceMultiplier": 1.7 },
+      { "itemId": "thorny-vine", "quantity": 8, "priceMultiplier": 1.7 },
+      { "itemId": "weapon-mossline-bow-3", "quantity": 1, "priceMultiplier": 1.85 }
+    ]
+  },
+  {
+    "id": "blueharbor-fishmarket",
+    "name": "Blueharbor Sea Market",
+    "regionId": "blueharbor-coast",
+    "mapId": "blueharbor-hub",
+    "npcId": "blueharbor-fishmonger",
+    "serviceType": "shop",
+    "stock": [
+      { "itemId": "consumable-uncommon-health-draught-3", "quantity": 8, "priceMultiplier": 1.45 },
+      { "itemId": "tide-shell", "quantity": 10, "priceMultiplier": 1.7 },
+      { "itemId": "salt-pearl", "quantity": 6, "priceMultiplier": 1.75 },
+      { "itemId": "waterlogged-rune", "quantity": 4, "priceMultiplier": 1.8 },
+      { "itemId": "sigil-tide-sigil-3", "quantity": 1, "priceMultiplier": 1.95 }
+    ]
+  },
+  {
+    "id": "amber-dunes-supply",
+    "name": "Amber Dunes Caravan Supply",
+    "regionId": "amber-dunes",
+    "mapId": "amber-dunes-hub",
+    "npcId": "amber-sun-crafter",
+    "serviceType": "shop",
+    "stock": [
+      { "itemId": "consumable-rare-fleet-tonic-3", "quantity": 5, "priceMultiplier": 1.55 },
+      { "itemId": "dune-silk", "quantity": 8, "priceMultiplier": 1.75 },
+      { "itemId": "sun-glass", "quantity": 8, "priceMultiplier": 1.75 },
+      { "itemId": "venom-sack", "quantity": 4, "priceMultiplier": 1.8 },
+      { "itemId": "armor-sunplate-vest-4", "quantity": 1, "priceMultiplier": 1.9 }
+    ]
+  },
+  {
+    "id": "ironroot-materials",
+    "name": "Ironroot Refinement Market",
+    "regionId": "ironroot-highlands",
+    "mapId": "ironroot-hub",
+    "npcId": "ironroot-material-vendor",
+    "serviceType": "shop",
+    "stock": [
+      { "itemId": "consumable-rare-health-draught-4", "quantity": 8, "priceMultiplier": 1.5 },
+      { "itemId": "ironroot-ore", "quantity": 10, "priceMultiplier": 1.7 },
+      { "itemId": "ember-coal", "quantity": 10, "priceMultiplier": 1.7 },
+      { "itemId": "refined-nickel", "quantity": 5, "priceMultiplier": 1.8 },
+      { "itemId": "deep-ore-cluster", "quantity": 2, "priceMultiplier": 1.85 }
+    ]
+  },
+  {
+    "id": "moonveil-relic-market",
+    "name": "Moonveil Late-Game Relics",
+    "regionId": "moonveil-marsh",
+    "mapId": "moonveil-hub",
+    "npcId": "moonveil-relic-mender",
+    "serviceType": "shop",
+    "stock": [
+      { "itemId": "consumable-legendary-health-draught-6", "quantity": 8, "priceMultiplier": 1.55 },
+      { "itemId": "moonlit-reed", "quantity": 8, "priceMultiplier": 1.8 },
+      { "itemId": "black-reed-oil", "quantity": 6, "priceMultiplier": 1.85 },
+      { "itemId": "sigil-grave-sigil-7", "quantity": 1, "priceMultiplier": 2 },
+      { "itemId": "support-forager-support-charm-7", "quantity": 1, "priceMultiplier": 2 }
+    ]
+  },
+  {
+    "id": "blueharbor-appraiser",
+    "name": "Blueharbor Appraisal Desk",
+    "regionId": "blueharbor-coast",
+    "mapId": "blueharbor-hub",
+    "npcId": "blueharbor-market-broker",
+    "serviceType": "appraiser",
+    "stock": [],
+    "appraiser": {
+      "identifyCostMultiplier": 0.35,
+      "minIdentifyCost": 15,
+      "improvedSellMultiplier": 1.35
+    }
+  }
+]

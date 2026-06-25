@@ -125,6 +125,7 @@ export interface InventoryState {
   items: InventoryItem[];
   gold: number;
   equipmentInstances: EquipmentInstance[];
+  appraisedItemIds: string[];
 }
 
 export type EquipmentSlot =

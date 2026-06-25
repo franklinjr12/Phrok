@@ -105,6 +105,32 @@ const validFiles: Record<string, unknown[]> = {
       mapId: "crownfield-meadows",
       dialogueId: "field-guide-greeting",
       serviceType: "guide",
+      shopId: "field-shop",
+    },
+  ],
+  "shops.json": [
+    {
+      id: "field-shop",
+      name: "Field Shop",
+      regionId: "crownfield",
+      mapId: "crownfield-meadows",
+      npcId: "field-guide",
+      serviceType: "shop",
+      stock: [{ itemId: "minor-health-potion", quantity: 3, priceMultiplier: 1.5 }],
+    },
+    {
+      id: "field-appraiser",
+      name: "Field Appraiser",
+      regionId: "crownfield",
+      mapId: "crownfield-meadows",
+      npcId: "field-guide",
+      serviceType: "appraiser",
+      stock: [],
+      appraiser: {
+        identifyCostMultiplier: 0.4,
+        minIdentifyCost: 12,
+        improvedSellMultiplier: 1.3,
+      },
     },
   ],
   "recipes.json": [{ id: "training-sword-repair", name: "Training Sword Repair", resultItemId: "training-sword" }],
@@ -156,6 +182,7 @@ describe("loadDataRegistry", () => {
       icon: "placeholder-training-sword",
       validEquipmentSlots: ["weapon"],
       weaponType: "sword",
+      appraisable: false,
     });
     expect(registry.getItem("minor-health-potion").consumableEffect).toEqual({
       restoreHp: 35,
@@ -239,7 +266,22 @@ describe("loadDataRegistry", () => {
       interactionRadius: 72,
       dialogueId: "field-guide-greeting",
       serviceType: "guide",
+      shopId: "field-shop",
     });
+    expect(registry.getShop("field-shop")).toMatchObject({
+      name: "Field Shop",
+      regionId: "crownfield",
+      mapId: "crownfield-meadows",
+      npcId: "field-guide",
+      serviceType: "shop",
+      stock: [{ itemId: "minor-health-potion", quantity: 3, priceMultiplier: 1.5 }],
+    });
+    expect(registry.getShop("field-appraiser").appraiser).toEqual({
+      identifyCostMultiplier: 0.4,
+      minIdentifyCost: 12,
+      improvedSellMultiplier: 1.3,
+    });
+    expect(registry.getShopByNpcId("field-guide")?.id).toBe("field-shop");
     expect(registry.getSupport("mira").skillIds).toEqual([]);
     expect(registry.getStatusEffect("guarded")).toMatchObject({
       type: "buff",

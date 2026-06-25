@@ -163,6 +163,7 @@ describe("autosave", () => {
     state.character.consumables.autoPotion.hpThresholdPercent = 50;
     state.character.consumables.autoPotion.spThresholdPercent = 25;
     state.inventory.items.push({ id: "jelly-gel", quantity: 2 });
+    state.inventory.appraisedItemIds.push("jelly-gel");
     state.position = { x: 512, y: 300 };
     writeSaveSlot(2, state, storage);
 
@@ -181,6 +182,7 @@ describe("autosave", () => {
             { id: "training-sword", quantity: 1 },
             { id: "jelly-gel", quantity: 2 },
           ],
+          appraisedItemIds: ["jelly-gel"],
         },
         character: {
           consumables: {
@@ -202,5 +204,6 @@ describe("autosave", () => {
         spThresholdPercent: 25,
       },
     });
+    expect(restored?.inventory.appraisedItemIds).toEqual(["jelly-gel"]);
   });
 });

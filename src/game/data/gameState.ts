@@ -56,6 +56,7 @@ export function createNewGameState(): GameState {
       items: [{ id: "training-sword", quantity: 1 }],
       gold: 0,
       equipmentInstances: [],
+      appraisedItemIds: [],
     },
     equipment: {
       ...createEmptyEquipment(),
@@ -113,6 +114,7 @@ export function createCharacterGameState(name: string, playerClass: ClassDefinit
   state.inventory.items = startingItemIds.map((id) => ({ id, quantity: 1 }));
   state.inventory.gold = state.playerProfile.gold;
   state.inventory.equipmentInstances = [];
+  state.inventory.appraisedItemIds = [];
   state.equipment.weapon = playerClass.startingWeaponId;
   syncCharacterVitalsToDerivedStats(
     state,

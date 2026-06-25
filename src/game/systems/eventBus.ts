@@ -43,6 +43,7 @@ export interface GameEventMap {
   saveCompleted: { saveSlot: number };
   dialogueOpened: { dialogueId: string };
   dialogueClosed: { dialogueId: string };
+  shopOpened: { shopId: string; npcId: string };
 }
 
 type GameEventName = keyof GameEventMap;

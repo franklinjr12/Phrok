@@ -21,7 +21,8 @@
     "mapId": "crownfield-town",
     "interactionRadius": 72,
     "dialogueId": "tessa-vale-greeting",
-    "serviceType": "merchant"
+    "serviceType": "merchant",
+    "shopId": "crownfield-market"
   },
   {
     "id": "orun-brightslag",
@@ -101,7 +102,8 @@
     "mapId": "mossvale-hub",
     "interactionRadius": 72,
     "dialogueId": "lio-fernwick-greeting",
-    "serviceType": "merchant"
+    "serviceType": "merchant",
+    "shopId": "mossvale-provisions"
   },
   {
     "id": "mossvale-routefinder",
@@ -133,7 +135,8 @@
     "mapId": "amber-dunes-hub",
     "interactionRadius": 72,
     "dialogueId": "imen-sunstitch-greeting",
-    "serviceType": "crafter"
+    "serviceType": "merchant",
+    "shopId": "amber-dunes-supply"
   },
   {
     "id": "amber-caravan-guide",
@@ -157,7 +160,8 @@
     "mapId": "blueharbor-hub",
     "interactionRadius": 72,
     "dialogueId": "pell-netcaster-greeting",
-    "serviceType": "merchant"
+    "serviceType": "merchant",
+    "shopId": "blueharbor-fishmarket"
   },
   {
     "id": "blueharbor-market-broker",
@@ -165,7 +169,8 @@
     "mapId": "blueharbor-hub",
     "interactionRadius": 72,
     "dialogueId": "vessa-saltcoin-greeting",
-    "serviceType": "merchant"
+    "serviceType": "appraiser",
+    "shopId": "blueharbor-appraiser"
   },
   {
     "id": "blueharbor-innkeep",
@@ -197,7 +202,8 @@
     "mapId": "ironroot-hub",
     "interactionRadius": 72,
     "dialogueId": "tovin-pickrest-greeting",
-    "serviceType": "merchant"
+    "serviceType": "merchant",
+    "shopId": "ironroot-materials"
   },
   {
     "id": "ironroot-lift-operator",
@@ -229,7 +235,8 @@
     "mapId": "moonveil-hub",
     "interactionRadius": 72,
     "dialogueId": "selka-mireglass-greeting",
-    "serviceType": "crafter"
+    "serviceType": "merchant",
+    "shopId": "moonveil-relic-market"
   },
   {
     "id": "moonveil-ferry-witch",

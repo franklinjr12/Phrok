@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import type { DialogueDefinition, MapDefinition, NpcDefinition, RegionDefinition } from "../types/dataDefinitions";
+import type { DialogueDefinition, MapDefinition, NpcDefinition, RegionDefinition, ShopDefinition } from "../types/dataDefinitions";
 
 const dataPath = join(process.cwd(), "public", "assets", "data");
 
@@ -14,6 +14,7 @@ describe("town content", () => {
   const npcs = readDataFile<NpcDefinition>("npcs.json");
   const dialogues = readDataFile<DialogueDefinition>("dialogues.json");
   const regions = readDataFile<RegionDefinition>("regions.json");
+  const shops = readDataFile<ShopDefinition>("shops.json");
 
   it("finalizes Crownfield with core service NPCs and meadow exits", () => {
     const crownfield = findById(maps, "crownfield-town");
@@ -42,12 +43,12 @@ describe("town content", () => {
       "mossvale-edge",
       "mossvale-rootcellar",
     ]);
-    expectHub("amber-dunes", "amber-dunes-hub", ["inn", "refiner", "crafter", "travel"], [
+    expectHub("amber-dunes", "amber-dunes-hub", ["inn", "refiner", "merchant", "travel"], [
       "mossvale-hub",
       "amber-dunes-field",
       "amber-dunes-sandvault",
     ]);
-    expectHub("blueharbor-coast", "blueharbor-hub", ["inn", "merchant", "merchant", "travel"], [
+    expectHub("blueharbor-coast", "blueharbor-hub", ["inn", "merchant", "appraiser", "travel"], [
       "amber-dunes-hub",
       "blueharbor-beach",
       "sea-cave-entrance",
@@ -57,11 +58,27 @@ describe("town content", () => {
       "ironroot-highlands-field",
       "ironroot-deepmine",
     ]);
-    expectHub("moonveil-marsh", "moonveil-hub", ["inn", "advanced-hunter-board", "crafter", "travel"], [
+    expectHub("moonveil-marsh", "moonveil-hub", ["inn", "advanced-hunter-board", "merchant", "travel"], [
       "ironroot-hub",
       "moonveil-marsh-field",
       "moonveil-bogsanctum",
     ]);
+  });
+
+  it("defines region-specific market stock and an appraiser desk", () => {
+    expectShop("crownfield-market", "crownfield", ["minor-health-potion", "shortbow"]);
+    expectShop("mossvale-provisions", "mossvale", ["moss-fiber", "weapon-mossline-bow-3"]);
+    expectShop("blueharbor-fishmarket", "blueharbor-coast", ["tide-shell", "sigil-tide-sigil-3"]);
+    expectShop("amber-dunes-supply", "amber-dunes", ["dune-silk", "sun-glass"]);
+    expectShop("ironroot-materials", "ironroot-highlands", ["ironroot-ore", "refined-nickel"]);
+    expectShop("moonveil-relic-market", "moonveil-marsh", ["moonlit-reed", "support-forager-support-charm-7"]);
+
+    const appraiser = findById(shops, "blueharbor-appraiser");
+    expect(appraiser.serviceType).toBe("appraiser");
+    expect(appraiser.appraiser).toMatchObject({
+      minIdentifyCost: 15,
+      improvedSellMultiplier: 1.35,
+    });
   });
 
   function expectHub(
@@ -89,6 +106,17 @@ describe("town content", () => {
       expect(dialogue.lines.length).toBeGreaterThanOrEqual(2);
       expect(dialogue.choices.length).toBe(1);
     }
+  }
+
+  function expectShop(shopId: string, regionId: string, itemIds: string[]): void {
+    const shop = findById(shops, shopId);
+    const npc = findById(npcs, shop.npcId);
+
+    expect(shop.regionId).toBe(regionId);
+    expect(shop.serviceType).toBe("shop");
+    expect(npc.shopId).toBe(shop.id);
+    expect(shop.stock.map((stock) => stock.itemId)).toEqual(expect.arrayContaining(itemIds));
+    expect(shop.stock.every((stock) => stock.quantity > 0 && stock.priceMultiplier >= 1)).toBe(true);
   }
 });
 

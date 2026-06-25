@@ -15,6 +15,7 @@ import type {
   QuestDefinition,
   RegionDefinition,
   RecipeDefinition,
+  ShopDefinition,
   SkillDefinition,
   StatusEffectDefinition,
   SupportDefinition,
@@ -129,6 +130,18 @@ export class DataRegistry {
     return this.getById("npcs", id);
   }
 
+  getShop(id: string): ShopDefinition {
+    return this.getById("shops", id);
+  }
+
+  getShops(): ShopDefinition[] {
+    return Array.from(this.collections.shops.values());
+  }
+
+  getShopByNpcId(npcId: string): ShopDefinition | undefined {
+    return this.getShops().find((shop) => shop.npcId === npcId);
+  }
+
   getRecipe(id: string): RecipeDefinition {
     return this.getById("recipes", id);
   }
@@ -231,6 +244,7 @@ function createEmptyCollections(): DataCollections {
     dungeons: new Map(),
     dialogues: new Map(),
     npcs: new Map(),
+    shops: new Map(),
     recipes: new Map(),
     supports: new Map(),
     quests: new Map(),
@@ -251,6 +265,7 @@ const dataFiles = [
   { key: "dungeons", fileName: "dungeons.json", validate: validateDungeon },
   { key: "dialogues", fileName: "dialogues.json", validate: validateDialogue },
   { key: "npcs", fileName: "npcs.json", validate: validateNpc },
+  { key: "shops", fileName: "shops.json", validate: validateShop },
   { key: "recipes", fileName: "recipes.json", validate: validateRecipe },
   { key: "supports", fileName: "supports.json", validate: validateSupport },
   { key: "quests", fileName: "quests.json", validate: validateQuest },
@@ -398,6 +413,7 @@ function validateItem(source: Record<string, unknown>, fileName: string): ItemDe
     twoHanded: Boolean(source.twoHanded),
     statModifiers: normalizeItemModifier(source.statModifiers),
     consumableEffect: normalizeConsumableEffect(source.consumableEffect),
+    appraisable: Boolean(source.appraisable),
     value: optionalNumber(source, "value", 0),
   };
 }
@@ -757,6 +773,49 @@ function validateNpc(source: Record<string, unknown>, fileName: string): NpcDefi
     interactionRadius: optionalNumber(source, "interactionRadius", 72),
     dialogueId: optionalString(source, "dialogueId", ""),
     serviceType: optionalString(source, "serviceType", "talk"),
+    shopId: optionalString(source, "shopId", "") || undefined,
+  };
+}
+
+function validateShop(source: Record<string, unknown>, fileName: string): ShopDefinition {
+  const id = readId(source, fileName);
+  const serviceType = optionalString(source, "serviceType", "shop");
+
+  return {
+    id,
+    name: requireString(source, "name", fileName, id),
+    regionId: requireString(source, "regionId", fileName, id),
+    mapId: requireString(source, "mapId", fileName, id),
+    npcId: requireString(source, "npcId", fileName, id),
+    serviceType: serviceType === "appraiser" ? "appraiser" : "shop",
+    stock: validateShopStock(source.stock, fileName, id),
+    appraiser: validateAppraiser(source.appraiser),
+  };
+}
+
+function validateShopStock(
+  rawStock: unknown,
+  fileName: string,
+  id: string,
+): ShopDefinition["stock"] {
+  return Array.isArray(rawStock)
+    ? rawStock.filter(isRecord).map((entry) => ({
+      itemId: requireString(entry, "itemId", fileName, id),
+      quantity: Math.max(1, optionalNumber(entry, "quantity", 1)),
+      priceMultiplier: Math.max(0.1, optionalNumber(entry, "priceMultiplier", 1.8)),
+    }))
+    : [];
+}
+
+function validateAppraiser(rawAppraiser: unknown): ShopDefinition["appraiser"] {
+  if (!isRecord(rawAppraiser)) {
+    return undefined;
+  }
+
+  return {
+    identifyCostMultiplier: Math.max(0, optionalNumber(rawAppraiser, "identifyCostMultiplier", 0.35)),
+    minIdentifyCost: Math.max(0, optionalNumber(rawAppraiser, "minIdentifyCost", 15)),
+    improvedSellMultiplier: Math.max(1, optionalNumber(rawAppraiser, "improvedSellMultiplier", 1.25)),
   };
 }
 

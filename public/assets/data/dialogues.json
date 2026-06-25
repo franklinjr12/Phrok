@@ -31,13 +31,13 @@
     "id": "tessa-vale-greeting",
     "lines": [
       "I trade in useful things, not shiny regrets.",
-      "The shop shelves are marked, but the till is not ready yet."
+      "The shop shelves are marked and the till is finally awake."
     ],
     "choices": [
       {
         "id": "open-shop",
         "label": "Browse goods",
-        "disabled": true
+        "disabled": false
       }
     ]
   },
@@ -169,7 +169,7 @@
       {
         "id": "open-shop",
         "label": "Browse goods",
-        "disabled": true
+        "disabled": false
       }
     ]
   },
@@ -224,8 +224,8 @@
     "choices": [
       {
         "id": "open-crafting",
-        "label": "Craft equipment",
-        "disabled": true
+        "label": "Browse desert goods",
+        "disabled": false
       }
     ]
   },
@@ -267,7 +267,7 @@
       {
         "id": "open-shop",
         "label": "Browse goods",
-        "disabled": true
+        "disabled": false
       }
     ]
   },
@@ -275,13 +275,13 @@
     "id": "vessa-saltcoin-greeting",
     "lines": [
       "If it came off a ship, I know who wants it and who should not get it.",
-      "Market stalls change with every tide."
+      "Bring me unknown finds and I will tell you whether they are treasure or trouble."
     ],
     "choices": [
       {
         "id": "open-shop",
-        "label": "Browse goods",
-        "disabled": true
+        "label": "Appraise items",
+        "disabled": false
       }
     ]
   },
@@ -337,7 +337,7 @@
       {
         "id": "open-shop",
         "label": "Browse goods",
-        "disabled": true
+        "disabled": false
       }
     ]
   },
@@ -392,8 +392,8 @@
     "choices": [
       {
         "id": "open-crafting",
-        "label": "Craft equipment",
-        "disabled": true
+        "label": "Browse relics",
+        "disabled": false
       }
     ]
   },

@@ -30,14 +30,26 @@ import {
 } from "../systems/consumables";
 import { eventBus } from "../systems/eventBus";
 import { removeInventoryItem } from "../systems/inventory";
+import {
+  appraiseInventoryItem,
+  buyShopItem,
+  getAppraisalCost,
+  getMarketSellValue,
+  getShopBuyPrice,
+  getVisibleItemDescription,
+  getVisibleItemName,
+  isItemAppraisable,
+  isItemAppraised,
+  sellInventoryItem,
+} from "../systems/market";
 import { allocateSkillPoint, assignHotbarAction, getLearnedSkillLevel, hotbarSlotCount } from "../systems/skills";
 import { advancedClassUnlockLevel, getUnlockedSkillTreeIds, isAdvancedClassServiceAvailable } from "../systems/advancedClasses";
 import { getStatusSummary } from "../systems/statusEffects";
 import type { DataRegistry } from "../data/dataRegistry";
-import type { ItemDefinition, SkillDefinition } from "../types/dataDefinitions";
+import type { ItemDefinition, ShopDefinition, SkillDefinition } from "../types/dataDefinitions";
 import type { BaseStatKey, EquipmentInstance, EquipmentSlot, GameState, InventoryItem } from "../types/gameState";
 
-type PanelMode = "inventory" | "equipment" | "character" | "skills";
+type PanelMode = "inventory" | "equipment" | "character" | "skills" | "shop" | "appraiser";
 type InventoryPanelEntry = {
   itemId: string;
   quantity: number;
@@ -75,6 +87,7 @@ export class UIScene extends Phaser.Scene {
   private unsubscribeHotbarChanged?: () => void;
   private unsubscribeHotbarUsed?: () => void;
   private unsubscribeStatusEffectsChanged?: () => void;
+  private unsubscribeShopOpened?: () => void;
   private hpText?: Phaser.GameObjects.Text;
   private spText?: Phaser.GameObjects.Text;
   private levelText?: Phaser.GameObjects.Text;
@@ -97,8 +110,11 @@ export class UIScene extends Phaser.Scene {
   private advancedClassNotificationText?: Phaser.GameObjects.Text;
   private activePanel: PanelMode | null = null;
   private selectedInventoryIndex = 0;
+  private selectedShopIndex = 0;
+  private selectedMarketInventoryIndex = 0;
   private selectedEquipmentSlot: EquipmentSlot = "weapon";
   private selectedSkillIndex = 0;
+  private activeShopId = "";
   private panelObjects: Phaser.GameObjects.GameObject[] = [];
   private comparisonObjects: Phaser.GameObjects.GameObject[] = [];
 
@@ -166,6 +182,7 @@ export class UIScene extends Phaser.Scene {
       this.unsubscribeHotbarChanged?.();
       this.unsubscribeHotbarUsed?.();
       this.unsubscribeStatusEffectsChanged?.();
+      this.unsubscribeShopOpened?.();
     });
   }
 
@@ -349,6 +366,15 @@ export class UIScene extends Phaser.Scene {
         this.game.canvas.dataset.targetStatusEffects = summary;
       }
     });
+
+    this.unsubscribeShopOpened = eventBus.on("shopOpened", ({ shopId, npcId }) => {
+      const shop = dataRegistry.getShop(shopId);
+      this.activeShopId = shopId;
+      this.selectedShopIndex = 0;
+      this.selectedMarketInventoryIndex = 0;
+      this.game.canvas.dataset.activeShopNpc = npcId;
+      this.openPanel(shop.serviceType === "appraiser" ? "appraiser" : "shop");
+    });
   }
 
   private createHud(state: GameState, dataRegistry: DataRegistry): void {
@@ -504,6 +530,8 @@ export class UIScene extends Phaser.Scene {
     this.game.canvas.dataset.uiPanel = "closed";
     this.game.canvas.dataset.gameplayInputBlocked = "false";
     this.game.canvas.dataset.itemComparison = "hidden";
+    this.game.canvas.dataset.shopPanel = "hidden";
+    this.game.canvas.dataset.appraiserPanel = "hidden";
   }
 
   private manualSave(): void {
@@ -556,8 +584,12 @@ export class UIScene extends Phaser.Scene {
       this.renderEquipmentPanel(this.state, this.dataRegistry);
     } else if (this.activePanel === "character") {
       this.renderCharacterPanel(this.state, this.dataRegistry);
-    } else {
+    } else if (this.activePanel === "skills") {
       this.renderSkillPanel(this.state, this.dataRegistry);
+    } else if (this.activePanel === "shop") {
+      this.renderShopPanel(this.state, this.dataRegistry);
+    } else {
+      this.renderAppraiserPanel(this.state, this.dataRegistry);
     }
   }
 
@@ -656,7 +688,7 @@ export class UIScene extends Phaser.Scene {
       this.addPanelRectangle(124, y, 18, 18, this.getItemIconColor(item), 0.94)
         .setOrigin(0)
         .setStrokeStyle(1, 0xf8fafc, 0.58);
-      this.addPanelText(152, y - 2, item.name, 15, "#f8fafc");
+      this.addPanelText(152, y - 2, getVisibleItemName(state.inventory, item), 15, "#f8fafc");
       this.addPanelText(374, y - 2, String(entry.quantity), 15, "#f8fafc");
       this.addPanelText(430, y - 2, getItemRarity(item), 15, this.getRarityColor(item));
     });
@@ -681,10 +713,10 @@ export class UIScene extends Phaser.Scene {
       return;
     }
 
-    this.addPanelText(532, 246, item.name, 17, "#f8fafc");
+    this.addPanelText(532, 246, this.state ? getVisibleItemName(this.state.inventory, item) : item.name, 17, "#f8fafc");
     this.addPanelText(532, 276, entry.source === "equipment" ? "Quantity 1" : `Quantity ${entry.quantity}`, 14, "#cbd5e1");
     this.addPanelText(532, 300, getItemRarity(item), 14, this.getRarityColor(item));
-    this.addPanelText(532, 332, this.wrapText(item.description, 20), 13, "#cbd5e1");
+    this.addPanelText(532, 332, this.wrapText(this.state ? getVisibleItemDescription(this.state.inventory, item) : item.description, 20), 13, "#cbd5e1");
     this.addPanelText(532, 386, `Sell ${getItemSellValue(item)}`, 13, "#fde68a");
   }
 
@@ -694,6 +726,130 @@ export class UIScene extends Phaser.Scene {
     this.addPanelButton(598, 430, 78, 34, "Drop", () => this.dropSelectedInventoryItem());
     this.addPanelButton(598, 476, 78, 28, "Close", () => this.closePanel());
     this.game.canvas.dataset.inventoryButtons = `${useLabel}|Drop|Close`;
+  }
+
+  private renderShopPanel(state: GameState, dataRegistry: DataRegistry): void {
+    const shop = this.getActiveShop(dataRegistry);
+    const inventoryEntries = this.getInventoryPanelEntries(state.inventory.items, state.inventory.equipmentInstances);
+    const selectedStockIndex = this.clampSelectedShopIndex(shop.stock);
+    const selectedStock = shop.stock[selectedStockIndex] ?? null;
+    const selectedStockItem = selectedStock ? dataRegistry.getItem(selectedStock.itemId) : null;
+    const selectedInventory = inventoryEntries[this.clampSelectedMarketInventoryIndex(inventoryEntries)] ?? null;
+    const selectedInventoryItem = selectedInventory ? dataRegistry.getItem(selectedInventory.itemId) : null;
+
+    this.addPanelRectangle(64, 54, 672, 500, panelFill, 0.96)
+      .setOrigin(0)
+      .setStrokeStyle(2, panelStroke, 0.92);
+    this.addPanelText(92, 78, shop.name, 23, "#f8fafc");
+    this.addPanelText(92, 112, `Gold ${state.inventory.gold}`, 15, "#fde68a");
+    this.addPanelText(92, 146, "Stock", 14, "#94a3b8");
+    this.addPanelText(392, 146, "Inventory Sell", 14, "#94a3b8");
+
+    shop.stock.forEach((stock, index) => {
+      const item = dataRegistry.getItem(stock.itemId);
+      const y = 176 + index * 34;
+      const row = this.addPanelRectangle(92, y - 6, 268, 28, index === selectedStockIndex ? 0x293548 : 0x18222c, 0.94)
+        .setOrigin(0)
+        .setStrokeStyle(1, index === selectedStockIndex ? 0xfacc15 : 0x334155, 0.9)
+        .setInteractive({ useHandCursor: true });
+      row.on("pointerdown", () => {
+        this.selectedShopIndex = index;
+        this.renderPanel();
+      });
+      this.addPanelText(104, y, item.name, 13, "#f8fafc");
+      this.addPanelText(282, y, `${getShopBuyPrice(item, stock)}g`, 13, "#fde68a");
+      this.addPanelText(326, y, `x${stock.quantity}`, 12, "#cbd5e1");
+    });
+
+    inventoryEntries.slice(0, 7).forEach((entry, index) => {
+      const item = dataRegistry.getItem(entry.itemId);
+      const y = 176 + index * 34;
+      const row = this.addPanelRectangle(392, y - 6, 268, 28, index === this.selectedMarketInventoryIndex ? 0x293548 : 0x18222c, 0.94)
+        .setOrigin(0)
+        .setStrokeStyle(1, index === this.selectedMarketInventoryIndex ? 0xfacc15 : 0x334155, 0.9)
+        .setInteractive({ useHandCursor: true });
+      row.on("pointerdown", () => {
+        this.selectedMarketInventoryIndex = index;
+        this.renderPanel();
+      });
+      this.addPanelText(404, y, getVisibleItemName(state.inventory, item), 13, "#f8fafc");
+      this.addPanelText(582, y, `${getMarketSellValue(item)}g`, 13, "#fde68a");
+      this.addPanelText(626, y, `x${entry.quantity}`, 12, "#cbd5e1");
+    });
+
+    this.renderMarketDetails(92, 432, "Buy", selectedStockItem, selectedStock ? getShopBuyPrice(selectedStockItem!, selectedStock) : 0, () => this.buySelectedShopItem());
+    this.renderMarketDetails(392, 432, "Sell", selectedInventoryItem, selectedInventoryItem ? getMarketSellValue(selectedInventoryItem) : 0, () => this.sellSelectedMarketItem());
+    this.addPanelButton(636, 512, 78, 28, "Close", () => this.closePanel());
+    this.syncShopDataset(shop, selectedStockItem, selectedInventoryItem, state.inventory.gold);
+  }
+
+  private renderAppraiserPanel(state: GameState, dataRegistry: DataRegistry): void {
+    const shop = this.getActiveShop(dataRegistry);
+    const inventoryEntries = this.getInventoryPanelEntries(state.inventory.items, state.inventory.equipmentInstances);
+    const selected = inventoryEntries[this.clampSelectedMarketInventoryIndex(inventoryEntries)] ?? null;
+    const item = selected ? dataRegistry.getItem(selected.itemId) : null;
+    const appraiser = shop.appraiser;
+    const improvedSellMultiplier = appraiser?.improvedSellMultiplier ?? 1.25;
+    const appraisalCost = item ? getAppraisalCost(item, appraiser) : 0;
+    const improvedSellValue = item ? getMarketSellValue(item, improvedSellMultiplier) : 0;
+
+    this.addPanelRectangle(70, 60, 660, 470, panelFill, 0.96)
+      .setOrigin(0)
+      .setStrokeStyle(2, panelStroke, 0.92);
+    this.addPanelText(96, 84, shop.name, 23, "#f8fafc");
+    this.addPanelText(96, 118, `Gold ${state.inventory.gold}   Appraisal from ${appraisalCost}g   Sell bonus x${improvedSellMultiplier}`, 14, "#fde68a");
+    this.addPanelText(96, 152, "Inventory", 14, "#94a3b8");
+
+    inventoryEntries.slice(0, 8).forEach((entry, index) => {
+      const rowItem = dataRegistry.getItem(entry.itemId);
+      const y = 182 + index * 34;
+      const row = this.addPanelRectangle(96, y - 6, 352, 28, index === this.selectedMarketInventoryIndex ? 0x293548 : 0x18222c, 0.94)
+        .setOrigin(0)
+        .setStrokeStyle(1, index === this.selectedMarketInventoryIndex ? 0xfacc15 : 0x334155, 0.9)
+        .setInteractive({ useHandCursor: true });
+      row.on("pointerdown", () => {
+        this.selectedMarketInventoryIndex = index;
+        this.renderPanel();
+      });
+      this.addPanelText(108, y, getVisibleItemName(state.inventory, rowItem), 13, "#f8fafc");
+      this.addPanelText(318, y, isItemAppraised(state.inventory, rowItem) ? "Known" : "Unknown", 12, isItemAppraised(state.inventory, rowItem) ? "#bbf7d0" : "#fca5a5");
+      this.addPanelText(386, y, `${getMarketSellValue(rowItem, improvedSellMultiplier)}g`, 13, "#fde68a");
+    });
+
+    this.addPanelRectangle(476, 158, 210, 250, 0x17212b, 0.95)
+      .setOrigin(0)
+      .setStrokeStyle(1, 0x475569, 0.86);
+    if (item) {
+      const known = isItemAppraised(state.inventory, item);
+      this.addPanelText(496, 180, getVisibleItemName(state.inventory, item), 16, "#f8fafc");
+      this.addPanelText(496, 212, `${getItemRarity(item)} ${item.type}`, 13, this.getRarityColor(item));
+      this.addPanelText(496, 240, this.wrapText(getVisibleItemDescription(state.inventory, item), 24), 12, "#cbd5e1");
+      this.addPanelText(496, 318, `Appraise ${known ? "Done" : `${appraisalCost}g`}`, 13, known ? "#bbf7d0" : "#fde68a");
+      this.addPanelText(496, 346, `Sell+ ${improvedSellValue}g`, 13, "#fde68a");
+    } else {
+      this.addPanelText(496, 212, "No item selected", 15, "#94a3b8");
+    }
+
+    this.addPanelButton(476, 426, 90, 34, "Appraise", () => this.appraiseSelectedMarketItem());
+    this.addPanelButton(576, 426, 74, 34, "Sell+", () => this.sellSelectedMarketItem(improvedSellMultiplier));
+    this.addPanelButton(596, 484, 90, 28, "Close", () => this.closePanel());
+    this.syncAppraiserDataset(shop, item, state.inventory.gold, appraisalCost, improvedSellValue);
+  }
+
+  private renderMarketDetails(
+    x: number,
+    y: number,
+    actionLabel: string,
+    item: ItemDefinition | null,
+    price: number,
+    callback: () => void,
+  ): void {
+    this.addPanelRectangle(x, y, 268, 64, 0x17212b, 0.95)
+      .setOrigin(0)
+      .setStrokeStyle(1, 0x475569, 0.86);
+    this.addPanelText(x + 14, y + 12, item ? item.name : "No item selected", 14, item ? "#f8fafc" : "#94a3b8");
+    this.addPanelText(x + 14, y + 36, item ? `${getItemRarity(item)}   ${price}g` : "", 12, item ? this.getRarityColor(item) : "#94a3b8");
+    this.addPanelButton(x + 174, y + 16, 72, 32, actionLabel, callback);
   }
 
   private renderEquipmentPanel(state: GameState, dataRegistry: DataRegistry): void {
@@ -920,6 +1076,59 @@ export class UIScene extends Phaser.Scene {
     this.game.canvas.dataset.lastInventoryAction = `drop:${entry.itemId}`;
   }
 
+  private buySelectedShopItem(): void {
+    if (!this.state || !this.dataRegistry) {
+      return;
+    }
+
+    const shop = this.getActiveShop(this.dataRegistry);
+    const stock = shop.stock[this.clampSelectedShopIndex(shop.stock)];
+    const result = buyShopItem(
+      this.state,
+      shop,
+      stock,
+      (id) => this.dataRegistry!.getItem(id),
+    );
+
+    this.game.canvas.dataset.lastShopAction = result.success
+      ? `buy:${result.itemId}:${result.price}:${result.gold}`
+      : `buy-failed:${result.reason}:${result.itemId}:${result.price}:${result.gold}`;
+    this.refreshOpenPanel();
+  }
+
+  private sellSelectedMarketItem(sellMultiplier = 1): void {
+    if (!this.state || !this.dataRegistry) {
+      return;
+    }
+
+    const entries = this.getInventoryPanelEntries(this.state.inventory.items, this.state.inventory.equipmentInstances);
+    const entry = entries[this.clampSelectedMarketInventoryIndex(entries)];
+    const item = entry ? this.dataRegistry.getItem(entry.itemId) : undefined;
+    const result = sellInventoryItem(this.state, item, 1, sellMultiplier);
+
+    this.game.canvas.dataset.lastShopAction = result.success
+      ? `sell:${result.itemId}:${result.price}:${result.gold}`
+      : `sell-failed:${result.reason}:${result.itemId}:${result.price}:${result.gold}`;
+    this.refreshOpenPanel();
+  }
+
+  private appraiseSelectedMarketItem(): void {
+    if (!this.state || !this.dataRegistry) {
+      return;
+    }
+
+    const shop = this.getActiveShop(this.dataRegistry);
+    const entries = this.getInventoryPanelEntries(this.state.inventory.items, this.state.inventory.equipmentInstances);
+    const entry = entries[this.clampSelectedMarketInventoryIndex(entries)];
+    const item = entry ? this.dataRegistry.getItem(entry.itemId) : undefined;
+    const result = appraiseInventoryItem(this.state, item, shop.appraiser);
+
+    this.game.canvas.dataset.lastAppraiserAction = result.success
+      ? `appraise:${result.itemId}:${result.price}:${result.gold}`
+      : `appraise-failed:${result.reason}:${result.itemId}:${result.price}:${result.gold}`;
+    this.refreshOpenPanel();
+  }
+
   private removeSelectedEquipment(): void {
     if (!this.state) {
       return;
@@ -928,6 +1137,62 @@ export class UIScene extends Phaser.Scene {
     if (removeEquipment(this.state, this.selectedEquipmentSlot)) {
       this.game.canvas.dataset.lastEquipmentAction = `remove:${this.selectedEquipmentSlot}`;
     }
+  }
+
+  private getActiveShop(dataRegistry: DataRegistry): ShopDefinition {
+    const shop = this.activeShopId ? dataRegistry.getShop(this.activeShopId) : dataRegistry.getShops()[0];
+
+    if (!shop) {
+      throw new Error("No shop data is available.");
+    }
+
+    return shop;
+  }
+
+  private syncShopDataset(
+    shop: ShopDefinition,
+    selectedStockItem: ItemDefinition | null,
+    selectedInventoryItem: ItemDefinition | null,
+    gold: number,
+  ): void {
+    this.game.canvas.dataset.shopPanel = "visible";
+    this.game.canvas.dataset.appraiserPanel = "hidden";
+    this.game.canvas.dataset.activeShop = shop.id;
+    this.game.canvas.dataset.activeShopName = shop.name;
+    this.game.canvas.dataset.activeShopRegion = shop.regionId;
+    this.game.canvas.dataset.shopStock = shop.stock.map((stock) => stock.itemId).join("|");
+    this.game.canvas.dataset.shopStockPrices = shop.stock
+      .map((stock) => getShopBuyPrice(this.dataRegistry!.getItem(stock.itemId), stock))
+      .join("|");
+    this.game.canvas.dataset.selectedShopItem = selectedStockItem?.id ?? "";
+    this.game.canvas.dataset.selectedShopItemName = selectedStockItem?.name ?? "";
+    this.game.canvas.dataset.selectedShopSellItem = selectedInventoryItem?.id ?? "";
+    this.game.canvas.dataset.selectedShopSellValue = selectedInventoryItem ? String(getMarketSellValue(selectedInventoryItem)) : "";
+    this.game.canvas.dataset.inventoryGold = String(gold);
+    this.game.canvas.dataset.playerGold = String(gold);
+  }
+
+  private syncAppraiserDataset(
+    shop: ShopDefinition,
+    item: ItemDefinition | null,
+    gold: number,
+    appraisalCost: number,
+    improvedSellValue: number,
+  ): void {
+    this.game.canvas.dataset.shopPanel = "hidden";
+    this.game.canvas.dataset.appraiserPanel = "visible";
+    this.game.canvas.dataset.activeShop = shop.id;
+    this.game.canvas.dataset.activeShopName = shop.name;
+    this.game.canvas.dataset.activeShopRegion = shop.regionId;
+    this.game.canvas.dataset.appraiserIdentifyCost = item ? String(appraisalCost) : "";
+    this.game.canvas.dataset.appraiserImprovedSellValue = item ? String(improvedSellValue) : "";
+    this.game.canvas.dataset.selectedAppraiserItem = item?.id ?? "";
+    this.game.canvas.dataset.selectedAppraiserItemName = item ? getVisibleItemName(this.state!.inventory, item) : "";
+    this.game.canvas.dataset.selectedAppraiserItemKnown = item ? String(isItemAppraised(this.state!.inventory, item)) : "";
+    this.game.canvas.dataset.selectedAppraiserItemDescription = item ? getVisibleItemDescription(this.state!.inventory, item) : "";
+    this.game.canvas.dataset.appraisedItems = this.state?.inventory.appraisedItemIds.join("|") ?? "";
+    this.game.canvas.dataset.inventoryGold = String(gold);
+    this.game.canvas.dataset.playerGold = String(gold);
   }
 
   private addPanelButton(x: number, y: number, width: number, height: number, label: string, callback: () => void): void {
@@ -1453,10 +1718,10 @@ export class UIScene extends Phaser.Scene {
 
   private syncSelectedInventoryDataset(item: ItemDefinition | null, quantity: number | null, source: string | null): void {
     this.game.canvas.dataset.selectedInventoryItem = item?.id ?? "";
-    this.game.canvas.dataset.selectedInventoryItemName = item?.name ?? "";
+    this.game.canvas.dataset.selectedInventoryItemName = item && this.state ? getVisibleItemName(this.state.inventory, item) : item?.name ?? "";
     this.game.canvas.dataset.selectedInventoryItemQuantity = quantity ? String(quantity) : "";
     this.game.canvas.dataset.selectedInventoryItemRarity = item ? getItemRarity(item) : "";
-    this.game.canvas.dataset.selectedInventoryItemDescription = item?.description ?? "";
+    this.game.canvas.dataset.selectedInventoryItemDescription = item && this.state ? getVisibleItemDescription(this.state.inventory, item) : item?.description ?? "";
     this.game.canvas.dataset.selectedInventoryItemSource = source ?? "";
   }
 
@@ -1616,6 +1881,26 @@ export class UIScene extends Phaser.Scene {
 
     this.selectedInventoryIndex = Phaser.Math.Clamp(this.selectedInventoryIndex, 0, items.length - 1);
     return this.selectedInventoryIndex;
+  }
+
+  private clampSelectedShopIndex(stock: ShopDefinition["stock"]): number {
+    if (stock.length === 0) {
+      this.selectedShopIndex = 0;
+      return 0;
+    }
+
+    this.selectedShopIndex = Phaser.Math.Clamp(this.selectedShopIndex, 0, stock.length - 1);
+    return this.selectedShopIndex;
+  }
+
+  private clampSelectedMarketInventoryIndex(items: InventoryPanelEntry[]): number {
+    if (items.length === 0) {
+      this.selectedMarketInventoryIndex = 0;
+      return 0;
+    }
+
+    this.selectedMarketInventoryIndex = Phaser.Math.Clamp(this.selectedMarketInventoryIndex, 0, items.length - 1);
+    return this.selectedMarketInventoryIndex;
   }
 
   private getInventoryPanelEntries(

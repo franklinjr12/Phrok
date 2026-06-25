@@ -88,6 +88,7 @@ async function seedLevel40Save(page: Page): Promise<void> {
       items: [{ id: "training-sword", quantity: 1 }],
       gold: 0,
       equipmentInstances: [],
+      appraisedItemIds: [],
     };
     const gameState = {
       currentSaveSlot: 1,

@@ -77,6 +77,7 @@ export interface ItemDefinition {
   twoHanded?: boolean;
   statModifiers?: ItemStatModifiers;
   consumableEffect?: ConsumableEffectDefinition;
+  appraisable?: boolean;
   value: number;
 }
 
@@ -230,6 +231,30 @@ export interface NpcDefinition {
   interactionRadius: number;
   dialogueId: string;
   serviceType: string;
+  shopId?: string;
+}
+
+export interface ShopStockEntryDefinition {
+  itemId: string;
+  quantity: number;
+  priceMultiplier: number;
+}
+
+export interface AppraiserDefinition {
+  identifyCostMultiplier: number;
+  minIdentifyCost: number;
+  improvedSellMultiplier: number;
+}
+
+export interface ShopDefinition {
+  id: string;
+  name: string;
+  regionId: string;
+  mapId: string;
+  npcId: string;
+  serviceType: "shop" | "appraiser";
+  stock: ShopStockEntryDefinition[];
+  appraiser?: AppraiserDefinition;
 }
 
 export interface RecipeDefinition {
@@ -301,6 +326,7 @@ export interface DataFileMap {
   dungeons: DungeonDefinition;
   dialogues: DialogueDefinition;
   npcs: NpcDefinition;
+  shops: ShopDefinition;
   recipes: RecipeDefinition;
   supports: SupportDefinition;
   quests: QuestDefinition;
