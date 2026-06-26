@@ -58,6 +58,7 @@ export function createNewGameState(): GameState {
       gold: 0,
       equipmentInstances: [],
       appraisedItemIds: [],
+      refinementLevels: {},
     },
     storage: createEmptyStorageState(),
     equipment: {
@@ -121,6 +122,7 @@ export function createCharacterGameState(name: string, playerClass: ClassDefinit
   state.inventory.gold = state.playerProfile.gold;
   state.inventory.equipmentInstances = [];
   state.inventory.appraisedItemIds = [];
+  state.inventory.refinementLevels = {};
   state.equipment.weapon = playerClass.startingWeaponId;
   syncCharacterVitalsToDerivedStats(
     state,

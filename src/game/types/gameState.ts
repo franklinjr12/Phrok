@@ -126,6 +126,7 @@ export interface InventoryState {
   gold: number;
   equipmentInstances: EquipmentInstance[];
   appraisedItemIds: string[];
+  refinementLevels: Record<string, number>;
 }
 
 export interface StorageState {

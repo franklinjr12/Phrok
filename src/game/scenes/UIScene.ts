@@ -12,6 +12,14 @@ import {
   removeEquipment,
 } from "../systems/equipment";
 import {
+  getRefinedItemName,
+  getRefineLevel,
+  getRefinementPreview,
+  isItemRefinable,
+  refineItem,
+  type RefinementPreview,
+} from "../systems/refinement";
+import {
   allocateStatPoint,
   baseStatKeys,
   baseStatLabels,
@@ -69,7 +77,7 @@ import type { DataRegistry } from "../data/dataRegistry";
 import type { ItemDefinition, ItemRarity, RecipeDefinition, ShopDefinition, SkillDefinition } from "../types/dataDefinitions";
 import type { BaseStatKey, EquipmentInstance, EquipmentSlot, GameState, InventoryItem } from "../types/gameState";
 
-type PanelMode = "inventory" | "equipment" | "character" | "skills" | "crafting" | "shop" | "appraiser" | "storage";
+type PanelMode = "inventory" | "equipment" | "character" | "skills" | "crafting" | "refinement" | "shop" | "appraiser" | "storage";
 type InventoryPanelEntry = {
   itemId: string;
   quantity: number;
@@ -109,6 +117,7 @@ export class UIScene extends Phaser.Scene {
   private unsubscribeStatusEffectsChanged?: () => void;
   private unsubscribeCraftingOpened?: () => void;
   private unsubscribeCraftingChanged?: () => void;
+  private unsubscribeRefinementOpened?: () => void;
   private unsubscribeRecipeUnlocked?: () => void;
   private unsubscribeShopOpened?: () => void;
   private unsubscribeStorageOpened?: () => void;
@@ -140,6 +149,7 @@ export class UIScene extends Phaser.Scene {
   private selectedStorageInventoryIndex = 0;
   private selectedStorageIndex = 0;
   private selectedCraftingIndex = 0;
+  private selectedRefinementIndex = 0;
   private storageInventoryPage = 0;
   private storagePage = 0;
   private selectedEquipmentSlot: EquipmentSlot = "weapon";
@@ -147,6 +157,7 @@ export class UIScene extends Phaser.Scene {
   private activeShopId = "";
   private activeStorageNpcId = "";
   private activeCraftingNpcId = "";
+  private activeRefinementNpcId = "";
   private storageCategoryFilter: StorageCategoryFilter = "all";
   private storageRarityFilter: ItemRarity | "all" = "all";
   private storageClassFilter: StorageClassFilter = "all";
@@ -225,6 +236,7 @@ export class UIScene extends Phaser.Scene {
       this.unsubscribeStatusEffectsChanged?.();
       this.unsubscribeCraftingOpened?.();
       this.unsubscribeCraftingChanged?.();
+      this.unsubscribeRefinementOpened?.();
       this.unsubscribeRecipeUnlocked?.();
       this.unsubscribeShopOpened?.();
       this.unsubscribeStorageOpened?.();
@@ -428,6 +440,13 @@ export class UIScene extends Phaser.Scene {
 
     this.unsubscribeRecipeUnlocked = eventBus.on("recipeUnlocked", ({ recipeId, recipeName }) => {
       this.game.canvas.dataset.lastRecipeUnlock = `${recipeId}:${recipeName}`;
+    });
+
+    this.unsubscribeRefinementOpened = eventBus.on("refinementOpened", ({ npcId }) => {
+      this.activeRefinementNpcId = npcId;
+      this.selectedRefinementIndex = 0;
+      this.game.canvas.dataset.activeRefinementNpc = npcId;
+      this.openPanel("refinement");
     });
 
     this.unsubscribeShopOpened = eventBus.on("shopOpened", ({ shopId, npcId }) => {
@@ -649,6 +668,7 @@ export class UIScene extends Phaser.Scene {
     this.game.canvas.dataset.appraiserPanel = "hidden";
     this.game.canvas.dataset.storagePanel = "hidden";
     this.game.canvas.dataset.craftingPanel = "hidden";
+    this.game.canvas.dataset.refinementPanel = "hidden";
   }
 
   private manualSave(): void {
@@ -735,6 +755,8 @@ export class UIScene extends Phaser.Scene {
       this.renderSkillPanel(this.state, this.dataRegistry);
     } else if (this.activePanel === "crafting") {
       this.renderCraftingPanel(this.state, this.dataRegistry);
+    } else if (this.activePanel === "refinement") {
+      this.renderRefinementPanel(this.state, this.dataRegistry);
     } else if (this.activePanel === "shop") {
       this.renderShopPanel(this.state, this.dataRegistry);
     } else if (this.activePanel === "appraiser") {
@@ -839,7 +861,7 @@ export class UIScene extends Phaser.Scene {
       this.addPanelRectangle(124, y, 18, 18, this.getItemIconColor(item), 0.94)
         .setOrigin(0)
         .setStrokeStyle(1, 0xf8fafc, 0.58);
-      this.addPanelText(152, y - 2, getVisibleItemName(state.inventory, item), 15, "#f8fafc");
+      this.addPanelText(152, y - 2, isItemRefinable(item) ? getRefinedItemName(state.inventory, item) : getVisibleItemName(state.inventory, item), 15, "#f8fafc");
       this.addPanelText(374, y - 2, String(entry.quantity), 15, "#f8fafc");
       this.addPanelText(430, y - 2, getItemRarity(item), 15, this.getRarityColor(item));
     });
@@ -914,6 +936,63 @@ export class UIScene extends Phaser.Scene {
     this.syncCraftingDataset(state, dataRegistry, recipes, selectedRecipe, outputItem, craftFailure);
   }
 
+  private renderRefinementPanel(state: GameState, dataRegistry: DataRegistry): void {
+    const entries = this.getInventoryPanelEntries(state.inventory.items, state.inventory.equipmentInstances)
+      .filter((entry) => isItemRefinable(dataRegistry.getItem(entry.itemId)));
+    const selected = this.clampSelectedRefinementIndex(entries);
+    const selectedEntry = entries[selected] ?? null;
+    const selectedItem = selectedEntry ? dataRegistry.getItem(selectedEntry.itemId) : null;
+    const preview = getRefinementPreview(state, selectedItem);
+
+    this.addPanelRectangle(76, 62, 648, 470, panelFill, 0.96)
+      .setOrigin(0)
+      .setStrokeStyle(2, panelStroke, 0.92);
+    this.addPanelText(104, 86, "Refinement", 23, "#f8fafc");
+    this.addPanelText(104, 120, `Gold ${state.inventory.gold}`, 15, "#fde68a");
+    this.addPanelText(104, 154, "Gear", 14, "#94a3b8");
+
+    entries.slice(0, 8).forEach((entry, index) => {
+      const item = dataRegistry.getItem(entry.itemId);
+      const level = getRefineLevel(state.inventory, item.id);
+      const y = 184 + index * 34;
+      const row = this.addPanelRectangle(104, y - 6, 338, 28, index === selected ? 0x293548 : 0x18222c, 0.94)
+        .setOrigin(0)
+        .setStrokeStyle(1, index === selected ? 0xfacc15 : 0x334155, 0.9)
+        .setInteractive({ useHandCursor: true });
+      row.on("pointerdown", () => {
+        this.selectedRefinementIndex = index;
+        this.renderPanel();
+      });
+      this.addPanelText(116, y, this.truncateText(getRefinedItemName(state.inventory, item), 25), 13, "#f8fafc");
+      this.addPanelText(326, y, `+${level}`, 13, level > 0 ? "#fde68a" : "#94a3b8");
+      this.addPanelText(374, y, entry.source, 12, "#cbd5e1");
+    });
+
+    this.addPanelRectangle(472, 154, 220, 254, 0x17212b, 0.95)
+      .setOrigin(0)
+      .setStrokeStyle(1, 0x475569, 0.86);
+
+    if (selectedItem) {
+      const materialText = preview.materials
+        .map((material) => `${dataRegistry.getItem(material.itemId).name} ${material.owned}/${material.required}`)
+        .join("; ");
+      const statusText = preview.canRefine ? "Ready" : `Blocked: ${preview.blockReason}`;
+
+      this.addPanelText(492, 176, this.truncateText(getRefinedItemName(state.inventory, selectedItem), 22), 16, "#f8fafc");
+      this.addPanelText(492, 206, `Target +${preview.targetLevel}   Chance ${Math.round(preview.successChance * 100)}%`, 13, "#bbf7d0");
+      this.addPanelText(492, 232, `Cost ${preview.goldCost}g`, 13, "#fde68a");
+      this.addPanelText(492, 260, this.wrapText(materialText || "No materials", 25), 12, preview.blockReason === "missing-materials" ? "#fca5a5" : "#cbd5e1");
+      this.addPanelText(492, 334, this.wrapText(preview.failureResult, 25), 12, "#fbbf24");
+      this.addPanelText(492, 372, statusText, 13, preview.canRefine ? "#bbf7d0" : "#fca5a5");
+    } else {
+      this.addPanelText(492, 190, "No refinable item", 15, "#94a3b8");
+    }
+
+    this.addPanelButton(472, 430, 92, 34, "Refine", () => this.refineSelectedItem());
+    this.addPanelButton(600, 478, 92, 28, "Close", () => this.closePanel());
+    this.syncRefinementDataset(state, entries, selectedItem, preview);
+  }
+
   private renderItemDetails(item: ItemDefinition | null, entry: InventoryPanelEntry | null): void {
     this.addPanelRectangle(512, 158, 164, 252, 0x17212b, 0.95)
       .setOrigin(0)
@@ -927,7 +1006,7 @@ export class UIScene extends Phaser.Scene {
       return;
     }
 
-    this.addPanelText(532, 246, this.state ? getVisibleItemName(this.state.inventory, item) : item.name, 17, "#f8fafc");
+    this.addPanelText(532, 246, this.state && isItemRefinable(item) ? getRefinedItemName(this.state.inventory, item) : this.state ? getVisibleItemName(this.state.inventory, item) : item.name, 17, "#f8fafc");
     this.addPanelText(532, 276, entry.source === "equipment" ? "Quantity 1" : `Quantity ${entry.quantity}`, 14, "#cbd5e1");
     this.addPanelText(532, 300, getItemRarity(item), 14, this.getRarityColor(item));
     this.addPanelText(532, 332, this.wrapText(this.state ? getVisibleItemDescription(this.state.inventory, item) : item.description, 20), 13, "#cbd5e1");
@@ -1166,7 +1245,7 @@ export class UIScene extends Phaser.Scene {
       .setOrigin(0)
       .setStrokeStyle(2, panelStroke, 0.92);
     this.addPanelText(96, 84, "Equipment", 24, "#f8fafc");
-    const stats = getEquipmentStats(state.equipment, (id) => dataRegistry.getItem(id));
+    const stats = getEquipmentStats(state.equipment, (id) => dataRegistry.getItem(id), state.inventory.refinementLevels);
     const derivedStats = calculateDerivedStats(
       state,
       dataRegistry.getClass(state.character.archetype),
@@ -1465,6 +1544,24 @@ export class UIScene extends Phaser.Scene {
     this.refreshOpenPanel();
   }
 
+  private refineSelectedItem(): void {
+    if (!this.state || !this.dataRegistry) {
+      return;
+    }
+
+    const entries = this.getInventoryPanelEntries(this.state.inventory.items, this.state.inventory.equipmentInstances)
+      .filter((entry) => isItemRefinable(this.dataRegistry!.getItem(entry.itemId)));
+    const entry = entries[this.clampSelectedRefinementIndex(entries)];
+    const item = entry ? this.dataRegistry.getItem(entry.itemId) : null;
+    const result = refineItem(this.state, item);
+
+    this.game.canvas.dataset.lastRefinementAction = result.success
+      ? `success:${result.itemId}:${result.previousLevel}->${result.nextLevel}:${result.consumedGold}`
+      : `failed:${result.reason}:${result.itemId}:${result.previousLevel}->${result.nextLevel}:${result.consumedGold}`;
+    this.syncDerivedStatsDataset(this.state, this.dataRegistry);
+    this.refreshOpenPanel();
+  }
+
   private depositSelectedStorageItem(): void {
     if (!this.state || !this.dataRegistry) {
       return;
@@ -1723,6 +1820,36 @@ export class UIScene extends Phaser.Scene {
         .join("|")
       : "";
     this.game.canvas.dataset.craftingButtons = "Craft|Close";
+    this.game.canvas.dataset.inventoryGold = String(state.inventory.gold);
+    this.game.canvas.dataset.playerGold = String(state.inventory.gold);
+  }
+
+  private syncRefinementDataset(
+    state: GameState,
+    entries: InventoryPanelEntry[],
+    selectedItem: ItemDefinition | null,
+    preview: RefinementPreview,
+  ): void {
+    this.game.canvas.dataset.shopPanel = "hidden";
+    this.game.canvas.dataset.appraiserPanel = "hidden";
+    this.game.canvas.dataset.storagePanel = "hidden";
+    this.game.canvas.dataset.craftingPanel = "hidden";
+    this.game.canvas.dataset.refinementPanel = "visible";
+    this.game.canvas.dataset.activeRefinementNpc = this.activeRefinementNpcId;
+    this.game.canvas.dataset.refinableItems = entries.map((entry) => entry.itemId).join("|");
+    this.game.canvas.dataset.selectedRefinementItem = selectedItem?.id ?? "";
+    this.game.canvas.dataset.selectedRefinementItemName = selectedItem ? getRefinedItemName(state.inventory, selectedItem) : "";
+    this.game.canvas.dataset.selectedRefinementLevel = selectedItem ? String(getRefineLevel(state.inventory, selectedItem.id)) : "";
+    this.game.canvas.dataset.selectedRefinementTargetLevel = selectedItem ? String(preview.targetLevel) : "";
+    this.game.canvas.dataset.selectedRefinementCost = selectedItem ? String(preview.goldCost) : "";
+    this.game.canvas.dataset.selectedRefinementMaterials = preview.materials
+      .map((material) => `${material.itemId}:${material.owned}/${material.required}`)
+      .join("|");
+    this.game.canvas.dataset.selectedRefinementSuccessChance = selectedItem ? String(preview.successChance) : "";
+    this.game.canvas.dataset.selectedRefinementFailureResult = selectedItem ? preview.failureResult : "";
+    this.game.canvas.dataset.selectedRefinementCanRefine = String(Boolean(selectedItem && preview.canRefine));
+    this.game.canvas.dataset.selectedRefinementBlockReason = selectedItem ? preview.blockReason : "no-item";
+    this.game.canvas.dataset.refinementButtons = "Refine|Close";
     this.game.canvas.dataset.inventoryGold = String(state.inventory.gold);
     this.game.canvas.dataset.playerGold = String(state.inventory.gold);
   }
@@ -2383,7 +2510,8 @@ export class UIScene extends Phaser.Scene {
 
   private syncSelectedInventoryDataset(item: ItemDefinition | null, quantity: number | null, source: string | null): void {
     this.game.canvas.dataset.selectedInventoryItem = item?.id ?? "";
-    this.game.canvas.dataset.selectedInventoryItemName = item && this.state ? getVisibleItemName(this.state.inventory, item) : item?.name ?? "";
+    this.game.canvas.dataset.selectedInventoryItemName = item && this.state && isItemRefinable(item) ? getRefinedItemName(this.state.inventory, item) : item && this.state ? getVisibleItemName(this.state.inventory, item) : item?.name ?? "";
+    this.game.canvas.dataset.selectedInventoryItemRefineLevel = item && this.state && isItemRefinable(item) ? String(getRefineLevel(this.state.inventory, item.id)) : "";
     this.game.canvas.dataset.selectedInventoryItemQuantity = quantity ? String(quantity) : "";
     this.game.canvas.dataset.selectedInventoryItemRarity = item ? getItemRarity(item) : "";
     this.game.canvas.dataset.selectedInventoryItemDescription = item && this.state ? getVisibleItemDescription(this.state.inventory, item) : item?.description ?? "";
@@ -2517,6 +2645,16 @@ export class UIScene extends Phaser.Scene {
 
     this.selectedCraftingIndex = Phaser.Math.Clamp(this.selectedCraftingIndex, 0, recipes.length - 1);
     return this.selectedCraftingIndex;
+  }
+
+  private clampSelectedRefinementIndex(items: InventoryPanelEntry[]): number {
+    if (items.length === 0) {
+      this.selectedRefinementIndex = 0;
+      return 0;
+    }
+
+    this.selectedRefinementIndex = Phaser.Math.Clamp(this.selectedRefinementIndex, 0, items.length - 1);
+    return this.selectedRefinementIndex;
   }
 
   private isSkillUnlocked(state: GameState, skill: SkillDefinition): boolean {

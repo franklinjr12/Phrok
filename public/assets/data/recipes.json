@@ -10135,5 +10135,63 @@
       "material-ironroot-cog-45"
     ],
     "resultItemId": "starbound-mantle"
+  },
+  {
+    "id": "recipe-stabilizer",
+    "name": "Stabilizer Batch",
+    "outputItemId": "stabilizer",
+    "outputQuantity": 2,
+    "requiredMaterials": [
+      {
+        "itemId": "copper-ore",
+        "quantity": 2
+      },
+      {
+        "itemId": "iron-ore",
+        "quantity": 1
+      }
+    ],
+    "requiredGold": 25,
+    "requiredLevel": 20,
+    "requiredRegionId": "ironroot-highlands",
+    "requiredNpcId": "ironroot-forgemaster",
+    "unlockCondition": {
+      "type": "npc",
+      "npcId": "ironroot-forgemaster"
+    },
+    "ingredientItemIds": [
+      "copper-ore",
+      "iron-ore"
+    ],
+    "resultItemId": "stabilizer"
+  },
+  {
+    "id": "recipe-rune-ore",
+    "name": "Rune Ore Tempering",
+    "outputItemId": "rune-ore",
+    "outputQuantity": 1,
+    "requiredMaterials": [
+      {
+        "itemId": "silver-ore",
+        "quantity": 3
+      },
+      {
+        "itemId": "stabilizer",
+        "quantity": 1
+      }
+    ],
+    "requiredGold": 80,
+    "requiredLevel": 65,
+    "requiredRegionId": "ironroot-highlands",
+    "requiredNpcId": "ironroot-forgemaster",
+    "unlockCondition": {
+      "type": "npc",
+      "npcId": "ironroot-forgemaster"
+    },
+    "ingredientItemIds": [
+      "silver-ore",
+      "stabilizer"
+    ],
+    "resultItemId": "rune-ore"
   }
 ]

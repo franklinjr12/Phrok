@@ -46,6 +46,8 @@ export interface GameEventMap {
   craftingOpened: { npcId?: string };
   recipeUnlocked: { recipeId: string; recipeName: string };
   craftingChanged: { unlockedRecipeIds: string[] };
+  refinementOpened: { npcId: string };
+  refinementAttempted: { itemId: string; success: boolean; previousLevel: number; nextLevel: number; consumedGold: number };
   shopOpened: { shopId: string; npcId: string };
   storageOpened: { npcId: string };
   storageChanged: { storage: StorageState };

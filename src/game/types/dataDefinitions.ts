@@ -78,6 +78,7 @@ export interface ItemDefinition {
   statModifiers?: ItemStatModifiers;
   consumableEffect?: ConsumableEffectDefinition;
   appraisable?: boolean;
+  refinable?: boolean;
   value: number;
 }
 

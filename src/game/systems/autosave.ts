@@ -310,6 +310,7 @@ function normalizeInventory(rawInventory: unknown, fallback: GameState["inventor
       }))
       .filter((item) => item.instanceId.length > 0 && item.itemId.length > 0),
     appraisedItemIds: stringArray(source.appraisedItemIds, fallback.appraisedItemIds),
+    refinementLevels: normalizeRefinementLevels(source.refinementLevels, fallback.refinementLevels),
   };
 }
 
@@ -372,6 +373,19 @@ function normalizeCraftingState(rawCraftingState: unknown, fallback: GameState["
     unlockedRecipeIds: stringArray(source.unlockedRecipeIds, fallback.unlockedRecipeIds),
     unlockNotifications: stringArray(source.unlockNotifications, fallback.unlockNotifications),
   };
+}
+
+function normalizeRefinementLevels(rawLevels: unknown, fallback: GameState["inventory"]["refinementLevels"] = {}): GameState["inventory"]["refinementLevels"] {
+  const source = isRecord(rawLevels) ? rawLevels : fallback;
+  const levels: Record<string, number> = {};
+
+  for (const [itemId, level] of Object.entries(source)) {
+    if (typeof level === "number" && Number.isFinite(level)) {
+      levels[itemId] = Math.max(0, Math.min(10, Math.floor(level)));
+    }
+  }
+
+  return levels;
 }
 
 function normalizeSettings(rawSettings: unknown, fallback: GameState["settings"]): GameState["settings"] {

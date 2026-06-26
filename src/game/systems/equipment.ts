@@ -217,15 +217,55 @@ export function getItemEquipmentStats(item: ItemDefinition | null): EquipmentSta
   return stats;
 }
 
+export function getRefinedItemEquipmentStats(item: ItemDefinition | null, refineLevel = 0): EquipmentStats {
+  const stats = getItemEquipmentStats(item);
+  const safeLevel = Math.max(0, Math.min(10, Math.floor(refineLevel)));
+
+  if (!item || safeLevel === 0 || !isEquipmentItem(item)) {
+    return stats;
+  }
+
+  const attackBonus = item.type === "weapon" ? safeLevel * 2 : 0;
+  const defenseBonus = item.type === "armor" ? safeLevel : 0;
+  const utilityBonus = item.type === "accessory" || item.type === "sigil" || item.type === "support"
+    ? Math.floor((safeLevel + 1) / 2)
+    : 0;
+
+  if (attackBonus > 0) {
+    stats.attack += attackBonus;
+    stats.magicAttack += attackBonus;
+    stats.derivedStats.physicalAttack = (stats.derivedStats.physicalAttack ?? 0) + attackBonus;
+    stats.derivedStats.rangedAttack = (stats.derivedStats.rangedAttack ?? 0) + attackBonus;
+    stats.derivedStats.magicAttack = (stats.derivedStats.magicAttack ?? 0) + attackBonus;
+  }
+
+  if (defenseBonus > 0) {
+    stats.defense += defenseBonus;
+    stats.magicDefense += defenseBonus;
+    stats.derivedStats.defense = (stats.derivedStats.defense ?? 0) + defenseBonus;
+    stats.derivedStats.magicDefense = (stats.derivedStats.magicDefense ?? 0) + defenseBonus;
+  }
+
+  if (utilityBonus > 0) {
+    stats.hp += utilityBonus * 5;
+    stats.sp += utilityBonus * 2;
+    stats.derivedStats.maxHp = (stats.derivedStats.maxHp ?? 0) + utilityBonus * 5;
+    stats.derivedStats.maxSp = (stats.derivedStats.maxSp ?? 0) + utilityBonus * 2;
+  }
+
+  return stats;
+}
+
 export function getEquipmentStats(
   equipment: EquipmentData,
   getItem: (id: string) => ItemDefinition,
+  refinementLevels: Record<string, number> = {},
 ): EquipmentStats {
   const total = createEmptyEquipmentStats();
 
   for (const slot of equipmentSlots) {
     const itemId = equipment[slot];
-    mergeEquipmentStats(total, itemId ? getItemEquipmentStats(getItem(itemId)) : createEmptyEquipmentStats());
+    mergeEquipmentStats(total, itemId ? getRefinedItemEquipmentStats(getItem(itemId), refinementLevels[itemId] ?? 0) : createEmptyEquipmentStats());
   }
 
   return total;
@@ -281,6 +321,10 @@ export function getItemRarity(item: ItemDefinition): ItemRarity {
   }
 
   return "Common";
+}
+
+export function isEquipmentItem(item: ItemDefinition): boolean {
+  return getValidEquipmentSlots(item).length > 0;
 }
 
 export function getRarityStatMultiplier(rarity: ItemRarity): number {

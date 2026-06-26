@@ -589,6 +589,15 @@ export class WorldScene extends Phaser.Scene {
       return;
     }
 
+    if (npc.serviceType === "refiner") {
+      this.pendingNpcInteraction = undefined;
+      this.player?.clearDestination();
+      this.game.canvas.dataset.pendingNpcInteraction = "";
+      this.game.canvas.dataset.lastOpenedRefinementNpc = npc.id;
+      eventBus.emit("refinementOpened", { npcId: npc.id });
+      return;
+    }
+
     const dialogue = dataRegistry.getDialogue(npc.dialogueId);
     const advancedClassOptions = npc.serviceType === "advanced-class" && this.state
       ? getAdvancedClassOptionsForBase(dataRegistry.getClass(this.state.character.archetype))

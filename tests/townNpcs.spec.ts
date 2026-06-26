@@ -84,6 +84,41 @@ test("merchant NPC opens a JSON-backed shop for buying and selling", async ({ pa
   await expect(canvas).toHaveAttribute("data-last-shop-action", /sell:jelly-gel:2:43|sell:training-sword:12:53/);
 });
 
+test("refiner NPC opens refinement UI and upgrades gear with materials", async ({ page }) => {
+  await seedMarketSave(page, {
+    mapId: "crownfield-town",
+    gold: 80,
+    items: [
+      { id: "training-sword", quantity: 1 },
+      { id: "copper-ore", quantity: 2 },
+    ],
+  });
+  await startApp(page);
+
+  const canvas = page.locator("canvas");
+  await expect(canvas).toHaveAttribute("data-scene", "main-menu");
+  await canvas.click({ position: { x: 400, y: 204 } });
+  await expect(canvas).toHaveAttribute("data-scene", "world");
+
+  await canvas.click({ position: { x: 592, y: 336 } });
+  await expect(canvas).toHaveAttribute("data-last-clicked-npc", "orun-brightslag");
+  await expect(canvas).toHaveAttribute("data-last-clicked-npc-service-type", "refiner");
+  await expect.poll(async () => await canvas.getAttribute("data-refinement-panel"), { timeout: 6000 }).toBe("visible");
+  await expect(canvas).toHaveAttribute("data-selected-refinement-item", "training-sword");
+  await expect(canvas).toHaveAttribute("data-selected-refinement-cost", "20");
+  await expect(canvas).toHaveAttribute("data-selected-refinement-materials", "copper-ore:2/1");
+  await expect(canvas).toHaveAttribute("data-selected-refinement-success-chance", "1");
+  await expect(canvas).toHaveAttribute("data-selected-refinement-failure-result", "No failure before +5");
+  await expect(canvas).toHaveAttribute("data-selected-refinement-can-refine", "true");
+
+  await canvas.click({ position: { x: 512, y: 446 } });
+  await expect(canvas).toHaveAttribute("data-last-refinement-action", "success:training-sword:0->1:20");
+  await expect(canvas).toHaveAttribute("data-selected-refinement-level", "1");
+  await expect(canvas).toHaveAttribute("data-selected-refinement-item-name", "Training Sword +1");
+  await expect(canvas).toHaveAttribute("data-inventory-gold", "60");
+  await expect(canvas).toHaveAttribute("data-player-derived-stats", /physicalAttack:/);
+});
+
 test("storage keeper opens shared storage with search, filters, sorting, and item transfer", async ({ page }) => {
   await seedStorageSave(page);
   await startApp(page);

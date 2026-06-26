@@ -69,5 +69,6 @@ function createInventory(): InventoryState {
     gold: 0,
     equipmentInstances: [],
     appraisedItemIds: [],
+    refinementLevels: {},
   };
 }

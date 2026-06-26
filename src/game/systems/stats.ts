@@ -150,7 +150,7 @@ export function calculateDerivedStats(
   getStatusEffect?: (id: string) => StatusEffectDefinition,
 ): DerivedStats {
   const modifiers = getAllStatModifiers(state, getStatusEffect);
-  const gear = getEquipmentStats(state.equipment, getItem);
+  const gear = getEquipmentStats(state.equipment, getItem, state.inventory.refinementLevels);
   const stats = getTotalBaseStats(state, getStatusEffect);
 
   for (const key of baseStatKeys) {

@@ -8375,5 +8375,83 @@
         "defense": 12
       }
     }
+  },
+  {
+    "id": "copper-ore",
+    "name": "Copper Ore",
+    "description": "A soft refinement ore used for early gear improvements.",
+    "type": "material",
+    "level": 5,
+    "rarity": "Common",
+    "icon": "placeholder-material-copper-ore",
+    "value": 6,
+    "allowedClassIds": [],
+    "twoHanded": false,
+    "statModifiers": {}
+  },
+  {
+    "id": "iron-ore",
+    "name": "Iron Ore",
+    "description": "A sturdy refinement ore used once gear starts to hold an edge.",
+    "type": "material",
+    "level": 25,
+    "rarity": "Uncommon",
+    "icon": "placeholder-material-iron-ore",
+    "value": 14,
+    "allowedClassIds": [],
+    "twoHanded": false,
+    "statModifiers": {}
+  },
+  {
+    "id": "silver-ore",
+    "name": "Silver Ore",
+    "description": "A bright refinement ore that carries higher-grade enchantments cleanly.",
+    "type": "material",
+    "level": 45,
+    "rarity": "Rare",
+    "icon": "placeholder-material-silver-ore",
+    "value": 28,
+    "allowedClassIds": [],
+    "twoHanded": false,
+    "statModifiers": {}
+  },
+  {
+    "id": "rune-ore",
+    "name": "Rune Ore",
+    "description": "A late-game refinement ore veined with quiet spellwork.",
+    "type": "material",
+    "level": 70,
+    "rarity": "Epic",
+    "icon": "placeholder-material-rune-ore",
+    "value": 48,
+    "allowedClassIds": [],
+    "twoHanded": false,
+    "statModifiers": {}
+  },
+  {
+    "id": "stabilizer",
+    "name": "Stabilizer",
+    "description": "A refiner reagent that keeps failed attempts from damaging gear too severely.",
+    "type": "material",
+    "level": 25,
+    "rarity": "Uncommon",
+    "icon": "placeholder-material-stabilizer",
+    "value": 18,
+    "allowedClassIds": [],
+    "twoHanded": false,
+    "statModifiers": {}
+  },
+  {
+    "id": "boss-catalyst",
+    "name": "Boss Catalyst",
+    "description": "A rare catalyst condensed from major monster cores for risky high refinement.",
+    "type": "material",
+    "level": 55,
+    "rarity": "Legendary",
+    "icon": "placeholder-material-boss-catalyst",
+    "value": 90,
+    "allowedClassIds": [],
+    "twoHanded": false,
+    "statModifiers": {}
   }
 ]

@@ -418,6 +418,7 @@ function validateItem(source: Record<string, unknown>, fileName: string): ItemDe
     statModifiers: normalizeItemModifier(source.statModifiers),
     consumableEffect: normalizeConsumableEffect(source.consumableEffect),
     appraisable: Boolean(source.appraisable),
+    refinable: typeof source.refinable === "boolean" ? source.refinable : undefined,
     value: optionalNumber(source, "value", 0),
   };
 }
