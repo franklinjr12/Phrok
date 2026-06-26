@@ -133,7 +133,20 @@ const validFiles: Record<string, unknown[]> = {
       },
     },
   ],
-  "recipes.json": [{ id: "training-sword-repair", name: "Training Sword Repair", resultItemId: "training-sword" }],
+  "recipes.json": [
+    {
+      id: "training-sword-repair",
+      name: "Training Sword Repair",
+      outputItemId: "training-sword",
+      outputQuantity: 1,
+      requiredMaterials: [{ itemId: "jelly-gel", quantity: 2 }],
+      requiredGold: 5,
+      requiredLevel: 2,
+      requiredRegionId: "crownfield",
+      requiredNpcId: "field-guide",
+      unlockCondition: { type: "npc", npcId: "field-guide" },
+    },
+  ],
   "supports.json": [{ id: "mira", name: "Mira" }],
   "quests.json": [{ id: "first-steps", name: "First Steps" }],
   "status-effects.json": [
@@ -282,6 +295,19 @@ describe("loadDataRegistry", () => {
       improvedSellMultiplier: 1.3,
     });
     expect(registry.getShopByNpcId("field-guide")?.id).toBe("field-shop");
+    expect(registry.getRecipes()[0]).toMatchObject({
+      id: "training-sword-repair",
+      outputItemId: "training-sword",
+      outputQuantity: 1,
+      requiredMaterials: [{ itemId: "jelly-gel", quantity: 2 }],
+      requiredGold: 5,
+      requiredLevel: 2,
+      requiredRegionId: "crownfield",
+      requiredNpcId: "field-guide",
+      unlockCondition: { type: "npc", npcId: "field-guide" },
+      ingredientItemIds: ["jelly-gel"],
+      resultItemId: "training-sword",
+    });
     expect(registry.getSupport("mira").skillIds).toEqual([]);
     expect(registry.getStatusEffect("guarded")).toMatchObject({
       type: "buff",

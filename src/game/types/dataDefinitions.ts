@@ -260,9 +260,31 @@ export interface ShopDefinition {
 export interface RecipeDefinition {
   id: string;
   name: string;
+  outputItemId: string;
+  outputQuantity: number;
+  requiredMaterials: RecipeMaterialRequirement[];
+  requiredGold: number;
+  requiredLevel: number;
+  requiredRegionId?: string;
+  requiredNpcId?: string;
+  unlockCondition: RecipeUnlockCondition;
   ingredientItemIds: string[];
   resultItemId: string;
 }
+
+export interface RecipeMaterialRequirement {
+  itemId: string;
+  quantity: number;
+}
+
+export type RecipeUnlockCondition =
+  | { type: "default" }
+  | { type: "npc"; npcId: string }
+  | { type: "bossDrop"; bossId: string }
+  | { type: "quest"; questId: string }
+  | { type: "huntingBoard"; boardId: string }
+  | { type: "exploration"; regionId: string }
+  | { type: "bestiaryMilestone"; enemyId: string; defeatCount: number };
 
 export interface SupportDefinition {
   id: string;

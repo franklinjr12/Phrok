@@ -43,6 +43,9 @@ export interface GameEventMap {
   saveCompleted: { saveSlot: number };
   dialogueOpened: { dialogueId: string };
   dialogueClosed: { dialogueId: string };
+  craftingOpened: { npcId?: string };
+  recipeUnlocked: { recipeId: string; recipeName: string };
+  craftingChanged: { unlockedRecipeIds: string[] };
   shopOpened: { shopId: string; npcId: string };
   storageOpened: { npcId: string };
   storageChanged: { storage: StorageState };

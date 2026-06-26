@@ -28,6 +28,13 @@ import {
   getConsumableCooldownSummary,
   useConsumableItem,
 } from "../systems/consumables";
+import {
+  canCraftRecipe,
+  craftRecipe,
+  getRecipeMaterialStatus,
+  getVisibleRecipes,
+  unlockRecipesForSource,
+} from "../systems/crafting";
 import { eventBus } from "../systems/eventBus";
 import { removeInventoryItem } from "../systems/inventory";
 import {
@@ -59,10 +66,10 @@ import { allocateSkillPoint, assignHotbarAction, getLearnedSkillLevel, hotbarSlo
 import { advancedClassUnlockLevel, getUnlockedSkillTreeIds, isAdvancedClassServiceAvailable } from "../systems/advancedClasses";
 import { getStatusSummary } from "../systems/statusEffects";
 import type { DataRegistry } from "../data/dataRegistry";
-import type { ItemDefinition, ItemRarity, ShopDefinition, SkillDefinition } from "../types/dataDefinitions";
+import type { ItemDefinition, ItemRarity, RecipeDefinition, ShopDefinition, SkillDefinition } from "../types/dataDefinitions";
 import type { BaseStatKey, EquipmentInstance, EquipmentSlot, GameState, InventoryItem } from "../types/gameState";
 
-type PanelMode = "inventory" | "equipment" | "character" | "skills" | "shop" | "appraiser" | "storage";
+type PanelMode = "inventory" | "equipment" | "character" | "skills" | "crafting" | "shop" | "appraiser" | "storage";
 type InventoryPanelEntry = {
   itemId: string;
   quantity: number;
@@ -100,6 +107,9 @@ export class UIScene extends Phaser.Scene {
   private unsubscribeHotbarChanged?: () => void;
   private unsubscribeHotbarUsed?: () => void;
   private unsubscribeStatusEffectsChanged?: () => void;
+  private unsubscribeCraftingOpened?: () => void;
+  private unsubscribeCraftingChanged?: () => void;
+  private unsubscribeRecipeUnlocked?: () => void;
   private unsubscribeShopOpened?: () => void;
   private unsubscribeStorageOpened?: () => void;
   private unsubscribeStorageChanged?: () => void;
@@ -129,12 +139,14 @@ export class UIScene extends Phaser.Scene {
   private selectedMarketInventoryIndex = 0;
   private selectedStorageInventoryIndex = 0;
   private selectedStorageIndex = 0;
+  private selectedCraftingIndex = 0;
   private storageInventoryPage = 0;
   private storagePage = 0;
   private selectedEquipmentSlot: EquipmentSlot = "weapon";
   private selectedSkillIndex = 0;
   private activeShopId = "";
   private activeStorageNpcId = "";
+  private activeCraftingNpcId = "";
   private storageCategoryFilter: StorageCategoryFilter = "all";
   private storageRarityFilter: ItemRarity | "all" = "all";
   private storageClassFilter: StorageClassFilter = "all";
@@ -174,6 +186,7 @@ export class UIScene extends Phaser.Scene {
     this.input.keyboard?.on("keydown-C", this.toggleCharacterPanel, this);
     this.input.keyboard?.on("keydown-K", this.toggleSkillPanel, this);
     this.input.keyboard?.on("keydown-P", this.toggleEquipmentPanel, this);
+    this.input.keyboard?.on("keydown-R", this.toggleCraftingPanel, this);
     this.input.keyboard?.on("keydown-S", this.manualSave, this);
     this.input.keyboard?.on("keydown-ESC", this.closePanel, this);
     this.input.keyboard?.on("keydown", this.handleHotbarKey, this);
@@ -183,6 +196,7 @@ export class UIScene extends Phaser.Scene {
       this.input.keyboard?.off("keydown-C", this.toggleCharacterPanel, this);
       this.input.keyboard?.off("keydown-K", this.toggleSkillPanel, this);
       this.input.keyboard?.off("keydown-P", this.toggleEquipmentPanel, this);
+      this.input.keyboard?.off("keydown-R", this.toggleCraftingPanel, this);
       this.input.keyboard?.off("keydown-S", this.manualSave, this);
       this.input.keyboard?.off("keydown-ESC", this.closePanel, this);
       this.input.keyboard?.off("keydown", this.handleHotbarKey, this);
@@ -209,6 +223,9 @@ export class UIScene extends Phaser.Scene {
       this.unsubscribeHotbarChanged?.();
       this.unsubscribeHotbarUsed?.();
       this.unsubscribeStatusEffectsChanged?.();
+      this.unsubscribeCraftingOpened?.();
+      this.unsubscribeCraftingChanged?.();
+      this.unsubscribeRecipeUnlocked?.();
       this.unsubscribeShopOpened?.();
       this.unsubscribeStorageOpened?.();
       this.unsubscribeStorageChanged?.();
@@ -396,6 +413,23 @@ export class UIScene extends Phaser.Scene {
       }
     });
 
+    this.unsubscribeCraftingOpened = eventBus.on("craftingOpened", ({ npcId }) => {
+      this.activeCraftingNpcId = npcId ?? "";
+      this.selectedCraftingIndex = 0;
+      this.game.canvas.dataset.activeCraftingNpc = this.activeCraftingNpcId;
+      unlockRecipesForSource(state, dataRegistry.getRecipes(), { type: "npc", npcId: this.activeCraftingNpcId });
+      this.openPanel("crafting");
+    });
+
+    this.unsubscribeCraftingChanged = eventBus.on("craftingChanged", ({ unlockedRecipeIds }) => {
+      this.game.canvas.dataset.unlockedRecipes = unlockedRecipeIds.join("|");
+      this.refreshOpenPanel();
+    });
+
+    this.unsubscribeRecipeUnlocked = eventBus.on("recipeUnlocked", ({ recipeId, recipeName }) => {
+      this.game.canvas.dataset.lastRecipeUnlock = `${recipeId}:${recipeName}`;
+    });
+
     this.unsubscribeShopOpened = eventBus.on("shopOpened", ({ shopId, npcId }) => {
       const shop = dataRegistry.getShop(shopId);
       this.activeShopId = shopId;
@@ -578,10 +612,26 @@ export class UIScene extends Phaser.Scene {
     this.openPanel("skills");
   }
 
+  private toggleCraftingPanel(): void {
+    if (this.activePanel === "storage") {
+      return;
+    }
+
+    if (this.activePanel === "crafting") {
+      this.closePanel();
+      return;
+    }
+
+    this.activeCraftingNpcId = this.getDefaultCraftingNpcId();
+    unlockRecipesForSource(this.state!, this.dataRegistry!.getRecipes(), { type: "npc", npcId: this.activeCraftingNpcId });
+    this.openPanel("crafting");
+  }
+
   private openPanel(mode: PanelMode): void {
     this.activePanel = mode;
     this.game.canvas.dataset.uiPanel = mode;
     this.game.canvas.dataset.gameplayInputBlocked = "true";
+    this.resetPanelDatasets();
     this.renderPanel();
   }
 
@@ -591,9 +641,14 @@ export class UIScene extends Phaser.Scene {
     this.game.canvas.dataset.uiPanel = "closed";
     this.game.canvas.dataset.gameplayInputBlocked = "false";
     this.game.canvas.dataset.itemComparison = "hidden";
+    this.resetPanelDatasets();
+  }
+
+  private resetPanelDatasets(): void {
     this.game.canvas.dataset.shopPanel = "hidden";
     this.game.canvas.dataset.appraiserPanel = "hidden";
     this.game.canvas.dataset.storagePanel = "hidden";
+    this.game.canvas.dataset.craftingPanel = "hidden";
   }
 
   private manualSave(): void {
@@ -678,6 +733,8 @@ export class UIScene extends Phaser.Scene {
       this.renderCharacterPanel(this.state, this.dataRegistry);
     } else if (this.activePanel === "skills") {
       this.renderSkillPanel(this.state, this.dataRegistry);
+    } else if (this.activePanel === "crafting") {
+      this.renderCraftingPanel(this.state, this.dataRegistry);
     } else if (this.activePanel === "shop") {
       this.renderShopPanel(this.state, this.dataRegistry);
     } else if (this.activePanel === "appraiser") {
@@ -792,6 +849,69 @@ export class UIScene extends Phaser.Scene {
     this.syncSelectedInventoryDataset(selectedItem, selectedEntry?.quantity ?? null, selectedEntry?.source ?? null);
     this.renderItemDetails(selectedItem, selectedEntry);
     this.renderInventoryButtons(selectedItem);
+  }
+
+  private renderCraftingPanel(state: GameState, dataRegistry: DataRegistry): void {
+    const recipes = getVisibleRecipes(state, dataRegistry.getRecipes())
+      .sort((left, right) => left.requiredLevel - right.requiredLevel || left.name.localeCompare(right.name));
+    const selected = this.clampSelectedCraftingIndex(recipes);
+    const selectedRecipe = recipes[selected] ?? null;
+    const outputItem = selectedRecipe ? dataRegistry.getItem(selectedRecipe.outputItemId) : null;
+    const craftFailure = selectedRecipe ? canCraftRecipe(state, selectedRecipe, this.getCraftingContext(state, dataRegistry)) : null;
+
+    this.addPanelRectangle(64, 54, 672, 500, panelFill, 0.96)
+      .setOrigin(0)
+      .setStrokeStyle(2, panelStroke, 0.92);
+    this.addPanelText(92, 78, "Crafting", 23, "#f8fafc");
+    this.addPanelText(92, 112, `Gold ${state.inventory.gold}   Known ${recipes.filter((recipe) => this.isCraftingRecipeUnlocked(state, recipe)).length}/${dataRegistry.getRecipes().length}`, 14, "#fde68a");
+    this.addPanelText(92, 146, "Recipes", 14, "#94a3b8");
+
+    recipes.slice(0, 9).forEach((recipe, index) => {
+      const rowItem = dataRegistry.getItem(recipe.outputItemId);
+      const locked = !this.isCraftingRecipeUnlocked(state, recipe);
+      const y = 176 + index * 34;
+      const row = this.addPanelRectangle(92, y - 6, 360, 28, index === selected ? 0x293548 : 0x18222c, 0.94)
+        .setOrigin(0)
+        .setStrokeStyle(1, index === selected ? 0xfacc15 : 0x334155, 0.9)
+        .setInteractive({ useHandCursor: true });
+      row.on("pointerdown", () => {
+        this.selectedCraftingIndex = index;
+        this.renderPanel();
+      });
+      this.addPanelText(104, y, this.truncateText(locked ? "Locked Recipe" : recipe.name, 26), 13, locked ? "#94a3b8" : "#f8fafc");
+      this.addPanelText(306, y, `Lv ${recipe.requiredLevel}`, 12, state.playerProfile.level >= recipe.requiredLevel ? "#bbf7d0" : "#fca5a5");
+      this.addPanelText(362, y, rowItem.type, 12, "#cbd5e1");
+    });
+
+    this.addPanelRectangle(482, 146, 220, 286, 0x17212b, 0.95)
+      .setOrigin(0)
+      .setStrokeStyle(1, 0x475569, 0.86);
+
+    if (selectedRecipe && outputItem) {
+      const locked = !this.isCraftingRecipeUnlocked(state, selectedRecipe);
+      const materialText = getRecipeMaterialStatus(state.inventory, selectedRecipe)
+        .map((material) => {
+          const item = dataRegistry.getItem(material.itemId);
+          return `${item.name} ${material.owned}/${material.required}`;
+        })
+        .join("; ");
+      const statusText = craftFailure
+        ? `Blocked: ${craftFailure.reason}`
+        : "Ready";
+
+      this.addPanelText(502, 168, this.truncateText(locked ? "Locked Recipe" : selectedRecipe.name, 22), 16, "#f8fafc");
+      this.addPanelText(502, 198, `${outputItem.name} x${selectedRecipe.outputQuantity}`, 13, this.getRarityColor(outputItem));
+      this.addPanelText(502, 224, `Gold ${selectedRecipe.requiredGold}   Region ${selectedRecipe.requiredRegionId ?? "Any"}`, 12, "#fde68a");
+      this.addPanelText(502, 250, this.wrapText(materialText || "No materials", 25), 12, craftFailure?.reason === "missing-materials" ? "#fca5a5" : "#cbd5e1");
+      this.addPanelText(502, 342, this.wrapText(statusText, 24), 13, craftFailure ? "#fca5a5" : "#bbf7d0");
+      this.addPanelText(502, 372, this.wrapText(this.getRecipeUnlockText(selectedRecipe), 24), 12, locked ? "#94a3b8" : "#bbf7d0");
+    } else {
+      this.addPanelText(502, 184, "No recipe selected", 15, "#94a3b8");
+    }
+
+    this.addPanelButton(482, 450, 92, 34, "Craft", () => this.craftSelectedRecipe());
+    this.addPanelButton(606, 502, 92, 28, "Close", () => this.closePanel());
+    this.syncCraftingDataset(state, dataRegistry, recipes, selectedRecipe, outputItem, craftFailure);
   }
 
   private renderItemDetails(item: ItemDefinition | null, entry: InventoryPanelEntry | null): void {
@@ -1318,6 +1438,33 @@ export class UIScene extends Phaser.Scene {
     this.refreshOpenPanel();
   }
 
+  private craftSelectedRecipe(): void {
+    if (!this.state || !this.dataRegistry) {
+      return;
+    }
+
+    const recipes = getVisibleRecipes(this.state, this.dataRegistry.getRecipes())
+      .sort((left, right) => left.requiredLevel - right.requiredLevel || left.name.localeCompare(right.name));
+    const recipe = recipes[this.clampSelectedCraftingIndex(recipes)];
+
+    if (!recipe) {
+      this.game.canvas.dataset.lastCraftingAction = "craft-failed:no-recipe";
+      return;
+    }
+
+    const result = craftRecipe(
+      this.state,
+      recipe,
+      (id) => this.dataRegistry!.getItem(id),
+      this.getCraftingContext(this.state, this.dataRegistry),
+    );
+
+    this.game.canvas.dataset.lastCraftingAction = result.success
+      ? `craft:${result.recipeId}:${result.itemId}:${result.quantity}:${result.gold}`
+      : `craft-failed:${result.reason}:${result.recipeId}`;
+    this.refreshOpenPanel();
+  }
+
   private depositSelectedStorageItem(): void {
     if (!this.state || !this.dataRegistry) {
       return;
@@ -1542,6 +1689,44 @@ export class UIScene extends Phaser.Scene {
       .join("|");
   }
 
+  private syncCraftingDataset(
+    state: GameState,
+    dataRegistry: DataRegistry,
+    recipes: RecipeDefinition[],
+    selectedRecipe: RecipeDefinition | null,
+    outputItem: ItemDefinition | null,
+    craftFailure: ReturnType<typeof canCraftRecipe>,
+  ): void {
+    this.game.canvas.dataset.shopPanel = "hidden";
+    this.game.canvas.dataset.appraiserPanel = "hidden";
+    this.game.canvas.dataset.storagePanel = "hidden";
+    this.game.canvas.dataset.craftingPanel = "visible";
+    this.game.canvas.dataset.activeCraftingNpc = this.activeCraftingNpcId;
+    this.game.canvas.dataset.craftingRecipeCount = String(recipes.length);
+    this.game.canvas.dataset.visibleRecipes = recipes.map((recipe) => recipe.id).join("|");
+    this.game.canvas.dataset.lockedRecipes = recipes
+      .filter((recipe) => !this.isCraftingRecipeUnlocked(state, recipe))
+      .map((recipe) => recipe.id)
+      .join("|");
+    this.game.canvas.dataset.unlockedRecipes = state.crafting.unlockedRecipeIds.join("|");
+    this.game.canvas.dataset.recipeUnlockNotifications = state.crafting.unlockNotifications.join("|");
+    this.game.canvas.dataset.selectedRecipe = selectedRecipe?.id ?? "";
+    this.game.canvas.dataset.selectedRecipeName = selectedRecipe?.name ?? "";
+    this.game.canvas.dataset.selectedRecipeOutput = outputItem?.id ?? "";
+    this.game.canvas.dataset.selectedRecipeOutputName = outputItem?.name ?? "";
+    this.game.canvas.dataset.selectedRecipeCanCraft = String(Boolean(selectedRecipe && !craftFailure));
+    this.game.canvas.dataset.selectedRecipeBlockReason = craftFailure?.reason ?? "";
+    this.game.canvas.dataset.selectedRecipeMissingMaterials = selectedRecipe
+      ? getRecipeMaterialStatus(state.inventory, selectedRecipe)
+        .filter((material) => material.missing > 0)
+        .map((material) => `${material.itemId}:${material.missing}`)
+        .join("|")
+      : "";
+    this.game.canvas.dataset.craftingButtons = "Craft|Close";
+    this.game.canvas.dataset.inventoryGold = String(state.inventory.gold);
+    this.game.canvas.dataset.playerGold = String(state.inventory.gold);
+  }
+
   private getNextValue<T>(values: T[], current: T): T {
     const index = values.indexOf(current);
     return values[(index + 1) % values.length];
@@ -1565,6 +1750,66 @@ export class UIScene extends Phaser.Scene {
     }
 
     return shop;
+  }
+
+  private getCraftingContext(state: GameState, dataRegistry: DataRegistry): { regionId?: string; npcId?: string } {
+    return {
+      regionId: dataRegistry.getMap(state.currentMapId).regionId,
+      npcId: this.activeCraftingNpcId || undefined,
+    };
+  }
+
+  private getDefaultCraftingNpcId(): string {
+    if (!this.state || !this.dataRegistry) {
+      return "";
+    }
+
+    const regionId = this.dataRegistry.getMap(this.state.currentMapId).regionId;
+    const crafterByRegion: Record<string, string> = {
+      crownfield: "nima-threadwell",
+      mossvale: "nima-threadwell",
+      "blueharbor-coast": "nima-threadwell",
+      "amber-dunes": "amber-sun-crafter",
+      "ironroot-highlands": "ironroot-forgemaster",
+      "moonveil-marsh": "moonveil-relic-mender",
+      "starfall-tower": "moonveil-relic-mender",
+    };
+
+    return crafterByRegion[regionId] ?? "";
+  }
+
+  private isCraftingRecipeUnlocked(state: GameState, recipe: RecipeDefinition): boolean {
+    return recipe.unlockCondition.type === "default" || state.crafting.unlockedRecipeIds.includes(recipe.id);
+  }
+
+  private getRecipeUnlockText(recipe: RecipeDefinition): string {
+    const condition = recipe.unlockCondition;
+
+    if (condition.type === "default") {
+      return "Known by default";
+    }
+
+    if (condition.type === "npc") {
+      return `Unlocked by ${condition.npcId}`;
+    }
+
+    if (condition.type === "bossDrop") {
+      return `Boss drop ${condition.bossId}`;
+    }
+
+    if (condition.type === "quest") {
+      return `Quest ${condition.questId}`;
+    }
+
+    if (condition.type === "huntingBoard") {
+      return `Board ${condition.boardId}`;
+    }
+
+    if (condition.type === "exploration") {
+      return `Explore ${condition.regionId}`;
+    }
+
+    return `Bestiary ${condition.enemyId} x${condition.defeatCount}`;
   }
 
   private syncShopDataset(
@@ -2262,6 +2507,16 @@ export class UIScene extends Phaser.Scene {
 
     this.selectedSkillIndex = Phaser.Math.Clamp(this.selectedSkillIndex, 0, skills.length - 1);
     return this.selectedSkillIndex;
+  }
+
+  private clampSelectedCraftingIndex(recipes: RecipeDefinition[]): number {
+    if (recipes.length === 0) {
+      this.selectedCraftingIndex = 0;
+      return 0;
+    }
+
+    this.selectedCraftingIndex = Phaser.Math.Clamp(this.selectedCraftingIndex, 0, recipes.length - 1);
+    return this.selectedCraftingIndex;
   }
 
   private isSkillUnlocked(state: GameState, skill: SkillDefinition): boolean {

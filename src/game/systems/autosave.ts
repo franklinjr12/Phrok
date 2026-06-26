@@ -31,6 +31,7 @@ export function createSaveData(gameState: GameState, savedAt = new Date().toISOS
     stats: snapshot.character.stats,
     gold: snapshot.playerProfile.gold,
     bestiary: snapshot.bestiary,
+    crafting: snapshot.crafting,
     quests: snapshot.quests,
     worldFlags: snapshot.worldFlags,
     settings: snapshot.settings,
@@ -142,6 +143,7 @@ function normalizeSaveData(rawSave: unknown): SaveData {
     equipment,
     quests: normalizeQuestState(isRecord(rawSave.quests) ? rawSave.quests : rawGameState.quests, fallbackState.quests),
     bestiary: normalizeBestiaryState(isRecord(rawSave.bestiary) ? rawSave.bestiary : rawGameState.bestiary, fallbackState.bestiary),
+    crafting: normalizeCraftingState(isRecord(rawSave.crafting) ? rawSave.crafting : rawGameState.crafting, fallbackState.crafting),
     worldFlags: normalizeBooleanRecord(rawSave.worldFlags, fallbackState.worldFlags),
     settings: normalizeSettings(isRecord(rawSave.settings) ? rawSave.settings : rawGameState.settings, fallbackState.settings),
   };
@@ -360,6 +362,15 @@ function normalizeBestiaryState(rawBestiaryState: unknown, fallback: GameState["
   return {
     discoveredEnemyIds: stringArray(source.discoveredEnemyIds, fallback.discoveredEnemyIds),
     defeatedEnemyIds: stringArray(source.defeatedEnemyIds, fallback.defeatedEnemyIds),
+  };
+}
+
+function normalizeCraftingState(rawCraftingState: unknown, fallback: GameState["crafting"]): GameState["crafting"] {
+  const source = isRecord(rawCraftingState) ? rawCraftingState : {};
+
+  return {
+    unlockedRecipeIds: stringArray(source.unlockedRecipeIds, fallback.unlockedRecipeIds),
+    unlockNotifications: stringArray(source.unlockNotifications, fallback.unlockNotifications),
   };
 }
 

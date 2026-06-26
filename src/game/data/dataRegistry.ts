@@ -146,6 +146,10 @@ export class DataRegistry {
     return this.getById("recipes", id);
   }
 
+  getRecipes(): RecipeDefinition[] {
+    return Array.from(this.collections.recipes.values());
+  }
+
   getSupport(id: string): SupportDefinition {
     return this.getById("supports", id);
   }
@@ -821,13 +825,83 @@ function validateAppraiser(rawAppraiser: unknown): ShopDefinition["appraiser"] {
 
 function validateRecipe(source: Record<string, unknown>, fileName: string): RecipeDefinition {
   const id = readId(source, fileName);
+  const resultItemId = optionalString(source, "resultItemId", optionalString(source, "outputItemId", ""));
+  const outputItemId = optionalString(source, "outputItemId", resultItemId);
+  const requiredMaterials = validateRecipeMaterials(
+    source.requiredMaterials,
+    optionalStringArray(source, "ingredientItemIds"),
+    fileName,
+    id,
+  );
 
   return {
     id,
     name: requireString(source, "name", fileName, id),
-    ingredientItemIds: optionalStringArray(source, "ingredientItemIds"),
-    resultItemId: requireString(source, "resultItemId", fileName, id),
+    outputItemId: outputItemId || requireString(source, "resultItemId", fileName, id),
+    outputQuantity: Math.max(1, optionalNumber(source, "outputQuantity", 1)),
+    requiredMaterials,
+    requiredGold: Math.max(0, optionalNumber(source, "requiredGold", 0)),
+    requiredLevel: Math.max(1, optionalNumber(source, "requiredLevel", 1)),
+    requiredRegionId: optionalString(source, "requiredRegionId", "") || undefined,
+    requiredNpcId: optionalString(source, "requiredNpcId", "") || undefined,
+    unlockCondition: validateRecipeUnlockCondition(source.unlockCondition),
+    ingredientItemIds: requiredMaterials.map((material) => material.itemId),
+    resultItemId: outputItemId || requireString(source, "resultItemId", fileName, id),
   };
+}
+
+function validateRecipeMaterials(
+  rawMaterials: unknown,
+  fallbackIngredientIds: string[],
+  fileName: string,
+  id: string,
+): RecipeDefinition["requiredMaterials"] {
+  if (Array.isArray(rawMaterials)) {
+    return rawMaterials.filter(isRecord).map((material) => ({
+      itemId: requireString(material, "itemId", fileName, id),
+      quantity: Math.max(1, optionalNumber(material, "quantity", 1)),
+    }));
+  }
+
+  return fallbackIngredientIds.map((itemId) => ({ itemId, quantity: 1 }));
+}
+
+function validateRecipeUnlockCondition(rawCondition: unknown): RecipeDefinition["unlockCondition"] {
+  if (!isRecord(rawCondition)) {
+    return { type: "default" };
+  }
+
+  const type = optionalString(rawCondition, "type", "default");
+
+  if (type === "npc") {
+    return { type, npcId: optionalString(rawCondition, "npcId", "") };
+  }
+
+  if (type === "bossDrop") {
+    return { type, bossId: optionalString(rawCondition, "bossId", "") };
+  }
+
+  if (type === "quest") {
+    return { type, questId: optionalString(rawCondition, "questId", "") };
+  }
+
+  if (type === "huntingBoard") {
+    return { type, boardId: optionalString(rawCondition, "boardId", "") };
+  }
+
+  if (type === "exploration") {
+    return { type, regionId: optionalString(rawCondition, "regionId", "") };
+  }
+
+  if (type === "bestiaryMilestone") {
+    return {
+      type,
+      enemyId: optionalString(rawCondition, "enemyId", ""),
+      defeatCount: Math.max(1, optionalNumber(rawCondition, "defeatCount", 1)),
+    };
+  }
+
+  return { type: "default" };
 }
 
 function validateSupport(source: Record<string, unknown>, fileName: string): SupportDefinition {

@@ -2,6 +2,7 @@ import type {
   BestiaryState,
   CharacterData,
   CharacterStats,
+  CraftingState,
   EquipmentData,
   GameState,
   InventoryItem,
@@ -30,6 +31,7 @@ export interface SaveData {
   stats: CharacterStats;
   gold: number;
   bestiary: BestiaryState;
+  crafting: CraftingState;
   quests: QuestState;
   worldFlags: Record<string, boolean>;
   settings: SettingsState;

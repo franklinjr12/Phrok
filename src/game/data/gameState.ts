@@ -72,6 +72,10 @@ export function createNewGameState(): GameState {
       discoveredEnemyIds: [],
       defeatedEnemyIds: [],
     },
+    crafting: {
+      unlockedRecipeIds: [],
+      unlockNotifications: [],
+    },
     worldFlags: {},
     settings: {
       musicVolume: 0.8,

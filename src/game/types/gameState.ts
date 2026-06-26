@@ -157,6 +157,11 @@ export interface BestiaryState {
   defeatedEnemyIds: string[];
 }
 
+export interface CraftingState {
+  unlockedRecipeIds: string[];
+  unlockNotifications: string[];
+}
+
 export interface SettingsState {
   musicVolume: number;
   sfxVolume: number;
@@ -179,6 +184,7 @@ export interface GameState {
   equipment: EquipmentData;
   quests: QuestState;
   bestiary: BestiaryState;
+  crafting: CraftingState;
   worldFlags: Record<string, boolean>;
   settings: SettingsState;
 }

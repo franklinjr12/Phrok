@@ -96,3 +96,31 @@ test("skill screen supports leveling, requirements, hotbar assignment, and persi
   await expect(canvas).toHaveAttribute("data-last-hotbar-assignment", "2:item:minor-health-potion");
   await expect(canvas).toHaveAttribute("data-hotbar-assignments", /2:item:minor-health-potion/);
 });
+
+test("crafting screen lists recipes, shows missing materials, and blocks unavailable crafts", async ({ page }) => {
+  await startApp(page);
+
+  const canvas = await confirmDefaultCharacter(page);
+  const startX = Number(await canvas.getAttribute("data-player-x"));
+
+  await page.keyboard.press("KeyR");
+  await expect(canvas).toHaveAttribute("data-ui-panel", "crafting");
+  await expect(canvas).toHaveAttribute("data-gameplay-input-blocked", "true");
+  await expect(canvas).toHaveAttribute("data-crafting-panel", "visible");
+  await expect(canvas).toHaveAttribute("data-active-crafting-npc", "nima-threadwell");
+  await expect(canvas).toHaveAttribute("data-crafting-recipe-count", /\d+/);
+  await expect(canvas).toHaveAttribute("data-visible-recipes", /recipe-/);
+  await expect(canvas).toHaveAttribute("data-selected-recipe", /recipe-/);
+  await expect(canvas).toHaveAttribute("data-selected-recipe-output", /.+/);
+  await expect(canvas).toHaveAttribute("data-selected-recipe-can-craft", "false");
+  await expect(canvas).toHaveAttribute("data-selected-recipe-block-reason", "missing-materials");
+  await expect(canvas).toHaveAttribute("data-selected-recipe-missing-materials", /:/);
+  await expect(canvas).toHaveAttribute("data-crafting-buttons", "Craft|Close");
+
+  await canvas.click({ position: { x: 524, y: 468 } });
+  await expect(canvas).toHaveAttribute("data-last-crafting-action", /craft-failed:missing-materials:recipe-/);
+
+  await canvas.click({ position: { x: 560, y: 300 } });
+  await page.waitForTimeout(150);
+  expect(Number(await canvas.getAttribute("data-player-x"))).toBeCloseTo(startX, 1);
+});
