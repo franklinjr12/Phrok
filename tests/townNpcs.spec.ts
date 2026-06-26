@@ -84,6 +84,76 @@ test("merchant NPC opens a JSON-backed shop for buying and selling", async ({ pa
   await expect(canvas).toHaveAttribute("data-last-shop-action", /sell:jelly-gel:2:43|sell:training-sword:12:53/);
 });
 
+test("storage keeper opens shared storage with search, filters, sorting, and item transfer", async ({ page }) => {
+  await seedStorageSave(page);
+  await startApp(page);
+
+  const canvas = page.locator("canvas");
+  await expect(canvas).toHaveAttribute("data-scene", "main-menu");
+  await canvas.click({ position: { x: 400, y: 204 } });
+  await expect(canvas).toHaveAttribute("data-scene", "world");
+
+  await canvas.click({ position: { x: 400, y: 240 } });
+  await expect(canvas).toHaveAttribute("data-last-clicked-npc", "borin-lockbar");
+  await expect(canvas).toHaveAttribute("data-last-clicked-npc-service-type", "storage");
+  await expect.poll(async () => await canvas.getAttribute("data-storage-panel"), { timeout: 6000 }).toBe("visible");
+  await expect(canvas).toHaveAttribute("data-active-storage-npc", "borin-lockbar");
+  await expect(canvas).toHaveAttribute("data-storage-visible-items", /moonlit-reed/);
+  await expect(canvas).toHaveAttribute("data-inventory-gold", "120");
+
+  await page.keyboard.type("potion");
+  await expect(canvas).toHaveAttribute("data-storage-search", "potion");
+  await expect(canvas).toHaveAttribute("data-storage-visible-inventory-items", "minor-health-potion");
+  await expect(canvas).toHaveAttribute("data-storage-visible-items", "minor-health-potion");
+
+  await canvas.click({ position: { x: 303, y: 467 } });
+  await expect(canvas).toHaveAttribute("data-last-storage-action", "deposit:minor-health-potion:1:5:120");
+  await expect(canvas).toHaveAttribute("data-inventory-gold", "120");
+
+  await canvas.click({ position: { x: 650, y: 467 } });
+  await expect(canvas).toHaveAttribute("data-last-storage-action", "withdraw:minor-health-potion:1:2:120");
+  await expect(canvas).toHaveAttribute("data-inventory-gold", "120");
+
+  await canvas.click({ position: { x: 678, y: 147 } });
+  await canvas.click({ position: { x: 124, y: 147 } });
+  await expect(canvas).toHaveAttribute("data-storage-filter-category", "equipment");
+  await expect(canvas).toHaveAttribute("data-storage-visible-inventory-items", /training-sword|apprentice-staff/);
+  await expect(canvas).not.toHaveAttribute("data-storage-visible-inventory-items", /jelly-gel/);
+
+  await canvas.click({ position: { x: 240, y: 147 } });
+  await canvas.click({ position: { x: 356, y: 147 } });
+  await canvas.click({ position: { x: 468, y: 147 } });
+  await canvas.click({ position: { x: 580, y: 147 } });
+  await expect(canvas).toHaveAttribute("data-storage-filter-rarity", "Common");
+  await expect(canvas).toHaveAttribute("data-storage-filter-class", "current");
+  await expect(canvas).toHaveAttribute("data-storage-filter-level", "usable");
+  await expect(canvas).toHaveAttribute("data-storage-sort", "level:asc");
+});
+
+test("storage is available from regional hub storage keepers", async ({ page }) => {
+  await seedStorageSave(page, {
+    mapId: "blueharbor-hub",
+    seedKey: "storage-blueharbor-save-seeded",
+  });
+  await startApp(page);
+
+  const canvas = page.locator("canvas");
+  await expect(canvas).toHaveAttribute("data-scene", "main-menu");
+  await canvas.click({ position: { x: 400, y: 204 } });
+  await expect(canvas).toHaveAttribute("data-scene", "world");
+  await expect(canvas).toHaveAttribute("data-current-map", "blueharbor-hub");
+  await expect(canvas).toHaveAttribute("data-npc-names", /Sorin Quaylock/);
+  await expect(canvas).toHaveAttribute("data-npc-service-types", /storage/);
+
+  await canvas.click({ position: { x: 400, y: 432 } });
+  await expect(canvas).toHaveAttribute("data-last-clicked-npc", "blueharbor-storage-keeper");
+  await expect(canvas).toHaveAttribute("data-last-clicked-npc-service-type", "storage");
+  await expect.poll(async () => await canvas.getAttribute("data-storage-panel"), { timeout: 6000 }).toBe("visible");
+  await expect(canvas).toHaveAttribute("data-active-storage-npc", "blueharbor-storage-keeper");
+  await expect(canvas).toHaveAttribute("data-storage-visible-items", /moonlit-reed/);
+  await expect(canvas).toHaveAttribute("data-storage-equipment-instance-count", "1");
+});
+
 test("appraiser NPC reveals unknown item details and offers improved sell value", async ({ page }) => {
   await seedMarketSave(page, {
     mapId: "blueharbor-hub",
@@ -215,5 +285,121 @@ async function seedMarketSave(
       gameState,
     }));
     sessionStorage.setItem(`market-save-seeded-${seedOptions.mapId}`, "true");
+  }, options);
+}
+
+async function seedStorageSave(
+  page: Page,
+  options: {
+    mapId?: string;
+    seedKey?: string;
+  } = {},
+): Promise<void> {
+  await page.addInitScript((seedOptions) => {
+    const mapId = seedOptions.mapId ?? "crownfield-town";
+    const seedKey = seedOptions.seedKey ?? "storage-save-seeded";
+
+    if (sessionStorage.getItem(seedKey) === "true") {
+      return;
+    }
+
+    const character = {
+      id: "player",
+      archetype: "swordsman",
+      advancedClass: null,
+      stats: { hp: 73, maxHp: 73, sp: 24, maxSp: 24 },
+      baseStats: { str: 8, agi: 5, vit: 7, int: 3, dex: 5, luk: 4 },
+      allocatedStats: { str: 0, agi: 0, vit: 0, int: 0, dex: 0, luk: 0 },
+      statBuffs: [],
+      statusEffects: [],
+      skillIds: ["power-slash"],
+      skills: {
+        learned: [{ id: "power-slash", level: 1 }],
+        cooldowns: {},
+        activeToggleIds: [],
+      },
+      hotbar: [
+        { slot: 1, type: "skill", id: "power-slash" },
+        { slot: 2, type: "item", id: "minor-health-potion" },
+      ],
+      consumables: {
+        cooldowns: {},
+        autoPotion: {
+          hpThresholdPercent: 0,
+          spThresholdPercent: 0,
+        },
+      },
+    };
+    const inventory = {
+      items: [
+        { id: "training-sword", quantity: 1 },
+        { id: "minor-health-potion", quantity: 2 },
+        { id: "jelly-gel", quantity: 3 },
+      ],
+      gold: 120,
+      equipmentInstances: [{ instanceId: "apprentice-staff-a", itemId: "apprentice-staff" }],
+      appraisedItemIds: [],
+    };
+    const storage = {
+      items: [
+        { id: "minor-health-potion", quantity: 4 },
+        { id: "moonlit-reed", quantity: 1 },
+        { id: "ironroot-ore", quantity: 2 },
+      ],
+      equipmentInstances: [{ instanceId: "shortbow-a", itemId: "shortbow" }],
+    };
+    const gameState = {
+      currentSaveSlot: 1,
+      playerProfile: {
+        name: "Storage Tester",
+        level: 20,
+        xp: 0,
+        gold: 120,
+        statPoints: 0,
+        skillPoints: 0,
+      },
+      currentMapId: mapId,
+      position: { x: 240, y: 304 },
+      character,
+      inventory,
+      storage,
+      equipment: {
+        weapon: "training-sword",
+        offhand: null,
+        head: null,
+        body: null,
+        cloak: null,
+        boots: null,
+        accessory1: null,
+        accessory2: null,
+        sigil: null,
+        supportCharm: null,
+      },
+      quests: { activeQuestIds: [], completedQuestIds: [] },
+      bestiary: { discoveredEnemyIds: [], defeatedEnemyIds: [] },
+      worldFlags: {},
+      settings: { musicVolume: 0.8, sfxVolume: 0.8, textSpeed: 1 },
+    };
+
+    localStorage.setItem("prok-save-slot-1", JSON.stringify({
+      version: 1,
+      savedAt: "2026-06-25T00:00:00.000Z",
+      currentSaveSlot: 1,
+      character,
+      currentMapId: mapId,
+      position: gameState.position,
+      inventory,
+      storage,
+      equipment: gameState.equipment,
+      skills: ["power-slash"],
+      stats: character.stats,
+      gold: 120,
+      bestiary: gameState.bestiary,
+      quests: gameState.quests,
+      worldFlags: {},
+      settings: gameState.settings,
+      gameState,
+    }));
+    sessionStorage.setItem(seedKey, "true");
   }, options);
 }

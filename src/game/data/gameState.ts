@@ -1,6 +1,7 @@
 import type { GameState } from "../types/gameState";
 import type { ClassDefinition } from "../types/dataDefinitions";
 import { createEmptyEquipment } from "../systems/equipment";
+import { createEmptyStorageState } from "../systems/storage";
 import { createInitialHotbar, createInitialSkillState } from "../systems/skills";
 import { calculateDerivedStats, createClassBaseStats, createEmptyBaseStats, syncCharacterVitalsToDerivedStats } from "../systems/stats";
 
@@ -58,6 +59,7 @@ export function createNewGameState(): GameState {
       equipmentInstances: [],
       appraisedItemIds: [],
     },
+    storage: createEmptyStorageState(),
     equipment: {
       ...createEmptyEquipment(),
       weapon: "training-sword",

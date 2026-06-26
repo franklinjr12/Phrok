@@ -1,4 +1,4 @@
-import type { ActiveStatusEffect, BaseStatKey, DerivedStats, HotbarSlotState, InventoryState } from "../types/gameState";
+import type { ActiveStatusEffect, BaseStatKey, DerivedStats, HotbarSlotState, InventoryState, StorageState } from "../types/gameState";
 import type { ConsumableUseResult } from "./consumables";
 
 export interface GameEventMap {
@@ -44,6 +44,8 @@ export interface GameEventMap {
   dialogueOpened: { dialogueId: string };
   dialogueClosed: { dialogueId: string };
   shopOpened: { shopId: string; npcId: string };
+  storageOpened: { npcId: string };
+  storageChanged: { storage: StorageState };
 }
 
 type GameEventName = keyof GameEventMap;

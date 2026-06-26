@@ -571,6 +571,15 @@ export class WorldScene extends Phaser.Scene {
       return;
     }
 
+    if (npc.serviceType === "storage") {
+      this.pendingNpcInteraction = undefined;
+      this.player?.clearDestination();
+      this.game.canvas.dataset.pendingNpcInteraction = "";
+      this.game.canvas.dataset.lastOpenedStorageNpc = npc.id;
+      eventBus.emit("storageOpened", { npcId: npc.id });
+      return;
+    }
+
     const dialogue = dataRegistry.getDialogue(npc.dialogueId);
     const advancedClassOptions = npc.serviceType === "advanced-class" && this.state
       ? getAdvancedClassOptionsForBase(dataRegistry.getClass(this.state.character.archetype))

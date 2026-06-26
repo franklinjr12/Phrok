@@ -38,27 +38,27 @@ describe("town content", () => {
   });
 
   it("defines region hubs with expected services and local connections", () => {
-    expectHub("mossvale", "mossvale-hub", ["inn", "merchant", "hunter-board", "travel"], [
+    expectHub("mossvale", "mossvale-hub", ["inn", "merchant", "hunter-board", "storage", "travel"], [
       "crownfield-town",
       "mossvale-edge",
       "mossvale-rootcellar",
     ]);
-    expectHub("amber-dunes", "amber-dunes-hub", ["inn", "refiner", "merchant", "travel"], [
+    expectHub("amber-dunes", "amber-dunes-hub", ["inn", "refiner", "merchant", "storage", "travel"], [
       "mossvale-hub",
       "amber-dunes-field",
       "amber-dunes-sandvault",
     ]);
-    expectHub("blueharbor-coast", "blueharbor-hub", ["inn", "merchant", "appraiser", "travel"], [
+    expectHub("blueharbor-coast", "blueharbor-hub", ["inn", "merchant", "appraiser", "storage", "travel"], [
       "amber-dunes-hub",
       "blueharbor-beach",
       "sea-cave-entrance",
     ]);
-    expectHub("ironroot-highlands", "ironroot-hub", ["crafter", "refiner", "merchant", "travel"], [
+    expectHub("ironroot-highlands", "ironroot-hub", ["crafter", "refiner", "merchant", "storage", "travel"], [
       "blueharbor-hub",
       "ironroot-highlands-field",
       "ironroot-deepmine",
     ]);
-    expectHub("moonveil-marsh", "moonveil-hub", ["inn", "advanced-hunter-board", "merchant", "travel"], [
+    expectHub("moonveil-marsh", "moonveil-hub", ["inn", "advanced-hunter-board", "merchant", "storage", "travel"], [
       "ironroot-hub",
       "moonveil-marsh-field",
       "moonveil-bogsanctum",

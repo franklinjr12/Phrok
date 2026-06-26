@@ -106,6 +106,14 @@
     "shopId": "mossvale-provisions"
   },
   {
+    "id": "mossvale-storage-keeper",
+    "name": "Bramble Lockroot",
+    "mapId": "mossvale-hub",
+    "interactionRadius": 72,
+    "dialogueId": "borin-lockbar-greeting",
+    "serviceType": "storage"
+  },
+  {
     "id": "mossvale-routefinder",
     "name": "Sava Greenpath",
     "mapId": "mossvale-hub",
@@ -137,6 +145,14 @@
     "dialogueId": "imen-sunstitch-greeting",
     "serviceType": "merchant",
     "shopId": "amber-dunes-supply"
+  },
+  {
+    "id": "amber-storage-keeper",
+    "name": "Kemi Sunvault",
+    "mapId": "amber-dunes-hub",
+    "interactionRadius": 72,
+    "dialogueId": "borin-lockbar-greeting",
+    "serviceType": "storage"
   },
   {
     "id": "amber-caravan-guide",
@@ -173,6 +189,14 @@
     "shopId": "blueharbor-appraiser"
   },
   {
+    "id": "blueharbor-storage-keeper",
+    "name": "Sorin Quaylock",
+    "mapId": "blueharbor-hub",
+    "interactionRadius": 72,
+    "dialogueId": "borin-lockbar-greeting",
+    "serviceType": "storage"
+  },
+  {
     "id": "blueharbor-innkeep",
     "name": "Corin Wake",
     "mapId": "blueharbor-hub",
@@ -206,6 +230,14 @@
     "shopId": "ironroot-materials"
   },
   {
+    "id": "ironroot-storage-keeper",
+    "name": "Harl Orelock",
+    "mapId": "ironroot-hub",
+    "interactionRadius": 72,
+    "dialogueId": "borin-lockbar-greeting",
+    "serviceType": "storage"
+  },
+  {
     "id": "ironroot-lift-operator",
     "name": "Garrin Highrail",
     "mapId": "ironroot-hub",
@@ -237,6 +269,14 @@
     "dialogueId": "selka-mireglass-greeting",
     "serviceType": "merchant",
     "shopId": "moonveil-relic-market"
+  },
+  {
+    "id": "moonveil-storage-keeper",
+    "name": "Eris Reedlock",
+    "mapId": "moonveil-hub",
+    "interactionRadius": 72,
+    "dialogueId": "borin-lockbar-greeting",
+    "serviceType": "storage"
   },
   {
     "id": "moonveil-ferry-witch",

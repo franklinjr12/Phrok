@@ -1562,6 +1562,25 @@
           "y": 432
         },
         {
+          "height": 32,
+          "id": 9,
+          "name": "Harl Orelock",
+          "point": true,
+          "properties": [
+            {
+              "name": "npcId",
+              "type": "string",
+              "value": "ironroot-storage-keeper"
+            }
+          ],
+          "rotation": 0,
+          "type": "npc",
+          "visible": true,
+          "width": 32,
+          "x": 400,
+          "y": 432
+        },
+        {
           "height": 96,
           "id": 6,
           "name": "IronrootLiftDown",
@@ -1639,7 +1658,7 @@
     }
   ],
   "nextlayerid": 5,
-  "nextobjectid": 9,
+  "nextobjectid": 10,
   "orientation": "orthogonal",
   "renderorder": "right-down",
   "tiledversion": "1.11.2",

@@ -42,14 +42,27 @@ import {
   isItemAppraised,
   sellInventoryItem,
 } from "../systems/market";
+import {
+  depositStorageItem,
+  getContainerEntries,
+  getFilteredStorageEntries,
+  withdrawStorageItem,
+  type StorageCategoryFilter,
+  type StorageClassFilter,
+  type StorageLevelFilter,
+  type StorageListEntry,
+  type StorageListOptions,
+  type StorageSortDirection,
+  type StorageSortMode,
+} from "../systems/storage";
 import { allocateSkillPoint, assignHotbarAction, getLearnedSkillLevel, hotbarSlotCount } from "../systems/skills";
 import { advancedClassUnlockLevel, getUnlockedSkillTreeIds, isAdvancedClassServiceAvailable } from "../systems/advancedClasses";
 import { getStatusSummary } from "../systems/statusEffects";
 import type { DataRegistry } from "../data/dataRegistry";
-import type { ItemDefinition, ShopDefinition, SkillDefinition } from "../types/dataDefinitions";
+import type { ItemDefinition, ItemRarity, ShopDefinition, SkillDefinition } from "../types/dataDefinitions";
 import type { BaseStatKey, EquipmentInstance, EquipmentSlot, GameState, InventoryItem } from "../types/gameState";
 
-type PanelMode = "inventory" | "equipment" | "character" | "skills" | "shop" | "appraiser";
+type PanelMode = "inventory" | "equipment" | "character" | "skills" | "shop" | "appraiser" | "storage";
 type InventoryPanelEntry = {
   itemId: string;
   quantity: number;
@@ -88,6 +101,8 @@ export class UIScene extends Phaser.Scene {
   private unsubscribeHotbarUsed?: () => void;
   private unsubscribeStatusEffectsChanged?: () => void;
   private unsubscribeShopOpened?: () => void;
+  private unsubscribeStorageOpened?: () => void;
+  private unsubscribeStorageChanged?: () => void;
   private hpText?: Phaser.GameObjects.Text;
   private spText?: Phaser.GameObjects.Text;
   private levelText?: Phaser.GameObjects.Text;
@@ -112,9 +127,21 @@ export class UIScene extends Phaser.Scene {
   private selectedInventoryIndex = 0;
   private selectedShopIndex = 0;
   private selectedMarketInventoryIndex = 0;
+  private selectedStorageInventoryIndex = 0;
+  private selectedStorageIndex = 0;
+  private storageInventoryPage = 0;
+  private storagePage = 0;
   private selectedEquipmentSlot: EquipmentSlot = "weapon";
   private selectedSkillIndex = 0;
   private activeShopId = "";
+  private activeStorageNpcId = "";
+  private storageCategoryFilter: StorageCategoryFilter = "all";
+  private storageRarityFilter: ItemRarity | "all" = "all";
+  private storageClassFilter: StorageClassFilter = "all";
+  private storageLevelFilter: StorageLevelFilter = "all";
+  private storageSearchText = "";
+  private storageSortMode: StorageSortMode = "name";
+  private storageSortDirection: StorageSortDirection = "asc";
   private panelObjects: Phaser.GameObjects.GameObject[] = [];
   private comparisonObjects: Phaser.GameObjects.GameObject[] = [];
 
@@ -183,6 +210,8 @@ export class UIScene extends Phaser.Scene {
       this.unsubscribeHotbarUsed?.();
       this.unsubscribeStatusEffectsChanged?.();
       this.unsubscribeShopOpened?.();
+      this.unsubscribeStorageOpened?.();
+      this.unsubscribeStorageChanged?.();
     });
   }
 
@@ -375,6 +404,22 @@ export class UIScene extends Phaser.Scene {
       this.game.canvas.dataset.activeShopNpc = npcId;
       this.openPanel(shop.serviceType === "appraiser" ? "appraiser" : "shop");
     });
+
+    this.unsubscribeStorageOpened = eventBus.on("storageOpened", ({ npcId }) => {
+      this.activeStorageNpcId = npcId;
+      this.selectedStorageInventoryIndex = 0;
+      this.selectedStorageIndex = 0;
+      this.storageInventoryPage = 0;
+      this.storagePage = 0;
+      this.game.canvas.dataset.activeStorageNpc = npcId;
+      this.openPanel("storage");
+    });
+
+    this.unsubscribeStorageChanged = eventBus.on("storageChanged", ({ storage }) => {
+      this.game.canvas.dataset.storageStackCount = String(storage.items.length);
+      this.game.canvas.dataset.storageEquipmentInstanceCount = String(storage.equipmentInstances.length);
+      this.refreshOpenPanel();
+    });
   }
 
   private createHud(state: GameState, dataRegistry: DataRegistry): void {
@@ -482,6 +527,10 @@ export class UIScene extends Phaser.Scene {
   }
 
   private toggleInventoryPanel(): void {
+    if (this.activePanel === "storage") {
+      return;
+    }
+
     if (this.activePanel === "inventory") {
       this.closePanel();
       return;
@@ -491,6 +540,10 @@ export class UIScene extends Phaser.Scene {
   }
 
   private toggleEquipmentPanel(): void {
+    if (this.activePanel === "storage") {
+      return;
+    }
+
     if (this.activePanel === "equipment") {
       this.closePanel();
       return;
@@ -500,6 +553,10 @@ export class UIScene extends Phaser.Scene {
   }
 
   private toggleCharacterPanel(): void {
+    if (this.activePanel === "storage") {
+      return;
+    }
+
     if (this.activePanel === "character") {
       this.closePanel();
       return;
@@ -509,6 +566,10 @@ export class UIScene extends Phaser.Scene {
   }
 
   private toggleSkillPanel(): void {
+    if (this.activePanel === "storage") {
+      return;
+    }
+
     if (this.activePanel === "skills") {
       this.closePanel();
       return;
@@ -532,9 +593,14 @@ export class UIScene extends Phaser.Scene {
     this.game.canvas.dataset.itemComparison = "hidden";
     this.game.canvas.dataset.shopPanel = "hidden";
     this.game.canvas.dataset.appraiserPanel = "hidden";
+    this.game.canvas.dataset.storagePanel = "hidden";
   }
 
   private manualSave(): void {
+    if (this.activePanel === "storage") {
+      return;
+    }
+
     if (!this.state?.currentSaveSlot) {
       this.game.canvas.dataset.lastManualSaveSlot = "";
       this.game.canvas.dataset.lastManualSaveStatus = "no-slot";
@@ -558,11 +624,37 @@ export class UIScene extends Phaser.Scene {
   }
 
   private handleHotbarKey(event: KeyboardEvent): void {
+    if (this.activePanel === "storage" && this.handleStorageSearchKey(event)) {
+      return;
+    }
+
     const slot = Number(event.key);
 
     if (Number.isInteger(slot) && slot >= 1 && slot <= hotbarSlotCount) {
       this.requestHotbarAction(slot);
     }
+  }
+
+  private handleStorageSearchKey(event: KeyboardEvent): boolean {
+    if (event.ctrlKey || event.metaKey || event.altKey) {
+      return false;
+    }
+
+    if (event.key === "Backspace") {
+      this.storageSearchText = this.storageSearchText.slice(0, -1);
+    } else if (event.key === "Delete") {
+      this.storageSearchText = "";
+    } else if (event.key.length === 1) {
+      this.storageSearchText = `${this.storageSearchText}${event.key}`.slice(0, 24);
+    } else {
+      return false;
+    }
+
+    event.preventDefault();
+    this.resetStorageSelections();
+    this.game.canvas.dataset.storageSearch = this.storageSearchText;
+    this.renderPanel();
+    return true;
   }
 
   private refreshOpenPanel(): void {
@@ -588,8 +680,10 @@ export class UIScene extends Phaser.Scene {
       this.renderSkillPanel(this.state, this.dataRegistry);
     } else if (this.activePanel === "shop") {
       this.renderShopPanel(this.state, this.dataRegistry);
-    } else {
+    } else if (this.activePanel === "appraiser") {
       this.renderAppraiserPanel(this.state, this.dataRegistry);
+    } else {
+      this.renderStoragePanel(this.state, this.dataRegistry);
     }
   }
 
@@ -834,6 +928,101 @@ export class UIScene extends Phaser.Scene {
     this.addPanelButton(576, 426, 74, 34, "Sell+", () => this.sellSelectedMarketItem(improvedSellMultiplier));
     this.addPanelButton(596, 484, 90, 28, "Close", () => this.closePanel());
     this.syncAppraiserDataset(shop, item, state.inventory.gold, appraisalCost, improvedSellValue);
+  }
+
+  private renderStoragePanel(state: GameState, dataRegistry: DataRegistry): void {
+    const entries = this.getFilteredStoragePanelEntries(state, dataRegistry);
+    const inventoryEntries = entries.inventoryEntries;
+    const storageEntries = entries.storageEntries;
+    const selectedInventory = inventoryEntries[this.clampStorageInventoryIndex(inventoryEntries)] ?? null;
+    const selectedStorage = storageEntries[this.clampStorageIndex(storageEntries)] ?? null;
+    const selectedInventoryItem = selectedInventory ? dataRegistry.getItem(selectedInventory.itemId) : null;
+    const selectedStorageItem = selectedStorage ? dataRegistry.getItem(selectedStorage.itemId) : null;
+    const inventoryRows = this.getPagedStorageRows(inventoryEntries, this.storageInventoryPage);
+    const storageRows = this.getPagedStorageRows(storageEntries, this.storagePage);
+
+    this.addPanelRectangle(44, 48, 712, 506, panelFill, 0.96)
+      .setOrigin(0)
+      .setStrokeStyle(2, panelStroke, 0.92);
+    this.addPanelText(72, 72, "Storage", 24, "#f8fafc");
+    this.addPanelText(72, 106, `Gold ${state.inventory.gold}   Search ${this.storageSearchText || "*"}`, 14, "#fde68a");
+
+    this.addPanelButton(72, 132, 104, 30, `Type ${this.storageCategoryFilter}`, () => this.cycleStorageCategoryFilter());
+    this.addPanelButton(184, 132, 112, 30, `Rarity ${this.storageRarityFilter}`, () => this.cycleStorageRarityFilter());
+    this.addPanelButton(304, 132, 104, 30, `Class ${this.storageClassFilter}`, () => this.cycleStorageClassFilter());
+    this.addPanelButton(416, 132, 104, 30, `Level ${this.storageLevelFilter}`, () => this.cycleStorageLevelFilter());
+    this.addPanelButton(528, 132, 104, 30, `Sort ${this.storageSortMode}`, () => this.cycleStorageSortMode());
+    this.addPanelButton(640, 132, 76, 30, "Clear", () => this.clearStorageSearch());
+
+    this.addPanelText(72, 178, `Inventory ${inventoryEntries.length}`, 14, "#94a3b8");
+    this.addPanelText(416, 178, `Stored ${storageEntries.length}`, 14, "#94a3b8");
+    this.renderStorageEntryRows(72, 204, inventoryRows, this.storageInventoryPage, this.selectedStorageInventoryIndex, state, dataRegistry, (index) => {
+      this.selectedStorageInventoryIndex = index;
+      this.renderPanel();
+    });
+    this.renderStorageEntryRows(416, 204, storageRows, this.storagePage, this.selectedStorageIndex, state, dataRegistry, (index) => {
+      this.selectedStorageIndex = index;
+      this.renderPanel();
+    });
+
+    this.addPanelButton(72, 450, 68, 30, "Prev", () => this.changeStorageInventoryPage(-1, inventoryEntries.length));
+    this.addPanelButton(148, 450, 68, 30, "Next", () => this.changeStorageInventoryPage(1, inventoryEntries.length));
+    this.addPanelButton(260, 450, 86, 34, "Deposit", () => this.depositSelectedStorageItem());
+    this.addPanelButton(416, 450, 68, 30, "Prev", () => this.changeStoragePage(-1, storageEntries.length));
+    this.addPanelButton(492, 450, 68, 30, "Next", () => this.changeStoragePage(1, storageEntries.length));
+    this.addPanelButton(604, 450, 92, 34, "Withdraw", () => this.withdrawSelectedStorageItem());
+    this.addPanelButton(604, 502, 92, 28, "Close", () => this.closePanel());
+
+    this.renderStorageDetails(72, 492, "Inventory", selectedInventoryItem, selectedInventory);
+    this.renderStorageDetails(416, 492, "Stored", selectedStorageItem, selectedStorage);
+    this.syncStorageDataset(state, dataRegistry, inventoryEntries, storageEntries, selectedInventoryItem, selectedStorageItem);
+  }
+
+  private renderStorageEntryRows(
+    x: number,
+    y: number,
+    rows: Array<{ entry: StorageListEntry; index: number }>,
+    page: number,
+    selectedIndex: number,
+    state: GameState,
+    dataRegistry: DataRegistry,
+    select: (index: number) => void,
+  ): void {
+    rows.forEach(({ entry, index }, rowIndex) => {
+      const item = dataRegistry.getItem(entry.itemId);
+      const rowY = y + rowIndex * 36;
+      const selected = index === selectedIndex;
+      const row = this.addPanelRectangle(x, rowY - 5, 300, 30, selected ? 0x293548 : 0x18222c, 0.94)
+        .setOrigin(0)
+        .setStrokeStyle(1, selected ? 0xfacc15 : 0x334155, 0.9)
+        .setInteractive({ useHandCursor: true });
+      row.on("pointerdown", () => select(index));
+      row.on("pointerover", () => this.showComparison(item));
+      this.addPanelRectangle(x + 10, rowY + 2, 16, 16, this.getItemIconColor(item), 0.94)
+        .setOrigin(0)
+        .setStrokeStyle(1, 0xf8fafc, 0.58);
+      this.addPanelText(x + 34, rowY, this.truncateText(getVisibleItemName(state.inventory, item), 22), 13, "#f8fafc");
+      this.addPanelText(x + 214, rowY, `x${entry.quantity}`, 12, "#cbd5e1");
+      this.addPanelText(x + 250, rowY, getItemRarity(item), 12, this.getRarityColor(item));
+    });
+
+    if (rows.length === 0) {
+      this.addPanelText(x + 10, y + 34, page > 0 ? "No entries on page" : "No items", 13, "#64748b");
+    }
+  }
+
+  private renderStorageDetails(
+    x: number,
+    y: number,
+    label: string,
+    item: ItemDefinition | null,
+    entry: StorageListEntry | null,
+  ): void {
+    const text = item && entry
+      ? `${label}: ${this.truncateText(item.name, 19)} x${entry.quantity}`
+      : `${label}: Empty`;
+
+    this.addPanelText(x, y, text, 12, item ? "#cbd5e1" : "#64748b");
   }
 
   private renderMarketDetails(
@@ -1127,6 +1316,235 @@ export class UIScene extends Phaser.Scene {
       ? `appraise:${result.itemId}:${result.price}:${result.gold}`
       : `appraise-failed:${result.reason}:${result.itemId}:${result.price}:${result.gold}`;
     this.refreshOpenPanel();
+  }
+
+  private depositSelectedStorageItem(): void {
+    if (!this.state || !this.dataRegistry) {
+      return;
+    }
+
+    const { inventoryEntries } = this.getFilteredStoragePanelEntries(this.state, this.dataRegistry);
+    const entry = inventoryEntries[this.clampStorageInventoryIndex(inventoryEntries)];
+    const item = entry ? this.dataRegistry.getItem(entry.itemId) : undefined;
+    const result = depositStorageItem(this.state, item, 1);
+
+    this.game.canvas.dataset.lastStorageAction = result.success
+      ? `deposit:${result.itemId}:${result.quantity}:${result.storageQuantity}:${result.gold}`
+      : `deposit-failed:${result.reason}:${result.itemId}:${result.gold}`;
+    this.refreshOpenPanel();
+  }
+
+  private withdrawSelectedStorageItem(): void {
+    if (!this.state || !this.dataRegistry) {
+      return;
+    }
+
+    const { storageEntries } = this.getFilteredStoragePanelEntries(this.state, this.dataRegistry);
+    const entry = storageEntries[this.clampStorageIndex(storageEntries)];
+    const item = entry ? this.dataRegistry.getItem(entry.itemId) : undefined;
+    const result = withdrawStorageItem(this.state, item, 1);
+
+    this.game.canvas.dataset.lastStorageAction = result.success
+      ? `withdraw:${result.itemId}:${result.quantity}:${result.inventoryQuantity}:${result.gold}`
+      : `withdraw-failed:${result.reason}:${result.itemId}:${result.gold}`;
+    this.refreshOpenPanel();
+  }
+
+  private cycleStorageCategoryFilter(): void {
+    const filters: StorageCategoryFilter[] = ["all", "equipment", "consumable", "material"];
+    this.storageCategoryFilter = this.getNextValue(filters, this.storageCategoryFilter);
+    this.resetStorageSelections();
+    this.renderPanel();
+  }
+
+  private cycleStorageRarityFilter(): void {
+    const filters: Array<ItemRarity | "all"> = ["all", "Common", "Uncommon", "Rare", "Epic", "Legendary", "Mythic"];
+    this.storageRarityFilter = this.getNextValue(filters, this.storageRarityFilter);
+    this.resetStorageSelections();
+    this.renderPanel();
+  }
+
+  private cycleStorageClassFilter(): void {
+    const filters: StorageClassFilter[] = ["all", "current"];
+    this.storageClassFilter = this.getNextValue(filters, this.storageClassFilter);
+    this.resetStorageSelections();
+    this.renderPanel();
+  }
+
+  private cycleStorageLevelFilter(): void {
+    const filters: StorageLevelFilter[] = ["all", "usable"];
+    this.storageLevelFilter = this.getNextValue(filters, this.storageLevelFilter);
+    this.resetStorageSelections();
+    this.renderPanel();
+  }
+
+  private cycleStorageSortMode(): void {
+    const modes: StorageSortMode[] = ["name", "level", "rarity", "quantity"];
+    if (this.storageSortMode === "quantity" && this.storageSortDirection === "asc") {
+      this.storageSortDirection = "desc";
+    } else if (this.storageSortMode === "quantity") {
+      this.storageSortMode = "name";
+      this.storageSortDirection = "asc";
+    } else {
+      this.storageSortMode = this.getNextValue(modes, this.storageSortMode);
+      this.storageSortDirection = "asc";
+    }
+    this.resetStorageSelections();
+    this.renderPanel();
+  }
+
+  private clearStorageSearch(): void {
+    this.storageSearchText = "";
+    this.storageCategoryFilter = "all";
+    this.storageRarityFilter = "all";
+    this.storageClassFilter = "all";
+    this.storageLevelFilter = "all";
+    this.resetStorageSelections();
+    this.renderPanel();
+  }
+
+  private changeStorageInventoryPage(delta: number, entryCount: number): void {
+    this.storageInventoryPage = this.clampStoragePage(this.storageInventoryPage + delta, entryCount);
+    this.selectedStorageInventoryIndex = Math.min(this.selectedStorageInventoryIndex, Math.max(0, entryCount - 1));
+    this.renderPanel();
+  }
+
+  private changeStoragePage(delta: number, entryCount: number): void {
+    this.storagePage = this.clampStoragePage(this.storagePage + delta, entryCount);
+    this.selectedStorageIndex = Math.min(this.selectedStorageIndex, Math.max(0, entryCount - 1));
+    this.renderPanel();
+  }
+
+  private getFilteredStoragePanelEntries(
+    state: GameState,
+    dataRegistry: DataRegistry,
+  ): { inventoryEntries: StorageListEntry[]; storageEntries: StorageListEntry[] } {
+    const options = this.getStorageListOptions(state);
+    const getItem = (id: string) => dataRegistry.getItem(id);
+
+    return {
+      inventoryEntries: getFilteredStorageEntries(
+        getContainerEntries(state.inventory.items, state.inventory.equipmentInstances),
+        options,
+        getItem,
+      ),
+      storageEntries: getFilteredStorageEntries(
+        getContainerEntries(state.storage.items, state.storage.equipmentInstances),
+        options,
+        getItem,
+      ),
+    };
+  }
+
+  private getStorageListOptions(state: GameState): StorageListOptions {
+    return {
+      category: this.storageCategoryFilter,
+      rarity: this.storageRarityFilter,
+      classFilter: this.storageClassFilter,
+      levelFilter: this.storageLevelFilter,
+      classId: state.character.archetype,
+      playerLevel: state.playerProfile.level,
+      nameSearch: this.storageSearchText,
+      sortMode: this.storageSortMode,
+      sortDirection: this.storageSortDirection,
+    };
+  }
+
+  private getPagedStorageRows(
+    entries: StorageListEntry[],
+    page: number,
+  ): Array<{ entry: StorageListEntry; index: number }> {
+    const pageSize = this.getStoragePageSize();
+    const safePage = this.clampStoragePage(page, entries.length);
+
+    return entries
+      .slice(safePage * pageSize, safePage * pageSize + pageSize)
+      .map((entry, index) => ({
+        entry,
+        index: safePage * pageSize + index,
+      }));
+  }
+
+  private clampStorageInventoryIndex(entries: StorageListEntry[]): number {
+    this.selectedStorageInventoryIndex = Phaser.Math.Clamp(
+      this.selectedStorageInventoryIndex,
+      0,
+      Math.max(0, entries.length - 1),
+    );
+    return this.selectedStorageInventoryIndex;
+  }
+
+  private clampStorageIndex(entries: StorageListEntry[]): number {
+    this.selectedStorageIndex = Phaser.Math.Clamp(
+      this.selectedStorageIndex,
+      0,
+      Math.max(0, entries.length - 1),
+    );
+    return this.selectedStorageIndex;
+  }
+
+  private clampStoragePage(page: number, entryCount: number): number {
+    const maxPage = Math.max(0, Math.ceil(entryCount / this.getStoragePageSize()) - 1);
+    return Phaser.Math.Clamp(page, 0, maxPage);
+  }
+
+  private getStoragePageSize(): number {
+    return 6;
+  }
+
+  private resetStorageSelections(): void {
+    this.selectedStorageInventoryIndex = 0;
+    this.selectedStorageIndex = 0;
+    this.storageInventoryPage = 0;
+    this.storagePage = 0;
+  }
+
+  private syncStorageDataset(
+    state: GameState,
+    dataRegistry: DataRegistry,
+    inventoryEntries: StorageListEntry[],
+    storageEntries: StorageListEntry[],
+    selectedInventoryItem: ItemDefinition | null,
+    selectedStorageItem: ItemDefinition | null,
+  ): void {
+    this.game.canvas.dataset.shopPanel = "hidden";
+    this.game.canvas.dataset.appraiserPanel = "hidden";
+    this.game.canvas.dataset.storagePanel = "visible";
+    this.game.canvas.dataset.activeStorageNpc = this.activeStorageNpcId;
+    this.game.canvas.dataset.storageFilterCategory = this.storageCategoryFilter;
+    this.game.canvas.dataset.storageFilterRarity = this.storageRarityFilter;
+    this.game.canvas.dataset.storageFilterClass = this.storageClassFilter;
+    this.game.canvas.dataset.storageFilterLevel = this.storageLevelFilter;
+    this.game.canvas.dataset.storageSearch = this.storageSearchText;
+    this.game.canvas.dataset.storageSort = `${this.storageSortMode}:${this.storageSortDirection}`;
+    this.game.canvas.dataset.storageInventoryItemCount = String(inventoryEntries.length);
+    this.game.canvas.dataset.storageItemCount = String(storageEntries.length);
+    this.game.canvas.dataset.storageStackCount = String(state.storage.items.length);
+    this.game.canvas.dataset.storageEquipmentInstanceCount = String(state.storage.equipmentInstances.length);
+    this.game.canvas.dataset.storageVisibleInventoryItems = inventoryEntries.map((entry) => entry.itemId).join("|");
+    this.game.canvas.dataset.storageVisibleItems = storageEntries.map((entry) => entry.itemId).join("|");
+    this.game.canvas.dataset.storageInventoryPage = String(this.storageInventoryPage);
+    this.game.canvas.dataset.storagePage = String(this.storagePage);
+    this.game.canvas.dataset.selectedStorageInventoryItem = selectedInventoryItem?.id ?? "";
+    this.game.canvas.dataset.selectedStorageInventoryItemName = selectedInventoryItem ? getVisibleItemName(state.inventory, selectedInventoryItem) : "";
+    this.game.canvas.dataset.selectedStorageItem = selectedStorageItem?.id ?? "";
+    this.game.canvas.dataset.selectedStorageItemName = selectedStorageItem ? getVisibleItemName(state.inventory, selectedStorageItem) : "";
+    this.game.canvas.dataset.storageButtons = "Deposit|Withdraw|Close";
+    this.game.canvas.dataset.inventoryGold = String(state.inventory.gold);
+    this.game.canvas.dataset.playerGold = String(state.inventory.gold);
+    this.game.canvas.dataset.storageClassFilteredItems = inventoryEntries
+      .concat(storageEntries)
+      .filter((entry) => {
+        const item = dataRegistry.getItem(entry.itemId);
+        return (item.allowedClassIds ?? []).includes(state.character.archetype);
+      })
+      .map((entry) => entry.itemId)
+      .join("|");
+  }
+
+  private getNextValue<T>(values: T[], current: T): T {
+    const index = values.indexOf(current);
+    return values[(index + 1) % values.length];
   }
 
   private removeSelectedEquipment(): void {
@@ -1454,6 +1872,8 @@ export class UIScene extends Phaser.Scene {
     this.game.canvas.dataset.inventoryGold = String(state.inventory.gold);
     this.game.canvas.dataset.inventoryStackCount = String(state.inventory.items.length);
     this.game.canvas.dataset.equipmentInstanceCount = String(state.inventory.equipmentInstances.length);
+    this.game.canvas.dataset.storageStackCount = String(state.storage.items.length);
+    this.game.canvas.dataset.storageEquipmentInstanceCount = String(state.storage.equipmentInstances.length);
     this.game.canvas.dataset.skill = firstSkill?.id ?? "";
     this.game.canvas.dataset.skillName = firstSkill?.name ?? "";
     this.syncSkillDataset(state, dataRegistry);
@@ -1966,6 +2386,10 @@ export class UIScene extends Phaser.Scene {
 
   private formatDelta(value: number): string {
     return value >= 0 ? `+${value}` : String(value);
+  }
+
+  private truncateText(text: string, maxLength: number): string {
+    return text.length <= maxLength ? text : `${text.slice(0, Math.max(0, maxLength - 1))}.`;
   }
 
   private wrapText(text: string, lineLength: number): string {

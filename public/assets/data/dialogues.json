@@ -17,13 +17,13 @@
     "id": "borin-lockbar-greeting",
     "lines": [
       "If it fits in a chest, I can keep it safer than a pocket can.",
-      "Storage ledgers are still being stamped, so check back soon."
+      "The town ledgers follow you wherever the road bends."
     ],
     "choices": [
       {
         "id": "open-storage",
         "label": "Open storage",
-        "disabled": true
+        "disabled": false
       }
     ]
   },

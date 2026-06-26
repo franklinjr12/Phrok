@@ -25,6 +25,7 @@ export function createSaveData(gameState: GameState, savedAt = new Date().toISOS
     currentMapId: snapshot.currentMapId,
     position: snapshot.position,
     inventory: snapshot.inventory,
+    storage: snapshot.storage,
     equipment: snapshot.equipment,
     skills: [...snapshot.character.skillIds],
     stats: snapshot.character.stats,
@@ -111,6 +112,10 @@ function normalizeSaveData(rawSave: unknown): SaveData {
     isRecord(rawSave.inventory) ? rawSave.inventory : rawGameState.inventory,
     fallbackState.inventory,
   );
+  const storage = normalizeStorage(
+    isRecord(rawSave.storage) ? rawSave.storage : rawGameState.storage,
+    fallbackState.storage,
+  );
   const equipment = {
     ...fallbackState.equipment,
     ...normalizeRecord(
@@ -133,6 +138,7 @@ function normalizeSaveData(rawSave: unknown): SaveData {
     ),
     character,
     inventory,
+    storage,
     equipment,
     quests: normalizeQuestState(isRecord(rawSave.quests) ? rawSave.quests : rawGameState.quests, fallbackState.quests),
     bestiary: normalizeBestiaryState(isRecord(rawSave.bestiary) ? rawSave.bestiary : rawGameState.bestiary, fallbackState.bestiary),
@@ -302,6 +308,31 @@ function normalizeInventory(rawInventory: unknown, fallback: GameState["inventor
       }))
       .filter((item) => item.instanceId.length > 0 && item.itemId.length > 0),
     appraisedItemIds: stringArray(source.appraisedItemIds, fallback.appraisedItemIds),
+  };
+}
+
+function normalizeStorage(rawStorage: unknown, fallback: GameState["storage"]): GameState["storage"] {
+  const source = isRecord(rawStorage) ? rawStorage : {};
+  const rawItems = Array.isArray(source.items) ? source.items : fallback.items;
+  const rawEquipmentInstances = Array.isArray(source.equipmentInstances)
+    ? source.equipmentInstances
+    : fallback.equipmentInstances;
+
+  return {
+    items: rawItems
+      .filter(isRecord)
+      .map((item) => ({
+        id: stringValue(item.id, ""),
+        quantity: numberValue(item.quantity, 1),
+      }))
+      .filter((item) => item.id.length > 0 && item.quantity > 0),
+    equipmentInstances: rawEquipmentInstances
+      .filter(isRecord)
+      .map((item) => ({
+        instanceId: stringValue(item.instanceId, ""),
+        itemId: stringValue(item.itemId, ""),
+      }))
+      .filter((item) => item.instanceId.length > 0 && item.itemId.length > 0),
   };
 }
 

@@ -98,6 +98,10 @@ describe("autosave", () => {
         items: [{ id: "apprentice-staff", quantity: 1 }],
         gold: 42,
       },
+      storage: {
+        items: [{ id: "jelly-gel", quantity: 5 }],
+        equipmentInstances: [{ instanceId: "rare-sword-a", itemId: "rare-sword" }],
+      },
       equipment: {
         weapon: "apprentice-staff",
       },
@@ -121,6 +125,10 @@ describe("autosave", () => {
         },
         inventory: {
           gold: 42,
+        },
+        storage: {
+          items: [{ id: "jelly-gel", quantity: 5 }],
+          equipmentInstances: [{ instanceId: "rare-sword-a", itemId: "rare-sword" }],
         },
         character: {
           skills: {
@@ -164,6 +172,8 @@ describe("autosave", () => {
     state.character.consumables.autoPotion.spThresholdPercent = 25;
     state.inventory.items.push({ id: "jelly-gel", quantity: 2 });
     state.inventory.appraisedItemIds.push("jelly-gel");
+    state.storage.items.push({ id: "moonlit-reed", quantity: 3 });
+    state.storage.equipmentInstances.push({ instanceId: "rare-sword-a", itemId: "rare-sword" });
     state.position = { x: 512, y: 300 };
     writeSaveSlot(2, state, storage);
 
@@ -183,6 +193,10 @@ describe("autosave", () => {
             { id: "jelly-gel", quantity: 2 },
           ],
           appraisedItemIds: ["jelly-gel"],
+        },
+        storage: {
+          items: [{ id: "moonlit-reed", quantity: 3 }],
+          equipmentInstances: [{ instanceId: "rare-sword-a", itemId: "rare-sword" }],
         },
         character: {
           consumables: {
@@ -205,5 +219,7 @@ describe("autosave", () => {
       },
     });
     expect(restored?.inventory.appraisedItemIds).toEqual(["jelly-gel"]);
+    expect(restored?.storage.items).toEqual([{ id: "moonlit-reed", quantity: 3 }]);
+    expect(restored?.storage.equipmentInstances).toEqual([{ instanceId: "rare-sword-a", itemId: "rare-sword" }]);
   });
 });

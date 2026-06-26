@@ -128,6 +128,11 @@ export interface InventoryState {
   appraisedItemIds: string[];
 }
 
+export interface StorageState {
+  items: InventoryItem[];
+  equipmentInstances: EquipmentInstance[];
+}
+
 export type EquipmentSlot =
   | "weapon"
   | "offhand"
@@ -170,6 +175,7 @@ export interface GameState {
   position: PositionState;
   character: CharacterData;
   inventory: InventoryState;
+  storage: StorageState;
   equipment: EquipmentData;
   quests: QuestState;
   bestiary: BestiaryState;

@@ -9,6 +9,7 @@ import type {
   PositionState,
   QuestState,
   SettingsState,
+  StorageState,
 } from "./gameState";
 
 export interface InventoryData {
@@ -23,6 +24,7 @@ export interface SaveData {
   currentMapId: string;
   position: PositionState;
   inventory: InventoryState;
+  storage: StorageState;
   equipment: EquipmentData;
   skills: string[];
   stats: CharacterStats;
