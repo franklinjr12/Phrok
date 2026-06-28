@@ -1,5 +1,5 @@
 import type { SaveData } from "../types/saveData";
-import type { GameState } from "../types/gameState";
+import type { BestiaryMonsterState, GameState } from "../types/gameState";
 import { createNewGameState } from "../data/gameState";
 import { baseStatKeys, createEmptyBaseStats } from "./stats";
 import { createInitialConsumableState } from "./consumables";
@@ -394,11 +394,59 @@ function normalizeQuestState(rawQuestState: unknown, fallback: GameState["quests
 
 function normalizeBestiaryState(rawBestiaryState: unknown, fallback: GameState["bestiary"]): GameState["bestiary"] {
   const source = isRecord(rawBestiaryState) ? rawBestiaryState : {};
+  const entries = normalizeBestiaryEntries(source.entries);
+  const discoveredEnemyIds = stringArray(source.discoveredEnemyIds, fallback.discoveredEnemyIds);
+  const defeatedEnemyIds = stringArray(source.defeatedEnemyIds, fallback.defeatedEnemyIds);
+
+  for (const enemyId of [...discoveredEnemyIds, ...defeatedEnemyIds]) {
+    if (!entries[enemyId]) {
+      entries[enemyId] = {
+        monsterId: enemyId,
+        kills: defeatedEnemyIds.includes(enemyId) ? 1 : 0,
+        firstDiscoveredAt: new Date(0).toISOString(),
+        discoveredDropIds: [],
+        unlockedMilestones: defeatedEnemyIds.includes(enemyId) ? [1] : [],
+      };
+    }
+  }
 
   return {
-    discoveredEnemyIds: stringArray(source.discoveredEnemyIds, fallback.discoveredEnemyIds),
-    defeatedEnemyIds: stringArray(source.defeatedEnemyIds, fallback.defeatedEnemyIds),
+    discoveredEnemyIds,
+    defeatedEnemyIds,
+    entries,
+    familyDamageBonuses: normalizeNumberRecord(source.familyDamageBonuses),
+    milestoneNotifications: stringArray(source.milestoneNotifications, fallback.milestoneNotifications),
   };
+}
+
+function normalizeBestiaryEntries(rawEntries: unknown): Record<string, BestiaryMonsterState> {
+  if (!isRecord(rawEntries)) {
+    return {};
+  }
+
+  const entries: Record<string, BestiaryMonsterState> = {};
+
+  for (const [monsterId, rawEntry] of Object.entries(rawEntries)) {
+    if (!isRecord(rawEntry)) {
+      continue;
+    }
+
+    const id = stringValue(rawEntry.monsterId, monsterId);
+    entries[id] = {
+      monsterId: id,
+      kills: Math.max(0, Math.floor(numberValue(rawEntry.kills, 0))),
+      firstDiscoveredAt: stringValue(rawEntry.firstDiscoveredAt, new Date(0).toISOString()),
+      discoveredDropIds: stringArray(rawEntry.discoveredDropIds, []),
+      unlockedMilestones: Array.isArray(rawEntry.unlockedMilestones)
+        ? rawEntry.unlockedMilestones
+          .filter((milestone): milestone is number => typeof milestone === "number" && Number.isFinite(milestone))
+          .map((milestone) => Math.floor(milestone))
+          .sort((left, right) => left - right)
+        : [],
+    };
+  }
+
+  return entries;
 }
 
 function normalizeCraftingState(rawCraftingState: unknown, fallback: GameState["crafting"]): GameState["crafting"] {

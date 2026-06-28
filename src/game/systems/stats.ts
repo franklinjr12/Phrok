@@ -1,5 +1,6 @@
 import { getEquipmentStats } from "./equipment";
 import { eventBus } from "./eventBus";
+import { getBestiaryFamilyDamageBonuses } from "./bestiary";
 import { getStatusStatModifiers } from "./statusEffects";
 import { getSupportRaceDamage, getSupportStatModifier } from "./supports";
 import type { ClassDefinition, ItemDefinition, StatusEffectDefinition, SupportDefinition } from "../types/dataDefinitions";
@@ -180,7 +181,7 @@ export function calculateDerivedStats(
     weightLimit: Math.round(60 + stats.str * 8 + stats.vit * 4),
     dropChance: gear.dropChance,
     elementDamage: { ...gear.elementDamage },
-    raceDamage: { ...gear.raceDamage, ...getSupportRaceDamage(state, support) },
+    raceDamage: { ...gear.raceDamage, ...getSupportRaceDamage(state, support), ...getBestiaryFamilyDamageBonuses(state) },
     resistances: { ...gear.resistances },
   };
 

@@ -15,6 +15,7 @@ import { addGold, addInventoryItem } from "../systems/inventory";
 import { generateLootDrops, type LootDrop } from "../systems/lootDrops";
 import { awardXp, getLevelXpThreshold } from "../systems/progression";
 import { autosaveSlot, writeAutosave, writeSaveSlot } from "../systems/autosave";
+import { recordMonsterKill } from "../systems/bestiary";
 import { getAdvancedClassOptionsForBase, isAdvancedClassServiceAvailable } from "../systems/advancedClasses";
 import {
   getAutoPotionSettingsSummary,
@@ -349,6 +350,9 @@ export class WorldScene extends Phaser.Scene {
     this.game.canvas.dataset.lastBossStealthDetection = "";
     this.game.canvas.dataset.lastBossPhase = "";
     this.game.canvas.dataset.lastBossReward = "";
+    this.game.canvas.dataset.bestiaryKills = this.getBestiaryKillDataset();
+    this.game.canvas.dataset.lastBestiaryUpdate = "";
+    this.game.canvas.dataset.lastBestiaryMilestone = "";
     this.game.canvas.dataset.treasureSpotCount = String(this.countObjectsByType(tilemap, "treasure"));
     this.game.canvas.dataset.lastAutosaveSlot = this.lastAutosaveSlot;
     this.game.canvas.dataset.lastAutosaveMap = this.lastAutosaveMap;
@@ -1112,6 +1116,10 @@ export class WorldScene extends Phaser.Scene {
     }
 
     const monster = dataRegistry.getMonster(enemy.id);
+    const dropTable = dataRegistry.getDropTable(monster.dropTableId);
+    const bestiaryEntry = recordMonsterKill(state, monster, dropTable);
+    this.game.canvas.dataset.bestiaryKills = this.getBestiaryKillDataset();
+    this.game.canvas.dataset.lastBestiaryUpdate = `${monster.id}:${bestiaryEntry.kills}`;
     const xpResult = awardXp(state, dataRegistry.getXpTable("standard"), monster.xpReward);
     this.game.canvas.dataset.lastXpGain = String(xpResult.amount);
     this.game.canvas.dataset.playerXp = String(xpResult.totalXp);
@@ -1128,7 +1136,6 @@ export class WorldScene extends Phaser.Scene {
 
     eventBus.emit("enemyKilled", { enemyId: enemy.id });
 
-    const dropTable = dataRegistry.getDropTable(monster.dropTableId);
     const drops = generateLootDrops(dropTable, dataRegistry, Math.random, {
       quality: enemy.boss ? "boss" : enemy.elite ? "elite" : "normal",
     });
@@ -1141,6 +1148,17 @@ export class WorldScene extends Phaser.Scene {
     grantSupportAffinity(state, support, Math.max(1, Math.ceil(monster.xpReward / 2)));
     this.syncSupportDataset();
     drops.forEach((drop, index) => this.spawnLootDrop(drop, enemy.sprite.x + index * 28, enemy.sprite.y + 18));
+  }
+
+  private getBestiaryKillDataset(): string {
+    if (!this.state) {
+      return "";
+    }
+
+    return Object.values(this.state.bestiary.entries)
+      .sort((left, right) => left.monsterId.localeCompare(right.monsterId))
+      .map((entry) => `${entry.monsterId}:${entry.kills}`)
+      .join("|");
   }
 
   private applySupportMaterialFinder(

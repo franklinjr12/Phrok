@@ -104,6 +104,9 @@ export interface ConsumableEffectDefinition {
 export interface MonsterDefinition {
   id: string;
   name: string;
+  family?: string;
+  element?: string;
+  combatTip?: string;
   level: number;
   hp: number;
   attack: number;

@@ -99,6 +99,31 @@ test("skill screen supports leveling, requirements, hotbar assignment, and persi
   await expect(canvas).toHaveAttribute("data-hotbar-assignments", /2:item:minor-health-potion/);
 });
 
+test("bestiary opens with B, filters entries, and shows partial monster knowledge", async ({ page }) => {
+  await startApp(page);
+
+  const canvas = await confirmDefaultCharacter(page);
+
+  await page.keyboard.press("KeyB");
+  await expect(canvas).toHaveAttribute("data-ui-panel", "bestiary");
+  await expect(canvas).toHaveAttribute("data-bestiary-panel", "visible");
+  await expect(canvas).toHaveAttribute("data-bestiary-entry-count", /\d+/);
+  await expect(canvas).toHaveAttribute("data-bestiary-groups", /crownfield\//);
+  await expect(canvas).toHaveAttribute("data-selected-bestiary-monster", /\w/);
+  await expect(canvas).toHaveAttribute("data-selected-bestiary-monster-name", "Unknown monster");
+  await expect(canvas).toHaveAttribute("data-selected-bestiary-kills", "0");
+  await expect(canvas).toHaveAttribute("data-selected-bestiary-drops", "");
+  await expect(canvas).toHaveAttribute("data-bestiary-buttons", "Close");
+
+  await page.keyboard.type("hopper");
+  await expect(canvas).toHaveAttribute("data-bestiary-search", "hopper");
+  await expect(canvas).toHaveAttribute("data-bestiary-entry-count", "1");
+  await expect(canvas).toHaveAttribute("data-selected-bestiary-monster", "field-hopper");
+
+  await page.keyboard.press("Escape");
+  await expect(canvas).toHaveAttribute("data-ui-panel", "closed");
+});
+
 test("crafting screen lists recipes, shows missing materials, and blocks unavailable crafts", async ({ page }) => {
   await startApp(page);
 

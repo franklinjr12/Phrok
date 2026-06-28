@@ -118,6 +118,8 @@ describe("autosave", () => {
       gold: 42,
       bestiary: {
         discoveredEnemyIds: [],
+        entries: {},
+        familyDamageBonuses: {},
       },
       settings: {
         musicVolume: 0.8,
@@ -184,6 +186,16 @@ describe("autosave", () => {
     state.support.cooldowns["emergency-potion"] = 9000;
     state.support.autoPickupFilter = "materials";
     state.inventory.items.push({ id: "jelly-gel", quantity: 2 });
+    state.bestiary.entries["green-jelly"] = {
+      monsterId: "green-jelly",
+      kills: 15,
+      firstDiscoveredAt: "2026-06-28T00:00:00.000Z",
+      discoveredDropIds: ["jelly-gel"],
+      unlockedMilestones: [1, 5, 15],
+    };
+    state.bestiary.discoveredEnemyIds.push("green-jelly");
+    state.bestiary.defeatedEnemyIds.push("green-jelly");
+    state.bestiary.milestoneNotifications.push("green-jelly:15");
     state.inventory.appraisedItemIds.push("jelly-gel");
     state.storage.items.push({ id: "moonlit-reed", quantity: 3 });
     state.storage.equipmentInstances.push({ instanceId: "rare-sword-a", itemId: "rare-sword" });
@@ -206,6 +218,16 @@ describe("autosave", () => {
             { id: "jelly-gel", quantity: 2 },
           ],
           appraisedItemIds: ["jelly-gel"],
+        },
+        bestiary: {
+          entries: {
+            "green-jelly": {
+              kills: 15,
+              discoveredDropIds: ["jelly-gel"],
+              unlockedMilestones: [1, 5, 15],
+            },
+          },
+          milestoneNotifications: ["green-jelly:15"],
         },
         storage: {
           items: [{ id: "moonlit-reed", quantity: 3 }],
@@ -239,6 +261,8 @@ describe("autosave", () => {
       },
     });
     expect(restored?.inventory.appraisedItemIds).toEqual(["jelly-gel"]);
+    expect(restored?.bestiary.entries["green-jelly"].kills).toBe(15);
+    expect(restored?.bestiary.milestoneNotifications).toEqual(["green-jelly:15"]);
     expect(restored?.storage.items).toEqual([{ id: "moonlit-reed", quantity: 3 }]);
     expect(restored?.storage.equipmentInstances).toEqual([{ instanceId: "rare-sword-a", itemId: "rare-sword" }]);
     expect(restored?.support).toMatchObject({

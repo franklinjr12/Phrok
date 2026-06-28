@@ -90,6 +90,10 @@ export class DataRegistry {
     return this.getById("monsters", id);
   }
 
+  getMonsters(): MonsterDefinition[] {
+    return Array.from(this.collections.monsters.values());
+  }
+
   getRegion(id: string): RegionDefinition {
     return this.getById("regions", id);
   }
@@ -546,6 +550,9 @@ function validateMonster(source: Record<string, unknown>, fileName: string): Mon
   return {
     id,
     name: requireString(source, "name", fileName, id),
+    family: optionalString(source, "family", "") || undefined,
+    element: optionalString(source, "element", "") || undefined,
+    combatTip: optionalString(source, "combatTip", "") || undefined,
     level: optionalNumber(source, "level", 1),
     hp: requireNumber(source, "hp", fileName, id),
     attack: requireNumber(source, "attack", fileName, id),

@@ -35,6 +35,7 @@ export interface GameEventMap {
     statuses: ActiveStatusEffect[];
   };
   enemyKilled: { enemyId: string };
+  bestiaryMilestoneUnlocked: { monsterId: string; milestone: number; family: string };
   enemyHealthChanged: { enemyId: string; name: string; hp: number; maxHp: number; boss?: boolean; phase?: number };
   enemyTargetChanged: { enemyId: string | null; name: string; hp: number; maxHp: number; boss?: boolean; phase?: number };
   lootDropped: { kind: "item" | "gold"; itemId?: string; quantity: number };

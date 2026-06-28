@@ -39,6 +39,10 @@ test("world supports target selection and auto-attack combat", async ({ page }) 
   await expect(canvas).toHaveAttribute("data-player-xp", "5");
   await expect(canvas).toHaveAttribute("data-last-xp-gain", "5");
   await expect(canvas).toHaveAttribute("data-player-level", "1");
+  await expect(canvas).toHaveAttribute("data-bestiary-kills", "green-jelly:1");
+  await expect(canvas).toHaveAttribute("data-bestiary-discovered", "green-jelly");
+  await expect(canvas).toHaveAttribute("data-last-bestiary-update", "green-jelly:1");
+  await expect(canvas).toHaveAttribute("data-last-bestiary-milestone", "green-jelly:1:slime");
   await expect(canvas).toHaveAttribute("data-xp-bar-width", "9");
   await expect(canvas).toHaveAttribute("data-pending-loot-count", "2");
   await expect(canvas).toHaveAttribute("data-last-loot-drop", /gold:[3-5]/);

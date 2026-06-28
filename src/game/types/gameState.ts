@@ -163,9 +163,20 @@ export interface QuestState {
   completedQuestIds: string[];
 }
 
+export interface BestiaryMonsterState {
+  monsterId: string;
+  kills: number;
+  firstDiscoveredAt: string;
+  discoveredDropIds: string[];
+  unlockedMilestones: number[];
+}
+
 export interface BestiaryState {
   discoveredEnemyIds: string[];
   defeatedEnemyIds: string[];
+  entries: Record<string, BestiaryMonsterState>;
+  familyDamageBonuses: Record<string, number>;
+  milestoneNotifications: string[];
 }
 
 export interface CraftingState {

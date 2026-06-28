@@ -78,11 +78,19 @@ import {
 import { allocateSkillPoint, assignHotbarAction, getLearnedSkillLevel, hotbarSlotCount } from "../systems/skills";
 import { advancedClassUnlockLevel, getUnlockedSkillTreeIds, isAdvancedClassServiceAvailable } from "../systems/advancedClasses";
 import { getStatusSummary } from "../systems/statusEffects";
+import {
+  getBestiaryEntry,
+  getMonsterCombatTip,
+  getMonsterElement,
+  getMonsterFamily,
+  getVisibleBestiaryDropIds,
+  hasBestiaryMilestone,
+} from "../systems/bestiary";
 import type { DataRegistry } from "../data/dataRegistry";
-import type { ItemDefinition, ItemRarity, RecipeDefinition, ShopDefinition, SkillDefinition } from "../types/dataDefinitions";
+import type { ItemDefinition, ItemRarity, MonsterDefinition, RecipeDefinition, ShopDefinition, SkillDefinition } from "../types/dataDefinitions";
 import type { BaseStatKey, EquipmentInstance, EquipmentSlot, GameState, InventoryItem } from "../types/gameState";
 
-type PanelMode = "inventory" | "equipment" | "character" | "skills" | "crafting" | "refinement" | "shop" | "appraiser" | "storage";
+type PanelMode = "inventory" | "equipment" | "character" | "skills" | "bestiary" | "crafting" | "refinement" | "shop" | "appraiser" | "storage";
 type InventoryPanelEntry = {
   itemId: string;
   quantity: number;
@@ -119,6 +127,7 @@ export class UIScene extends Phaser.Scene {
   private unsubscribeAutoPotionSettingsChanged?: () => void;
   private unsubscribeHotbarChanged?: () => void;
   private unsubscribeHotbarUsed?: () => void;
+  private unsubscribeBestiaryMilestoneUnlocked?: () => void;
   private unsubscribeStatusEffectsChanged?: () => void;
   private unsubscribeSupportChanged?: () => void;
   private unsubscribeCraftingOpened?: () => void;
@@ -160,6 +169,7 @@ export class UIScene extends Phaser.Scene {
   private storagePage = 0;
   private selectedEquipmentSlot: EquipmentSlot = "weapon";
   private selectedSkillIndex = 0;
+  private selectedBestiaryIndex = 0;
   private activeShopId = "";
   private activeStorageNpcId = "";
   private activeCraftingNpcId = "";
@@ -169,6 +179,7 @@ export class UIScene extends Phaser.Scene {
   private storageClassFilter: StorageClassFilter = "all";
   private storageLevelFilter: StorageLevelFilter = "all";
   private storageSearchText = "";
+  private bestiarySearchText = "";
   private storageSortMode: StorageSortMode = "name";
   private storageSortDirection: StorageSortDirection = "asc";
   private panelObjects: Phaser.GameObjects.GameObject[] = [];
@@ -203,6 +214,7 @@ export class UIScene extends Phaser.Scene {
     this.input.keyboard?.on("keydown-I", this.toggleInventoryPanel, this);
     this.input.keyboard?.on("keydown-C", this.toggleCharacterPanel, this);
     this.input.keyboard?.on("keydown-K", this.toggleSkillPanel, this);
+    this.input.keyboard?.on("keydown-B", this.toggleBestiaryPanel, this);
     this.input.keyboard?.on("keydown-P", this.toggleEquipmentPanel, this);
     this.input.keyboard?.on("keydown-R", this.toggleCraftingPanel, this);
     this.input.keyboard?.on("keydown-S", this.manualSave, this);
@@ -213,6 +225,7 @@ export class UIScene extends Phaser.Scene {
       this.input.keyboard?.off("keydown-I", this.toggleInventoryPanel, this);
       this.input.keyboard?.off("keydown-C", this.toggleCharacterPanel, this);
       this.input.keyboard?.off("keydown-K", this.toggleSkillPanel, this);
+      this.input.keyboard?.off("keydown-B", this.toggleBestiaryPanel, this);
       this.input.keyboard?.off("keydown-P", this.toggleEquipmentPanel, this);
       this.input.keyboard?.off("keydown-R", this.toggleCraftingPanel, this);
       this.input.keyboard?.off("keydown-S", this.manualSave, this);
@@ -240,6 +253,7 @@ export class UIScene extends Phaser.Scene {
       this.unsubscribeAutoPotionSettingsChanged?.();
       this.unsubscribeHotbarChanged?.();
       this.unsubscribeHotbarUsed?.();
+      this.unsubscribeBestiaryMilestoneUnlocked?.();
       this.unsubscribeStatusEffectsChanged?.();
       this.unsubscribeSupportChanged?.();
       this.unsubscribeCraftingOpened?.();
@@ -417,6 +431,13 @@ export class UIScene extends Phaser.Scene {
 
     this.unsubscribeHotbarUsed = eventBus.on("hotbarUsed", ({ slot, type, id, success }) => {
       this.game.canvas.dataset.lastHotbarUse = `${slot}:${type}:${id}:${success ? "success" : "failed"}`;
+    });
+
+    this.unsubscribeBestiaryMilestoneUnlocked = eventBus.on("bestiaryMilestoneUnlocked", ({ monsterId, milestone, family }) => {
+      this.game.canvas.dataset.lastBestiaryMilestone = `${monsterId}:${milestone}:${family}`;
+      this.syncBestiaryDataset(state, dataRegistry);
+      this.syncDerivedStatsDataset(state, dataRegistry);
+      this.refreshOpenPanel();
     });
 
     this.unsubscribeStatusEffectsChanged = eventBus.on("statusEffectsChanged", ({ targetKind, targetId, statuses }) => {
@@ -598,6 +619,10 @@ export class UIScene extends Phaser.Scene {
   }
 
   private toggleInventoryPanel(): void {
+    if (this.activePanel === "bestiary") {
+      return;
+    }
+
     if (this.activePanel === "storage") {
       return;
     }
@@ -611,6 +636,10 @@ export class UIScene extends Phaser.Scene {
   }
 
   private toggleEquipmentPanel(): void {
+    if (this.activePanel === "bestiary") {
+      return;
+    }
+
     if (this.activePanel === "storage") {
       return;
     }
@@ -624,6 +653,10 @@ export class UIScene extends Phaser.Scene {
   }
 
   private toggleCharacterPanel(): void {
+    if (this.activePanel === "bestiary") {
+      return;
+    }
+
     if (this.activePanel === "storage") {
       return;
     }
@@ -637,6 +670,10 @@ export class UIScene extends Phaser.Scene {
   }
 
   private toggleSkillPanel(): void {
+    if (this.activePanel === "bestiary") {
+      return;
+    }
+
     if (this.activePanel === "storage") {
       return;
     }
@@ -649,7 +686,24 @@ export class UIScene extends Phaser.Scene {
     this.openPanel("skills");
   }
 
+  private toggleBestiaryPanel(): void {
+    if (this.activePanel === "storage") {
+      return;
+    }
+
+    if (this.activePanel === "bestiary") {
+      this.closePanel();
+      return;
+    }
+
+    this.openPanel("bestiary");
+  }
+
   private toggleCraftingPanel(): void {
+    if (this.activePanel === "bestiary") {
+      return;
+    }
+
     if (this.activePanel === "storage") {
       return;
     }
@@ -688,6 +742,7 @@ export class UIScene extends Phaser.Scene {
     this.game.canvas.dataset.craftingPanel = "hidden";
     this.game.canvas.dataset.refinementPanel = "hidden";
     this.game.canvas.dataset.supportPanel = "hidden";
+    this.game.canvas.dataset.bestiaryPanel = "hidden";
   }
 
   private manualSave(): void {
@@ -722,11 +777,42 @@ export class UIScene extends Phaser.Scene {
       return;
     }
 
+    if (this.activePanel === "bestiary" && this.handleBestiarySearchKey(event)) {
+      return;
+    }
+
     const slot = Number(event.key);
 
     if (Number.isInteger(slot) && slot >= 1 && slot <= hotbarSlotCount) {
       this.requestHotbarAction(slot);
     }
+  }
+
+  private handleBestiarySearchKey(event: KeyboardEvent): boolean {
+    if (event.ctrlKey || event.metaKey || event.altKey) {
+      return false;
+    }
+
+    if (event.code === "KeyB" && this.bestiarySearchText.length === 0) {
+      event.preventDefault();
+      return true;
+    }
+
+    if (event.key === "Backspace") {
+      this.bestiarySearchText = this.bestiarySearchText.slice(0, -1);
+    } else if (event.key === "Delete") {
+      this.bestiarySearchText = "";
+    } else if (event.key.length === 1) {
+      this.bestiarySearchText = `${this.bestiarySearchText}${event.key}`.slice(0, 24);
+    } else {
+      return false;
+    }
+
+    event.preventDefault();
+    this.selectedBestiaryIndex = 0;
+    this.game.canvas.dataset.bestiarySearch = this.bestiarySearchText;
+    this.renderPanel();
+    return true;
   }
 
   private handleStorageSearchKey(event: KeyboardEvent): boolean {
@@ -772,6 +858,8 @@ export class UIScene extends Phaser.Scene {
       this.renderCharacterPanel(this.state, this.dataRegistry);
     } else if (this.activePanel === "skills") {
       this.renderSkillPanel(this.state, this.dataRegistry);
+    } else if (this.activePanel === "bestiary") {
+      this.renderBestiaryPanel(this.state, this.dataRegistry);
     } else if (this.activePanel === "crafting") {
       this.renderCraftingPanel(this.state, this.dataRegistry);
     } else if (this.activePanel === "refinement") {
@@ -849,6 +937,95 @@ export class UIScene extends Phaser.Scene {
     this.addPanelButton(628, 476, 86, 28, "Close", () => this.closePanel());
     this.game.canvas.dataset.skillPanelButtons = "Level|Slot 1|Potion|Close";
     this.syncSkillDataset(state, dataRegistry);
+  }
+
+  private renderBestiaryPanel(state: GameState, dataRegistry: DataRegistry): void {
+    const entries = this.getVisibleBestiaryEntries(state, dataRegistry);
+    const selectedEntry = entries[this.clampSelectedBestiaryIndex(entries)] ?? null;
+    const selectedMonster = selectedEntry ? selectedEntry.monster : null;
+    const selectedState = selectedMonster ? getBestiaryEntry(state, selectedMonster.id) : null;
+    const selectedRegion = selectedMonster ? this.getMonsterRegion(selectedMonster, dataRegistry) : undefined;
+    const selectedDropTable = selectedMonster ? dataRegistry.getDropTable(selectedMonster.dropTableId) : null;
+    const selectedDropIds = selectedDropTable ? getVisibleBestiaryDropIds(selectedState, selectedDropTable) : [];
+
+    this.addPanelRectangle(70, 60, 660, 470, panelFill, 0.95)
+      .setOrigin(0)
+      .setStrokeStyle(2, panelStroke, 0.92);
+    this.addPanelText(96, 84, "Bestiary", 24, "#f8fafc");
+    this.addPanelText(96, 120, `Search ${this.bestiarySearchText || "-"}   Known ${state.bestiary.discoveredEnemyIds.length}/${dataRegistry.getMonsters().length}`, 15, "#fde68a");
+    this.addPanelText(96, 148, "Monster", 13, "#94a3b8");
+    this.addPanelText(292, 148, "Family", 13, "#94a3b8");
+    this.addPanelText(376, 148, "Kills", 13, "#94a3b8");
+
+    this.game.canvas.dataset.bestiaryPanel = "visible";
+    this.game.canvas.dataset.bestiarySearch = this.bestiarySearchText;
+    this.game.canvas.dataset.bestiaryEntryCount = String(entries.length);
+    this.game.canvas.dataset.bestiaryGroups = entries
+      .map((entry) => `${entry.region.id}/${getMonsterFamily(entry.monster)}`)
+      .filter((group, index, groups) => groups.indexOf(group) === index)
+      .join("|");
+
+    entries.slice(0, 9).forEach((entry, index) => {
+      const monsterState = getBestiaryEntry(state, entry.monster.id);
+      const kills = monsterState?.kills ?? 0;
+      const known = hasBestiaryMilestone(monsterState, 1);
+      const familyKnown = hasBestiaryMilestone(monsterState, 5);
+      const y = 176 + index * 34;
+      const row = this.addPanelRectangle(96, y, 330, 28, index === this.selectedBestiaryIndex ? 0x293548 : 0x18222c, 0.94)
+        .setOrigin(0)
+        .setStrokeStyle(1, index === this.selectedBestiaryIndex ? 0xfacc15 : 0x334155, 0.9)
+        .setInteractive({ useHandCursor: true });
+      row.on("pointerdown", () => {
+        this.selectedBestiaryIndex = index;
+        this.renderPanel();
+      });
+      this.addPanelText(110, y + 5, known ? entry.monster.name : "Unknown monster", 13, known ? "#f8fafc" : "#94a3b8");
+      this.addPanelText(292, y + 5, familyKnown ? getMonsterFamily(entry.monster) : "???", 12, familyKnown ? "#cbd5e1" : "#64748b");
+      this.addPanelText(376, y + 5, String(kills), 12, "#fde68a");
+    });
+
+    if (selectedMonster && selectedDropTable) {
+      const kills = selectedState?.kills ?? 0;
+      const element = getMonsterElement(selectedMonster, selectedRegion);
+      const family = getMonsterFamily(selectedMonster);
+      const name = hasBestiaryMilestone(selectedState, 1) ? selectedMonster.name : "Unknown monster";
+      const levelText = hasBestiaryMilestone(selectedState, 1) ? `Lv ${selectedMonster.level}` : "Lv ?";
+      const familyText = hasBestiaryMilestone(selectedState, 5) ? `${family} / ${element} / ${selectedMonster.behavior}` : "???";
+      const dropsText = selectedDropIds.length > 0
+        ? selectedDropIds.map((itemId) => dataRegistry.getItem(itemId).name).join(", ")
+        : "Undiscovered";
+      const tipText = hasBestiaryMilestone(selectedState, 50) ? getMonsterCombatTip(selectedMonster) : "???";
+      const bonusText = hasBestiaryMilestone(selectedState, 100)
+        ? `+${state.bestiary.familyDamageBonuses[family] ?? 0} vs ${family}`
+        : "Locked";
+
+      this.addPanelRectangle(456, 158, 230, 292, 0x17212b, 0.95)
+        .setOrigin(0)
+        .setStrokeStyle(1, 0x475569, 0.86);
+      this.addPanelText(476, 178, name, 17, "#f8fafc");
+      this.addPanelText(476, 208, `${levelText}   Kills ${kills}`, 13, "#cbd5e1");
+      this.addPanelText(476, 236, `Region ${selectedRegion?.name ?? "Unknown"}`, 12, "#93c5fd");
+      this.addPanelText(476, 262, `Traits ${familyText}`, 12, "#fde68a");
+      this.addPanelText(476, 296, this.wrapText(`Drops ${dropsText}`, 25), 12, "#cbd5e1");
+      this.addPanelText(476, 356, this.wrapText(`Tip ${tipText}`, 25), 12, "#bbf7d0");
+      this.addPanelText(476, 412, `Bonus ${bonusText}`, 12, "#fef3c7");
+
+      this.game.canvas.dataset.selectedBestiaryMonster = selectedMonster.id;
+      this.game.canvas.dataset.selectedBestiaryMonsterName = name;
+      this.game.canvas.dataset.selectedBestiaryKills = String(kills);
+      this.game.canvas.dataset.selectedBestiaryLevel = hasBestiaryMilestone(selectedState, 1) ? String(selectedMonster.level) : "";
+      this.game.canvas.dataset.selectedBestiaryElement = hasBestiaryMilestone(selectedState, 5) ? element : "";
+      this.game.canvas.dataset.selectedBestiaryFamily = hasBestiaryMilestone(selectedState, 5) ? family : "";
+      this.game.canvas.dataset.selectedBestiaryBehavior = hasBestiaryMilestone(selectedState, 5) ? selectedMonster.behavior : "";
+      this.game.canvas.dataset.selectedBestiaryDrops = selectedDropIds.join("|");
+      this.game.canvas.dataset.selectedBestiaryTip = hasBestiaryMilestone(selectedState, 50) ? getMonsterCombatTip(selectedMonster) : "";
+      this.game.canvas.dataset.selectedBestiaryBonus = hasBestiaryMilestone(selectedState, 100) ? `${family}:${state.bestiary.familyDamageBonuses[family] ?? 0}` : "";
+      this.game.canvas.dataset.selectedBestiaryMilestones = selectedState?.unlockedMilestones.join("|") ?? "";
+    }
+
+    this.addPanelButton(628, 476, 86, 28, "Close", () => this.closePanel());
+    this.game.canvas.dataset.bestiaryButtons = "Close";
+    this.syncBestiaryDataset(state, dataRegistry);
   }
 
   private renderInventoryPanel(state: GameState, dataRegistry: DataRegistry): void {
@@ -2292,6 +2469,7 @@ export class UIScene extends Phaser.Scene {
     this.game.canvas.dataset.skill = firstSkill?.id ?? "";
     this.game.canvas.dataset.skillName = firstSkill?.name ?? "";
     this.syncSkillDataset(state, dataRegistry);
+    this.syncBestiaryDataset(state, dataRegistry);
     this.syncEquipmentDataset(state, dataRegistry);
     this.syncBaseStatsDataset(state, dataRegistry);
     this.syncDerivedStatsDataset(state, dataRegistry);
@@ -2337,6 +2515,20 @@ export class UIScene extends Phaser.Scene {
     this.game.canvas.dataset.hotbarAssignments = state.character.hotbar
       .map((entry) => `${entry.slot}:${entry.type}:${entry.id}`)
       .join("|");
+  }
+
+  private syncBestiaryDataset(state: GameState, dataRegistry: DataRegistry): void {
+    this.game.canvas.dataset.bestiaryKills = Object.values(state.bestiary.entries)
+      .sort((left, right) => left.monsterId.localeCompare(right.monsterId))
+      .map((entry) => `${entry.monsterId}:${entry.kills}`)
+      .join("|");
+    this.game.canvas.dataset.bestiaryDiscovered = state.bestiary.discoveredEnemyIds.join("|");
+    this.game.canvas.dataset.bestiaryDefeated = state.bestiary.defeatedEnemyIds.join("|");
+    this.game.canvas.dataset.bestiaryMilestoneNotifications = state.bestiary.milestoneNotifications.join("|");
+    this.game.canvas.dataset.bestiaryFamilyBonuses = Object.entries(state.bestiary.familyDamageBonuses)
+      .map(([family, bonus]) => `${family}:${bonus}`)
+      .join("|");
+    this.game.canvas.dataset.bestiaryTotalMonsters = String(dataRegistry.getMonsters().length);
   }
 
   private syncAdvancedClassDataset(state: GameState, dataRegistry: DataRegistry): void {
@@ -2596,6 +2788,49 @@ export class UIScene extends Phaser.Scene {
     this.game.canvas.dataset.advancedClassNotification = "hidden";
   }
 
+  private getVisibleBestiaryEntries(
+    state: GameState,
+    dataRegistry: DataRegistry,
+  ): Array<{ monster: MonsterDefinition; region: ReturnType<DataRegistry["getRegion"]> }> {
+    const query = this.bestiarySearchText.trim().toLowerCase();
+
+    return dataRegistry.getMonsters()
+      .map((monster) => ({
+        monster,
+        region: this.getMonsterRegion(monster, dataRegistry) ?? dataRegistry.getRegions()[0],
+      }))
+      .filter((entry) => {
+        if (!query) {
+          return true;
+        }
+
+        const bestiaryEntry = getBestiaryEntry(state, entry.monster.id);
+        const searchable = [
+          entry.monster.id,
+          hasBestiaryMilestone(bestiaryEntry, 1) ? entry.monster.name : "",
+          hasBestiaryMilestone(bestiaryEntry, 5) ? getMonsterFamily(entry.monster) : "",
+          entry.region.name,
+        ].join(" ").toLowerCase();
+
+        return searchable.includes(query);
+      })
+      .sort((left, right) => {
+        const regionCompare = left.region.name.localeCompare(right.region.name);
+        if (regionCompare !== 0) {
+          return regionCompare;
+        }
+
+        const familyCompare = getMonsterFamily(left.monster).localeCompare(getMonsterFamily(right.monster));
+        return familyCompare !== 0 ? familyCompare : left.monster.level - right.monster.level;
+      });
+  }
+
+  private getMonsterRegion(monster: MonsterDefinition, dataRegistry: DataRegistry): ReturnType<DataRegistry["getRegion"]> | undefined {
+    return dataRegistry.getRegions().find((region) => (
+      region.monsterIds.includes(monster.id) || region.bossIds.includes(monster.id)
+    ));
+  }
+
   private getVisibleSkillTreeSkills(state: GameState, dataRegistry: DataRegistry): SkillDefinition[] {
     return getUnlockedSkillTreeIds(state).flatMap((classId) => dataRegistry.getSkillsByClass(classId));
   }
@@ -2733,6 +2968,16 @@ export class UIScene extends Phaser.Scene {
 
     this.selectedSkillIndex = Phaser.Math.Clamp(this.selectedSkillIndex, 0, skills.length - 1);
     return this.selectedSkillIndex;
+  }
+
+  private clampSelectedBestiaryIndex(entries: unknown[]): number {
+    if (entries.length === 0) {
+      this.selectedBestiaryIndex = 0;
+      return 0;
+    }
+
+    this.selectedBestiaryIndex = Phaser.Math.Clamp(this.selectedBestiaryIndex, 0, Math.min(entries.length - 1, 8));
+    return this.selectedBestiaryIndex;
   }
 
   private clampSelectedCraftingIndex(recipes: RecipeDefinition[]): number {

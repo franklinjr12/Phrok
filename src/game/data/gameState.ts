@@ -79,6 +79,9 @@ export function createNewGameState(): GameState {
     bestiary: {
       discoveredEnemyIds: [],
       defeatedEnemyIds: [],
+      entries: {},
+      familyDamageBonuses: {},
+      milestoneNotifications: [],
     },
     crafting: {
       unlockedRecipeIds: [],
