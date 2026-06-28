@@ -33,6 +33,7 @@ export interface SaveData {
   gold: number;
   bestiary: BestiaryState;
   crafting: CraftingState;
+  huntingBoard: GameState["huntingBoard"];
   quests: QuestState;
   worldFlags: Record<string, boolean>;
   settings: SettingsState;

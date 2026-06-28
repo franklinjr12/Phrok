@@ -14,6 +14,12 @@ import { eventBus } from "../systems/eventBus";
 import { addGold, addInventoryItem } from "../systems/inventory";
 import { generateLootDrops, type LootDrop } from "../systems/lootDrops";
 import { awardXp, getLevelXpThreshold } from "../systems/progression";
+import {
+  getHuntingBoardSummary,
+  recordHuntingBoardKill,
+  refreshHuntingBoard,
+  unlockBossContractForMonster,
+} from "../systems/huntingBoard";
 import { autosaveSlot, writeAutosave, writeSaveSlot } from "../systems/autosave";
 import { recordMonsterKill } from "../systems/bestiary";
 import { getAdvancedClassOptionsForBase, isAdvancedClassServiceAvailable } from "../systems/advancedClasses";
@@ -353,6 +359,11 @@ export class WorldScene extends Phaser.Scene {
     this.game.canvas.dataset.bestiaryKills = this.getBestiaryKillDataset();
     this.game.canvas.dataset.lastBestiaryUpdate = "";
     this.game.canvas.dataset.lastBestiaryMilestone = "";
+    this.game.canvas.dataset.huntingBoardSummary = getHuntingBoardSummary(state, dataRegistry, region.id);
+    this.game.canvas.dataset.huntingBoardRefreshCount = String(state.huntingBoard.refreshCount);
+    this.game.canvas.dataset.huntingBoardLastRefresh = state.huntingBoard.lastRefreshReason;
+    this.game.canvas.dataset.lastHuntingBoardProgress = "";
+    this.game.canvas.dataset.lastHuntingBoardUnlock = "";
     this.game.canvas.dataset.treasureSpotCount = String(this.countObjectsByType(tilemap, "treasure"));
     this.game.canvas.dataset.lastAutosaveSlot = this.lastAutosaveSlot;
     this.game.canvas.dataset.lastAutosaveMap = this.lastAutosaveMap;
@@ -1135,6 +1146,14 @@ export class WorldScene extends Phaser.Scene {
     }
 
     eventBus.emit("enemyKilled", { enemyId: enemy.id });
+    const huntingProgress = recordHuntingBoardKill(state, dataRegistry, enemy.id);
+    this.game.canvas.dataset.lastHuntingBoardProgress = huntingProgress.join("|");
+    this.syncHuntingBoardDataset();
+
+    if (enemy.boss) {
+      const unlockedRegionId = unlockBossContractForMonster(state, dataRegistry, enemy.id);
+      this.game.canvas.dataset.lastHuntingBoardUnlock = unlockedRegionId ? `${unlockedRegionId}:boss` : "";
+    }
 
     const drops = generateLootDrops(dropTable, dataRegistry, Math.random, {
       quality: enemy.boss ? "boss" : enemy.elite ? "elite" : "normal",
@@ -1148,6 +1167,23 @@ export class WorldScene extends Phaser.Scene {
     grantSupportAffinity(state, support, Math.max(1, Math.ceil(monster.xpReward / 2)));
     this.syncSupportDataset();
     drops.forEach((drop, index) => this.spawnLootDrop(drop, enemy.sprite.x + index * 28, enemy.sprite.y + 18));
+
+    if (enemy.boss && refreshHuntingBoard(state, "boss-kill")) {
+      this.syncHuntingBoardDataset();
+    } else if (this.enemies.every((entry) => !entry.isAlive) && refreshHuntingBoard(state, "map-clear")) {
+      this.syncHuntingBoardDataset();
+    }
+  }
+
+  private syncHuntingBoardDataset(): void {
+    if (!this.state || !this.dataRegistry) {
+      return;
+    }
+
+    const map = this.dataRegistry.getMap(this.state.currentMapId);
+    this.game.canvas.dataset.huntingBoardSummary = getHuntingBoardSummary(this.state, this.dataRegistry, map.regionId);
+    this.game.canvas.dataset.huntingBoardRefreshCount = String(this.state.huntingBoard.refreshCount);
+    this.game.canvas.dataset.huntingBoardLastRefresh = this.state.huntingBoard.lastRefreshReason;
   }
 
   private getBestiaryKillDataset(): string {

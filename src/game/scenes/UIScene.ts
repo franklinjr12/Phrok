@@ -86,11 +86,19 @@ import {
   getVisibleBestiaryDropIds,
   hasBestiaryMilestone,
 } from "../systems/bestiary";
+import {
+  acceptHuntingContract,
+  getHuntingBoardSummary,
+  getRegionalHuntingContracts,
+  refreshHuntingBoard,
+  turnInHuntingContract,
+  type HuntingContractDefinition,
+} from "../systems/huntingBoard";
 import type { DataRegistry } from "../data/dataRegistry";
 import type { ItemDefinition, ItemRarity, MonsterDefinition, RecipeDefinition, ShopDefinition, SkillDefinition } from "../types/dataDefinitions";
 import type { BaseStatKey, EquipmentInstance, EquipmentSlot, GameState, InventoryItem } from "../types/gameState";
 
-type PanelMode = "inventory" | "equipment" | "character" | "skills" | "bestiary" | "crafting" | "refinement" | "shop" | "appraiser" | "storage";
+type PanelMode = "inventory" | "equipment" | "character" | "skills" | "bestiary" | "crafting" | "refinement" | "shop" | "appraiser" | "storage" | "huntingBoard";
 type InventoryPanelEntry = {
   itemId: string;
   quantity: number;
@@ -132,6 +140,7 @@ export class UIScene extends Phaser.Scene {
   private unsubscribeSupportChanged?: () => void;
   private unsubscribeCraftingOpened?: () => void;
   private unsubscribeCraftingChanged?: () => void;
+  private unsubscribeHuntingBoardChanged?: () => void;
   private unsubscribeRefinementOpened?: () => void;
   private unsubscribeRecipeUnlocked?: () => void;
   private unsubscribeShopOpened?: () => void;
@@ -165,6 +174,7 @@ export class UIScene extends Phaser.Scene {
   private selectedStorageIndex = 0;
   private selectedCraftingIndex = 0;
   private selectedRefinementIndex = 0;
+  private selectedHuntingContractIndex = 0;
   private storageInventoryPage = 0;
   private storagePage = 0;
   private selectedEquipmentSlot: EquipmentSlot = "weapon";
@@ -200,6 +210,7 @@ export class UIScene extends Phaser.Scene {
     this.game.canvas.dataset.uiPanel = "closed";
     this.game.canvas.dataset.gameplayInputBlocked = "false";
     this.syncPlayerStats(state, dataRegistry);
+    this.syncHuntingBoardDataset(state, dataRegistry);
     this.createHud(state, dataRegistry);
     this.createAdvancedClassNotification(state);
     this.createMapLabel(state.currentMapId, dataRegistry);
@@ -217,6 +228,7 @@ export class UIScene extends Phaser.Scene {
     this.input.keyboard?.on("keydown-B", this.toggleBestiaryPanel, this);
     this.input.keyboard?.on("keydown-P", this.toggleEquipmentPanel, this);
     this.input.keyboard?.on("keydown-R", this.toggleCraftingPanel, this);
+    this.input.keyboard?.on("keydown-H", this.toggleHuntingBoardPanel, this);
     this.input.keyboard?.on("keydown-S", this.manualSave, this);
     this.input.keyboard?.on("keydown-ESC", this.closePanel, this);
     this.input.keyboard?.on("keydown", this.handleHotbarKey, this);
@@ -228,6 +240,7 @@ export class UIScene extends Phaser.Scene {
       this.input.keyboard?.off("keydown-B", this.toggleBestiaryPanel, this);
       this.input.keyboard?.off("keydown-P", this.toggleEquipmentPanel, this);
       this.input.keyboard?.off("keydown-R", this.toggleCraftingPanel, this);
+      this.input.keyboard?.off("keydown-H", this.toggleHuntingBoardPanel, this);
       this.input.keyboard?.off("keydown-S", this.manualSave, this);
       this.input.keyboard?.off("keydown-ESC", this.closePanel, this);
       this.input.keyboard?.off("keydown", this.handleHotbarKey, this);
@@ -258,6 +271,7 @@ export class UIScene extends Phaser.Scene {
       this.unsubscribeSupportChanged?.();
       this.unsubscribeCraftingOpened?.();
       this.unsubscribeCraftingChanged?.();
+      this.unsubscribeHuntingBoardChanged?.();
       this.unsubscribeRefinementOpened?.();
       this.unsubscribeRecipeUnlocked?.();
       this.unsubscribeShopOpened?.();
@@ -474,6 +488,11 @@ export class UIScene extends Phaser.Scene {
 
     this.unsubscribeCraftingChanged = eventBus.on("craftingChanged", ({ unlockedRecipeIds }) => {
       this.game.canvas.dataset.unlockedRecipes = unlockedRecipeIds.join("|");
+      this.refreshOpenPanel();
+    });
+
+    this.unsubscribeHuntingBoardChanged = eventBus.on("huntingBoardChanged", () => {
+      this.syncHuntingBoardDataset(state, dataRegistry);
       this.refreshOpenPanel();
     });
 
@@ -718,6 +737,23 @@ export class UIScene extends Phaser.Scene {
     this.openPanel("crafting");
   }
 
+  private toggleHuntingBoardPanel(): void {
+    if (this.activePanel === "bestiary") {
+      return;
+    }
+
+    if (this.activePanel === "storage") {
+      return;
+    }
+
+    if (this.activePanel === "huntingBoard") {
+      this.closePanel();
+      return;
+    }
+
+    this.openPanel("huntingBoard");
+  }
+
   private openPanel(mode: PanelMode): void {
     this.activePanel = mode;
     this.game.canvas.dataset.uiPanel = mode;
@@ -743,6 +779,7 @@ export class UIScene extends Phaser.Scene {
     this.game.canvas.dataset.refinementPanel = "hidden";
     this.game.canvas.dataset.supportPanel = "hidden";
     this.game.canvas.dataset.bestiaryPanel = "hidden";
+    this.game.canvas.dataset.huntingBoardPanel = "hidden";
   }
 
   private manualSave(): void {
@@ -868,9 +905,69 @@ export class UIScene extends Phaser.Scene {
       this.renderShopPanel(this.state, this.dataRegistry);
     } else if (this.activePanel === "appraiser") {
       this.renderAppraiserPanel(this.state, this.dataRegistry);
-    } else {
+    } else if (this.activePanel === "storage") {
       this.renderStoragePanel(this.state, this.dataRegistry);
+    } else {
+      this.renderHuntingBoardPanel(this.state, this.dataRegistry);
     }
+  }
+
+  private renderHuntingBoardPanel(state: GameState, dataRegistry: DataRegistry): void {
+    const map = dataRegistry.getMap(state.currentMapId);
+    const region = dataRegistry.getRegion(map.regionId);
+    const contracts = getRegionalHuntingContracts(state, dataRegistry, region.id);
+    const selectedContract = contracts[this.clampSelectedHuntingContractIndex(contracts)] ?? null;
+
+    this.addPanelRectangle(64, 54, 672, 500, panelFill, 0.96)
+      .setOrigin(0)
+      .setStrokeStyle(2, panelStroke, 0.9);
+    this.addPanelText(92, 78, "Hunting Board", 23, "#f8fafc");
+    this.addPanelText(92, 112, `${region.name}   Refresh ${state.huntingBoard.refreshCount} ${state.huntingBoard.lastRefreshReason}`, 14, "#fde68a");
+    this.addPanelText(92, 146, "Contracts", 14, "#94a3b8");
+
+    contracts.slice(0, 9).forEach((contract, index) => {
+      const y = 174 + index * 30;
+      const status = this.getHuntingContractStatus(state, contract);
+      const row = this.addPanelRectangle(92, y - 6, 360, 28, index === this.selectedHuntingContractIndex ? 0x293548 : 0x18222c, 0.94)
+        .setOrigin(0)
+        .setInteractive({ useHandCursor: true });
+      row.on("pointerdown", () => {
+        this.selectedHuntingContractIndex = index;
+        this.renderPanel();
+      });
+      this.addPanelText(104, y, this.truncateText(contract.name, 28), 13, contract.locked ? "#94a3b8" : "#f8fafc");
+      this.addPanelText(326, y, contract.rank, 12, contract.rank === "boss" ? "#fca5a5" : contract.rank === "elite" ? "#fde68a" : "#cbd5e1");
+      this.addPanelText(386, y, status, 12, this.getHuntingStatusColor(status));
+    });
+
+    this.addPanelRectangle(482, 146, 220, 286, 0x17212b, 0.95)
+      .setOrigin(0)
+      .setStrokeStyle(1, 0x334155, 0.9);
+
+    if (selectedContract) {
+      const target = dataRegistry.getMonster(selectedContract.targetMonsterId);
+      const progress = state.huntingBoard.progress[selectedContract.id] ?? 0;
+      const rewardItems = selectedContract.rewardItems
+        .map((entry) => `${dataRegistry.getItem(entry.itemId).name} x${entry.quantity}`)
+        .join(", ");
+      const status = this.getHuntingContractStatus(state, selectedContract);
+
+      this.addPanelText(502, 168, this.truncateText(selectedContract.name, 22), 16, "#f8fafc");
+      this.addPanelText(502, 198, `${target.name} ${progress}/${selectedContract.targetCount}`, 13, "#cbd5e1");
+      this.addPanelText(502, 224, `Lv ${selectedContract.recommendedLevel}   ${selectedContract.rank}`, 12, "#93c5fd");
+      this.addPanelText(502, 250, `XP ${selectedContract.rewardXp}   Gold ${selectedContract.rewardGold}`, 12, "#fde68a");
+      this.addPanelText(502, 276, this.wrapText(`Items ${rewardItems || "None"}`, 24), 12, "#cbd5e1");
+      this.addPanelText(502, 342, status === "locked" ? selectedContract.lockReason : `Status ${status}`, 13, this.getHuntingStatusColor(status));
+      this.addPanelText(502, 372, this.wrapText("Refresh uses map clear, boss kill, or rest. Active contracts block refresh.", 24), 12, "#94a3b8");
+    } else {
+      this.addPanelText(502, 184, "No contracts", 15, "#94a3b8");
+    }
+
+    this.addPanelButton(482, 450, 92, 34, "Accept", () => this.acceptSelectedHuntingContract());
+    this.addPanelButton(584, 450, 92, 34, "Turn In", () => this.turnInSelectedHuntingContract());
+    this.addPanelButton(482, 496, 92, 30, "Rest", () => this.restRefreshHuntingBoard());
+    this.addPanelButton(606, 496, 92, 30, "Close", () => this.closePanel());
+    this.syncHuntingBoardDataset(state, dataRegistry, selectedContract);
   }
 
   private renderSkillPanel(state: GameState, dataRegistry: DataRegistry): void {
@@ -2708,10 +2805,76 @@ export class UIScene extends Phaser.Scene {
     this.game.canvas.dataset.lastHotbarAssignment = `${slot}:item:minor-health-potion`;
   }
 
+  private acceptSelectedHuntingContract(): void {
+    if (!this.state || !this.dataRegistry) {
+      return;
+    }
+
+    const contract = this.getSelectedHuntingContract(this.state, this.dataRegistry);
+    const accepted = contract ? acceptHuntingContract(this.state, contract) : false;
+
+    this.game.canvas.dataset.lastHuntingBoardAction = accepted && contract ? `accept:${contract.id}` : "accept-failed";
+    this.syncHuntingBoardDataset(this.state, this.dataRegistry, contract);
+    this.refreshOpenPanel();
+  }
+
+  private turnInSelectedHuntingContract(): void {
+    if (!this.state || !this.dataRegistry) {
+      return;
+    }
+
+    const contract = this.getSelectedHuntingContract(this.state, this.dataRegistry);
+    const turnedIn = contract ? turnInHuntingContract(this.state, this.dataRegistry, contract.id) : false;
+
+    this.game.canvas.dataset.lastHuntingBoardAction = turnedIn && contract ? `turn-in:${contract.id}` : "turn-in-failed";
+    this.syncHuntingBoardDataset(this.state, this.dataRegistry, contract);
+    this.refreshOpenPanel();
+  }
+
+  private restRefreshHuntingBoard(): void {
+    if (!this.state || !this.dataRegistry) {
+      return;
+    }
+
+    const refreshed = refreshHuntingBoard(this.state, "rest");
+
+    this.game.canvas.dataset.lastHuntingBoardAction = refreshed ? "refresh:rest" : "refresh-failed:active-contract";
+    this.syncHuntingBoardDataset(this.state, this.dataRegistry);
+    this.refreshOpenPanel();
+  }
+
   private syncVitalsDataset(state: GameState): void {
     this.game.canvas.dataset.playerHp = `${state.character.stats.hp}/${state.character.stats.maxHp}`;
     this.game.canvas.dataset.playerSp = `${state.character.stats.sp}/${state.character.stats.maxSp}`;
     this.game.canvas.dataset.playerStatPoints = String(state.playerProfile.statPoints);
+  }
+
+  private syncHuntingBoardDataset(
+    state: GameState,
+    dataRegistry: DataRegistry,
+    selectedContract = this.getSelectedHuntingContract(state, dataRegistry),
+  ): void {
+    const regionId = dataRegistry.getMap(state.currentMapId).regionId;
+    const contracts = getRegionalHuntingContracts(state, dataRegistry, regionId);
+
+    this.game.canvas.dataset.huntingBoardPanel = this.activePanel === "huntingBoard" ? "visible" : "hidden";
+    this.game.canvas.dataset.huntingBoardRegion = regionId;
+    this.game.canvas.dataset.huntingBoardContractCount = String(contracts.length);
+    this.game.canvas.dataset.huntingBoardContracts = getHuntingBoardSummary(state, dataRegistry, regionId);
+    this.game.canvas.dataset.huntingBoardActiveContracts = state.huntingBoard.activeContractIds.join("|");
+    this.game.canvas.dataset.huntingBoardCompletedContracts = state.huntingBoard.completedContractIds.join("|");
+    this.game.canvas.dataset.huntingBoardRefreshCount = String(state.huntingBoard.refreshCount);
+    this.game.canvas.dataset.huntingBoardLastRefresh = state.huntingBoard.lastRefreshReason;
+    this.game.canvas.dataset.huntingBoardButtons = "Accept|Turn In|Rest|Close";
+    this.game.canvas.dataset.selectedHuntingContract = selectedContract?.id ?? "";
+    this.game.canvas.dataset.selectedHuntingContractName = selectedContract?.name ?? "";
+    this.game.canvas.dataset.selectedHuntingContractStatus = selectedContract ? this.getHuntingContractStatus(state, selectedContract) : "";
+    this.game.canvas.dataset.selectedHuntingContractProgress = selectedContract
+      ? `${state.huntingBoard.progress[selectedContract.id] ?? 0}/${selectedContract.targetCount}`
+      : "";
+    this.game.canvas.dataset.selectedHuntingContractReward = selectedContract
+      ? `xp:${selectedContract.rewardXp}|gold:${selectedContract.rewardGold}|items:${selectedContract.rewardItems.map((entry) => `${entry.itemId}:${entry.quantity}`).join(",")}`
+      : "";
   }
 
   private syncBaseStatsDataset(state: GameState, dataRegistry: DataRegistry): void {
@@ -2998,6 +3161,59 @@ export class UIScene extends Phaser.Scene {
 
     this.selectedRefinementIndex = Phaser.Math.Clamp(this.selectedRefinementIndex, 0, items.length - 1);
     return this.selectedRefinementIndex;
+  }
+
+  private clampSelectedHuntingContractIndex(contracts: HuntingContractDefinition[]): number {
+    if (contracts.length === 0) {
+      this.selectedHuntingContractIndex = 0;
+      return 0;
+    }
+
+    this.selectedHuntingContractIndex = Phaser.Math.Clamp(this.selectedHuntingContractIndex, 0, contracts.length - 1);
+    return this.selectedHuntingContractIndex;
+  }
+
+  private getSelectedHuntingContract(
+    state: GameState,
+    dataRegistry: DataRegistry,
+  ): HuntingContractDefinition | null {
+    const regionId = dataRegistry.getMap(state.currentMapId).regionId;
+    const contracts = getRegionalHuntingContracts(state, dataRegistry, regionId);
+
+    return contracts[this.clampSelectedHuntingContractIndex(contracts)] ?? null;
+  }
+
+  private getHuntingContractStatus(state: GameState, contract: HuntingContractDefinition): string {
+    if (contract.locked) {
+      return "locked";
+    }
+
+    if (state.huntingBoard.completedContractIds.includes(contract.id)) {
+      return "completed";
+    }
+
+    if (state.huntingBoard.activeContractIds.includes(contract.id)) {
+      const progress = state.huntingBoard.progress[contract.id] ?? 0;
+      return progress >= contract.targetCount ? "ready" : "active";
+    }
+
+    return "available";
+  }
+
+  private getHuntingStatusColor(status: string): string {
+    if (status === "locked") {
+      return "#94a3b8";
+    }
+
+    if (status === "ready" || status === "completed") {
+      return "#bbf7d0";
+    }
+
+    if (status === "active") {
+      return "#93c5fd";
+    }
+
+    return "#fde68a";
   }
 
   private isSkillUnlocked(state: GameState, skill: SkillDefinition): boolean {

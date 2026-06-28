@@ -184,6 +184,16 @@ export interface CraftingState {
   unlockNotifications: string[];
 }
 
+export interface HuntingBoardState {
+  activeContractIds: string[];
+  completedContractIds: string[];
+  progress: Record<string, number>;
+  turnInCounts: Record<string, number>;
+  unlockedBossContractRegionIds: string[];
+  refreshCount: number;
+  lastRefreshReason: string;
+}
+
 export interface SettingsState {
   musicVolume: number;
   sfxVolume: number;
@@ -208,6 +218,7 @@ export interface GameState {
   quests: QuestState;
   bestiary: BestiaryState;
   crafting: CraftingState;
+  huntingBoard: HuntingBoardState;
   worldFlags: Record<string, boolean>;
   settings: SettingsState;
 }

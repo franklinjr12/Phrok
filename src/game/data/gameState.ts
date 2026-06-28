@@ -2,6 +2,7 @@ import type { GameState } from "../types/gameState";
 import type { ClassDefinition } from "../types/dataDefinitions";
 import { createEmptyEquipment } from "../systems/equipment";
 import { createEmptyStorageState } from "../systems/storage";
+import { createInitialHuntingBoardState } from "../systems/huntingBoard";
 import { createInitialHotbar, createInitialSkillState } from "../systems/skills";
 import { calculateDerivedStats, createClassBaseStats, createEmptyBaseStats, syncCharacterVitalsToDerivedStats } from "../systems/stats";
 
@@ -87,6 +88,7 @@ export function createNewGameState(): GameState {
       unlockedRecipeIds: [],
       unlockNotifications: [],
     },
+    huntingBoard: createInitialHuntingBoardState(),
     worldFlags: {},
     settings: {
       musicVolume: 0.8,

@@ -124,6 +124,36 @@ test("bestiary opens with B, filters entries, and shows partial monster knowledg
   await expect(canvas).toHaveAttribute("data-ui-panel", "closed");
 });
 
+test("hunting board lists regional contracts and accepts one active contract", async ({ page }) => {
+  await startApp(page);
+
+  const canvas = await confirmDefaultCharacter(page);
+
+  await page.keyboard.press("KeyH");
+  await expect(canvas).toHaveAttribute("data-ui-panel", "huntingBoard");
+  await expect(canvas).toHaveAttribute("data-hunting-board-panel", "visible");
+  await expect(canvas).toHaveAttribute("data-hunting-board-region", "crownfield");
+  await expect(canvas).toHaveAttribute("data-hunting-board-contract-count", "4");
+  await expect(canvas).toHaveAttribute("data-hunting-board-contracts", /crownfield-hunt-1-green-jelly:available:0\/3/);
+  await expect(canvas).toHaveAttribute("data-hunting-board-contracts", /crownfield-boss-sewer-glutton:locked:0\/1/);
+  await expect(canvas).toHaveAttribute("data-selected-hunting-contract", "crownfield-hunt-1-green-jelly");
+  await expect(canvas).toHaveAttribute("data-selected-hunting-contract-status", "available");
+  await expect(canvas).toHaveAttribute("data-selected-hunting-contract-progress", "0/3");
+  await expect(canvas).toHaveAttribute("data-selected-hunting-contract-reward", /xp:\d+\|gold:\d+\|items:jelly-gel:1/);
+  await expect(canvas).toHaveAttribute("data-hunting-board-buttons", "Accept|Turn In|Rest|Close");
+
+  await canvas.click({ position: { x: 526, y: 466 } });
+  await expect(canvas).toHaveAttribute("data-last-hunting-board-action", "accept:crownfield-hunt-1-green-jelly");
+  await expect(canvas).toHaveAttribute("data-selected-hunting-contract-status", "active");
+  await expect(canvas).toHaveAttribute("data-hunting-board-active-contracts", "crownfield-hunt-1-green-jelly");
+
+  await canvas.click({ position: { x: 526, y: 512 } });
+  await expect(canvas).toHaveAttribute("data-last-hunting-board-action", "refresh-failed:active-contract");
+
+  await page.keyboard.press("Escape");
+  await expect(canvas).toHaveAttribute("data-ui-panel", "closed");
+});
+
 test("crafting screen lists recipes, shows missing materials, and blocks unavailable crafts", async ({ page }) => {
   await startApp(page);
 

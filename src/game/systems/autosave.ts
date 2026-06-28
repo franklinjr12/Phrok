@@ -33,6 +33,7 @@ export function createSaveData(gameState: GameState, savedAt = new Date().toISOS
     gold: snapshot.playerProfile.gold,
     bestiary: snapshot.bestiary,
     crafting: snapshot.crafting,
+    huntingBoard: snapshot.huntingBoard,
     quests: snapshot.quests,
     worldFlags: snapshot.worldFlags,
     settings: snapshot.settings,
@@ -149,6 +150,10 @@ function normalizeSaveData(rawSave: unknown): SaveData {
     quests: normalizeQuestState(isRecord(rawSave.quests) ? rawSave.quests : rawGameState.quests, fallbackState.quests),
     bestiary: normalizeBestiaryState(isRecord(rawSave.bestiary) ? rawSave.bestiary : rawGameState.bestiary, fallbackState.bestiary),
     crafting: normalizeCraftingState(isRecord(rawSave.crafting) ? rawSave.crafting : rawGameState.crafting, fallbackState.crafting),
+    huntingBoard: normalizeHuntingBoardState(
+      isRecord(rawSave.huntingBoard) ? rawSave.huntingBoard : rawGameState.huntingBoard,
+      fallbackState.huntingBoard,
+    ),
     worldFlags: normalizeBooleanRecord(rawSave.worldFlags, fallbackState.worldFlags),
     settings: normalizeSettings(isRecord(rawSave.settings) ? rawSave.settings : rawGameState.settings, fallbackState.settings),
   };
@@ -455,6 +460,26 @@ function normalizeCraftingState(rawCraftingState: unknown, fallback: GameState["
   return {
     unlockedRecipeIds: stringArray(source.unlockedRecipeIds, fallback.unlockedRecipeIds),
     unlockNotifications: stringArray(source.unlockNotifications, fallback.unlockNotifications),
+  };
+}
+
+function normalizeHuntingBoardState(
+  rawHuntingBoard: unknown,
+  fallback: GameState["huntingBoard"],
+): GameState["huntingBoard"] {
+  const source = isRecord(rawHuntingBoard) ? rawHuntingBoard : {};
+
+  return {
+    activeContractIds: stringArray(source.activeContractIds, fallback.activeContractIds),
+    completedContractIds: stringArray(source.completedContractIds, fallback.completedContractIds),
+    progress: normalizePositiveIntegerRecord(source.progress, fallback.progress),
+    turnInCounts: normalizePositiveIntegerRecord(source.turnInCounts, fallback.turnInCounts),
+    unlockedBossContractRegionIds: stringArray(
+      source.unlockedBossContractRegionIds,
+      fallback.unlockedBossContractRegionIds,
+    ),
+    refreshCount: Math.max(0, Math.floor(numberValue(source.refreshCount, fallback.refreshCount))),
+    lastRefreshReason: stringValue(source.lastRefreshReason, fallback.lastRefreshReason),
   };
 }
 
