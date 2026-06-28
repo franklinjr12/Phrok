@@ -89,6 +89,16 @@ export interface ConsumableState {
   autoPotion: AutoPotionSettings;
 }
 
+export type SupportAutoPickupFilter = "none" | "materials" | "gold" | "all";
+
+export interface SupportCompanionState {
+  equippedSupportId: string | null;
+  levels: Record<string, number>;
+  affinity: Record<string, number>;
+  cooldowns: Record<string, number>;
+  autoPickupFilter: SupportAutoPickupFilter;
+}
+
 export interface CharacterData {
   id: string;
   archetype: string;
@@ -183,6 +193,7 @@ export interface GameState {
   inventory: InventoryState;
   storage: StorageState;
   equipment: EquipmentData;
+  support: SupportCompanionState;
   quests: QuestState;
   bestiary: BestiaryState;
   crafting: CraftingState;

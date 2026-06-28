@@ -27,6 +27,7 @@ export function createSaveData(gameState: GameState, savedAt = new Date().toISOS
     inventory: snapshot.inventory,
     storage: snapshot.storage,
     equipment: snapshot.equipment,
+    support: snapshot.support,
     skills: [...snapshot.character.skillIds],
     stats: snapshot.character.stats,
     gold: snapshot.playerProfile.gold,
@@ -141,6 +142,10 @@ function normalizeSaveData(rawSave: unknown): SaveData {
     inventory,
     storage,
     equipment,
+    support: normalizeSupportState(
+      isRecord(rawSave.support) ? rawSave.support : rawGameState.support,
+      fallbackState.support,
+    ),
     quests: normalizeQuestState(isRecord(rawSave.quests) ? rawSave.quests : rawGameState.quests, fallbackState.quests),
     bestiary: normalizeBestiaryState(isRecord(rawSave.bestiary) ? rawSave.bestiary : rawGameState.bestiary, fallbackState.bestiary),
     crafting: normalizeCraftingState(isRecord(rawSave.crafting) ? rawSave.crafting : rawGameState.crafting, fallbackState.crafting),
@@ -339,6 +344,36 @@ function normalizeStorage(rawStorage: unknown, fallback: GameState["storage"]): 
   };
 }
 
+function normalizeSupportState(
+  rawSupport: unknown,
+  fallback: GameState["support"],
+): GameState["support"] {
+  const source = isRecord(rawSupport) ? rawSupport : {};
+
+  return {
+    equippedSupportId: typeof source.equippedSupportId === "string" && source.equippedSupportId.length > 0
+      ? source.equippedSupportId
+      : null,
+    levels: normalizePositiveIntegerRecord(source.levels, fallback.levels),
+    affinity: normalizeNumberRecord(source.affinity),
+    cooldowns: normalizeNumberRecord(source.cooldowns),
+    autoPickupFilter: normalizeSupportAutoPickupFilter(source.autoPickupFilter, fallback.autoPickupFilter),
+  };
+}
+
+function normalizePositiveIntegerRecord(rawRecord: unknown, fallback: Record<string, number>): Record<string, number> {
+  const source = isRecord(rawRecord) ? rawRecord : fallback;
+  const records: Record<string, number> = {};
+
+  for (const [key, value] of Object.entries(source)) {
+    if (typeof value === "number" && Number.isFinite(value)) {
+      records[key] = Math.max(1, Math.floor(value));
+    }
+  }
+
+  return records;
+}
+
 function normalizePosition(rawPosition: unknown, fallback: GameState["position"]): GameState["position"] {
   const source = isRecord(rawPosition) ? rawPosition : {};
 
@@ -452,6 +487,12 @@ function normalizeStatusSourceKind(value: unknown): GameState["character"]["stat
   return value === "skill" || value === "item" || value === "enemy" || value === "unknown"
     ? value
     : undefined;
+}
+
+function normalizeSupportAutoPickupFilter(value: unknown, fallback: GameState["support"]["autoPickupFilter"]): GameState["support"]["autoPickupFilter"] {
+  return value === "materials" || value === "gold" || value === "all" || value === "none"
+    ? value
+    : fallback;
 }
 
 function normalizeRecord<T extends Record<string, unknown>>(rawRecord: unknown, fallback: T): T {

@@ -147,7 +147,25 @@ const validFiles: Record<string, unknown[]> = {
       unlockCondition: { type: "npc", npcId: "field-guide" },
     },
   ],
-  "supports.json": [{ id: "mira", name: "Mira" }],
+  "supports.json": [{
+    id: "mira",
+    name: "Mira",
+    maxLevel: 4,
+    affinityPerLevel: 25,
+    effects: {
+      derivedStats: { weightLimit: 12 },
+      autoPickupFilters: ["materials"],
+    },
+    actions: [{
+      id: "mira-heal",
+      name: "Mira Heal",
+      trigger: "lowHp",
+      cooldownMs: 9000,
+      minLevel: 1,
+      hpThresholdPercent: 40,
+      restoreHp: 10,
+    }],
+  }],
   "quests.json": [{ id: "first-steps", name: "First Steps" }],
   "status-effects.json": [
     {
@@ -308,7 +326,23 @@ describe("loadDataRegistry", () => {
       ingredientItemIds: ["jelly-gel"],
       resultItemId: "training-sword",
     });
-    expect(registry.getSupport("mira").skillIds).toEqual([]);
+    expect(registry.getSupport("mira")).toMatchObject({
+      skillIds: [],
+      maxLevel: 4,
+      affinityPerLevel: 25,
+      effects: {
+        derivedStats: { weightLimit: 12 },
+        autoPickupFilters: ["materials"],
+      },
+      actions: [{
+        id: "mira-heal",
+        trigger: "lowHp",
+        cooldownMs: 9000,
+        minLevel: 1,
+        hpThresholdPercent: 40,
+        restoreHp: 10,
+      }],
+    });
     expect(registry.getStatusEffect("guarded")).toMatchObject({
       type: "buff",
       duration: 5000,

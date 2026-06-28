@@ -65,6 +65,13 @@ export function createNewGameState(): GameState {
       ...createEmptyEquipment(),
       weapon: "training-sword",
     },
+    support: {
+      equippedSupportId: null,
+      levels: {},
+      affinity: {},
+      cooldowns: {},
+      autoPickupFilter: "none",
+    },
     quests: {
       activeQuestIds: [],
       completedQuestIds: [],

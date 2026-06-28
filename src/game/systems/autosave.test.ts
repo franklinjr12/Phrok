@@ -41,6 +41,10 @@ describe("autosave", () => {
       gold: 0,
       gameState: {
         currentMapId: "crownfield-town",
+        support: {
+          equippedSupportId: null,
+          autoPickupFilter: "none",
+        },
       },
     });
   });
@@ -150,6 +154,10 @@ describe("autosave", () => {
           },
           hotbar: [{ slot: 1, type: "skill", id: "fire-bolt" }],
         },
+        support: {
+          equippedSupportId: null,
+          autoPickupFilter: "none",
+        },
       },
     });
   });
@@ -170,6 +178,11 @@ describe("autosave", () => {
     state.character.consumables.cooldowns["minor-health-potion"] = 12345;
     state.character.consumables.autoPotion.hpThresholdPercent = 50;
     state.character.consumables.autoPotion.spThresholdPercent = 25;
+    state.support.equippedSupportId = "pack-sprite";
+    state.support.levels["pack-sprite"] = 2;
+    state.support.affinity["pack-sprite"] = 12;
+    state.support.cooldowns["emergency-potion"] = 9000;
+    state.support.autoPickupFilter = "materials";
     state.inventory.items.push({ id: "jelly-gel", quantity: 2 });
     state.inventory.appraisedItemIds.push("jelly-gel");
     state.storage.items.push({ id: "moonlit-reed", quantity: 3 });
@@ -207,6 +220,13 @@ describe("autosave", () => {
             },
           },
         },
+        support: {
+          equippedSupportId: "pack-sprite",
+          levels: { "pack-sprite": 2 },
+          affinity: { "pack-sprite": 12 },
+          cooldowns: { "emergency-potion": 9000 },
+          autoPickupFilter: "materials",
+        },
       },
     });
     const restored = readSaveSlot(2, storage)?.gameState;
@@ -221,5 +241,12 @@ describe("autosave", () => {
     expect(restored?.inventory.appraisedItemIds).toEqual(["jelly-gel"]);
     expect(restored?.storage.items).toEqual([{ id: "moonlit-reed", quantity: 3 }]);
     expect(restored?.storage.equipmentInstances).toEqual([{ instanceId: "rare-sword-a", itemId: "rare-sword" }]);
+    expect(restored?.support).toMatchObject({
+      equippedSupportId: "pack-sprite",
+      levels: { "pack-sprite": 2 },
+      affinity: { "pack-sprite": 12 },
+      cooldowns: { "emergency-potion": 9000 },
+      autoPickupFilter: "materials",
+    });
   });
 });

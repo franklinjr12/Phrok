@@ -37,6 +37,11 @@ import {
   useConsumableItem,
 } from "../systems/consumables";
 import {
+  cycleSupportAutoPickupFilter,
+  getSupportSummary,
+  syncEquippedSupportFromEquipment,
+} from "../systems/supports";
+import {
   canCraftRecipe,
   craftRecipe,
   getRecipeMaterialStatus,
@@ -115,6 +120,7 @@ export class UIScene extends Phaser.Scene {
   private unsubscribeHotbarChanged?: () => void;
   private unsubscribeHotbarUsed?: () => void;
   private unsubscribeStatusEffectsChanged?: () => void;
+  private unsubscribeSupportChanged?: () => void;
   private unsubscribeCraftingOpened?: () => void;
   private unsubscribeCraftingChanged?: () => void;
   private unsubscribeRefinementOpened?: () => void;
@@ -177,6 +183,7 @@ export class UIScene extends Phaser.Scene {
     const dataRegistry = this.registry.get(RegistryKeys.DataRegistry) as DataRegistry;
     this.state = state;
     this.dataRegistry = dataRegistry;
+    syncEquippedSupportFromEquipment(state, (id) => dataRegistry.getItem(id));
 
     this.game.canvas.dataset.uiScene = "running";
     this.game.canvas.dataset.uiPanel = "closed";
@@ -234,6 +241,7 @@ export class UIScene extends Phaser.Scene {
       this.unsubscribeHotbarChanged?.();
       this.unsubscribeHotbarUsed?.();
       this.unsubscribeStatusEffectsChanged?.();
+      this.unsubscribeSupportChanged?.();
       this.unsubscribeCraftingOpened?.();
       this.unsubscribeCraftingChanged?.();
       this.unsubscribeRefinementOpened?.();
@@ -305,6 +313,8 @@ export class UIScene extends Phaser.Scene {
     });
 
     this.unsubscribeEquipment = eventBus.on("equipmentChanged", () => {
+      syncEquippedSupportFromEquipment(state, (id) => dataRegistry.getItem(id));
+      this.syncSupportDataset(state, dataRegistry);
       this.syncEquipmentDataset(state, dataRegistry);
       this.syncDerivedStatsDataset(state, dataRegistry);
       this.refreshCombatText(state, dataRegistry);
@@ -423,6 +433,14 @@ export class UIScene extends Phaser.Scene {
       } else if (this.game.canvas.dataset.targetEnemyId === targetId) {
         this.game.canvas.dataset.targetStatusEffects = summary;
       }
+    });
+
+    this.unsubscribeSupportChanged = eventBus.on("supportChanged", ({ supportId, level, affinity, actionId }) => {
+      this.game.canvas.dataset.lastSupportChange = `${supportId ?? "none"}:${level}:${affinity}:${actionId ?? ""}`;
+      this.syncSupportDataset(state, dataRegistry);
+      this.syncDerivedStatsDataset(state, dataRegistry);
+      this.weightText?.setText(`Weight ${this.getInventoryWeight(state)}/${this.getWeightLimit(state, dataRegistry)}`);
+      this.refreshOpenPanel();
     });
 
     this.unsubscribeCraftingOpened = eventBus.on("craftingOpened", ({ npcId }) => {
@@ -669,6 +687,7 @@ export class UIScene extends Phaser.Scene {
     this.game.canvas.dataset.storagePanel = "hidden";
     this.game.canvas.dataset.craftingPanel = "hidden";
     this.game.canvas.dataset.refinementPanel = "hidden";
+    this.game.canvas.dataset.supportPanel = "hidden";
   }
 
   private manualSave(): void {
@@ -1251,6 +1270,7 @@ export class UIScene extends Phaser.Scene {
       dataRegistry.getClass(state.character.archetype),
       (id) => dataRegistry.getItem(id),
       (id) => dataRegistry.getStatusEffect(id),
+      (id) => dataRegistry.getSupport(id),
     );
     this.addPanelText(96, 120, `Attack ${derivedStats.physicalAttack}   Defense ${derivedStats.defense}   Gear ${this.getEquipmentBonusText(stats)}`, 15, "#bbf7d0");
     this.game.canvas.dataset.equipmentPanel = "visible";
@@ -1307,7 +1327,11 @@ export class UIScene extends Phaser.Scene {
     this.addPanelText(84, 108, `${state.playerProfile.name}   Lv ${state.playerProfile.level}   Points ${state.playerProfile.statPoints}`, 15, "#fde68a");
     this.addPanelText(84, 144, "Base Stats", 16, "#f8fafc");
 
-    const totalStats = getTotalBaseStats(state, (id) => dataRegistry.getStatusEffect(id));
+    const totalStats = getTotalBaseStats(
+      state,
+      (id) => dataRegistry.getStatusEffect(id),
+      (id) => dataRegistry.getSupport(id),
+    );
     this.game.canvas.dataset.characterPanel = "visible";
     this.game.canvas.dataset.statAllocationPoints = String(state.playerProfile.statPoints);
 
@@ -1328,6 +1352,7 @@ export class UIScene extends Phaser.Scene {
       dataRegistry.getClass(state.character.archetype),
       (id) => dataRegistry.getItem(id),
       (id) => dataRegistry.getStatusEffect(id),
+      (id) => dataRegistry.getSupport(id),
     );
     const rows = [
       ["Max HP", derived.maxHp],
@@ -1357,13 +1382,16 @@ export class UIScene extends Phaser.Scene {
 
     this.addPanelText(84, 420, `Auto HP ${state.character.consumables.autoPotion.hpThresholdPercent}%`, 13, "#fca5a5");
     this.addPanelText(204, 420, `Auto SP ${state.character.consumables.autoPotion.spThresholdPercent}%`, 13, "#93c5fd");
+    this.addPanelText(326, 420, `Support ${state.support.autoPickupFilter}`, 13, "#67e8f9");
     this.addPanelButton(84, 440, 92, 28, "HP Auto", () => this.cycleAutoPotion("hp"));
     this.addPanelButton(188, 440, 92, 28, "SP Auto", () => this.cycleAutoPotion("sp"));
+    this.addPanelButton(292, 440, 112, 28, "Support", () => this.cycleSupportFilter());
     this.addPanelButton(84, 468, 120, 34, "Confirm", () => this.confirmStats());
     this.addPanelButton(216, 468, 120, 34, "Reset", () => this.requestStatReset());
     this.addPanelButton(348, 468, 86, 34, "Close", () => this.closePanel());
-    this.game.canvas.dataset.characterPanelButtons = "HP Auto|SP Auto|Confirm|Reset|Close";
+    this.game.canvas.dataset.characterPanelButtons = "HP Auto|SP Auto|Support|Confirm|Reset|Close";
     this.game.canvas.dataset.autoPotionSettings = getAutoPotionSettingsSummary(state);
+    this.syncSupportDataset(state, dataRegistry);
   }
 
   private renderComparisonFrame(): void {
@@ -2252,6 +2280,7 @@ export class UIScene extends Phaser.Scene {
     this.game.canvas.dataset.consumableCooldowns = getConsumableCooldownSummary(state);
     this.game.canvas.dataset.autoPotionSettings = getAutoPotionSettingsSummary(state);
     this.game.canvas.dataset.playerStatusEffectIcons = this.getPlayerStatusIcons(state, dataRegistry);
+    this.syncSupportDataset(state, dataRegistry);
     this.syncAdvancedClassDataset(state, dataRegistry);
     this.game.canvas.dataset.inventoryItem = firstInventoryItem?.id ?? "";
     this.game.canvas.dataset.inventoryItemName = firstInventoryItem?.name ?? "";
@@ -2266,6 +2295,28 @@ export class UIScene extends Phaser.Scene {
     this.syncEquipmentDataset(state, dataRegistry);
     this.syncBaseStatsDataset(state, dataRegistry);
     this.syncDerivedStatsDataset(state, dataRegistry);
+  }
+
+  private syncSupportDataset(state: GameState, dataRegistry: DataRegistry): void {
+    const support = state.support.equippedSupportId ? dataRegistry.getSupport(state.support.equippedSupportId) : null;
+    const supportItem = state.equipment.supportCharm ? dataRegistry.getItem(state.equipment.supportCharm) : null;
+
+    this.game.canvas.dataset.supportSummary = getSupportSummary(state);
+    this.game.canvas.dataset.supportCompanion = support?.id ?? "";
+    this.game.canvas.dataset.supportCompanionName = support?.name ?? "";
+    this.game.canvas.dataset.supportCharmItem = supportItem?.id ?? "";
+    this.game.canvas.dataset.supportLevel = support ? String(state.support.levels[support.id] ?? 1) : "";
+    this.game.canvas.dataset.supportAffinity = support ? String(state.support.affinity[support.id] ?? 0) : "";
+    this.game.canvas.dataset.supportAutoPickupFilter = state.support.autoPickupFilter;
+    this.game.canvas.dataset.supportEffects = support
+      ? [
+        ...Object.entries(support.effects.derivedStats ?? {}).map(([stat, value]) => `${stat}:${value}`),
+        ...Object.entries(support.effects.raceDamage ?? {}).map(([race, value]) => `${race}:${value}`),
+      ].join("|")
+      : "";
+    this.game.canvas.dataset.supportActions = support
+      ? support.actions.map((action) => `${action.id}:${action.trigger}:${action.cooldownMs}`).join("|")
+      : "";
   }
 
   private syncSkillDataset(state: GameState, dataRegistry: DataRegistry): void {
@@ -2312,10 +2363,12 @@ export class UIScene extends Phaser.Scene {
       dataRegistry.getClass(state.character.archetype),
       (id) => dataRegistry.getItem(id),
       (id) => dataRegistry.getStatusEffect(id),
+      (id) => dataRegistry.getSupport(id),
     );
 
     this.game.canvas.dataset.equipmentSlots = slotSummary;
     this.game.canvas.dataset.equipmentWeapon = state.equipment.weapon ?? "";
+    this.game.canvas.dataset.equipmentSupportCharm = state.equipment.supportCharm ?? "";
     this.game.canvas.dataset.equipmentAttackBonus = String(stats.attack);
     this.game.canvas.dataset.equipmentDefenseBonus = String(stats.defense);
     this.game.canvas.dataset.equipmentMagicAttackBonus = String(stats.magicAttack);
@@ -2324,6 +2377,7 @@ export class UIScene extends Phaser.Scene {
     this.game.canvas.dataset.equipmentSigilName = equippedSigil?.name ?? "";
     this.game.canvas.dataset.equipmentSigilEffectSummary = equippedSigil ? this.getItemModifierText(equippedSigil) : "";
     this.game.canvas.dataset.playerAttackStat = String(derivedStats.physicalAttack);
+    this.syncSupportDataset(state, dataRegistry);
   }
 
   private syncXpBar(state: GameState, dataRegistry: DataRegistry): void {
@@ -2350,6 +2404,7 @@ export class UIScene extends Phaser.Scene {
       dataRegistry.getClass(state.character.archetype),
       (id) => dataRegistry.getItem(id),
       (id) => dataRegistry.getStatusEffect(id),
+      (id) => dataRegistry.getSupport(id),
     );
     this.attackText?.setText(`Attack ${derivedStats.physicalAttack}`);
     this.game.canvas.dataset.playerAttackStat = String(derivedStats.physicalAttack);
@@ -2407,6 +2462,21 @@ export class UIScene extends Phaser.Scene {
     this.refreshOpenPanel();
   }
 
+  private cycleSupportFilter(): void {
+    if (!this.state || !this.dataRegistry) {
+      return;
+    }
+
+    const support = this.state.support.equippedSupportId
+      ? this.dataRegistry.getSupport(this.state.support.equippedSupportId)
+      : null;
+    const filter = cycleSupportAutoPickupFilter(this.state, support);
+
+    this.game.canvas.dataset.lastSupportFilter = filter;
+    this.syncSupportDataset(this.state, this.dataRegistry);
+    this.refreshOpenPanel();
+  }
+
   private levelSelectedSkill(): void {
     if (!this.state || !this.dataRegistry) {
       return;
@@ -2453,7 +2523,11 @@ export class UIScene extends Phaser.Scene {
   }
 
   private syncBaseStatsDataset(state: GameState, dataRegistry: DataRegistry): void {
-    const totalStats = getTotalBaseStats(state, (id) => dataRegistry.getStatusEffect(id));
+    const totalStats = getTotalBaseStats(
+      state,
+      (id) => dataRegistry.getStatusEffect(id),
+      (id) => dataRegistry.getSupport(id),
+    );
     this.game.canvas.dataset.playerBaseStats = baseStatKeys
       .map((key) => `${key}:${totalStats[key]}`)
       .join("|");
@@ -2468,6 +2542,7 @@ export class UIScene extends Phaser.Scene {
       dataRegistry.getClass(state.character.archetype),
       (id) => dataRegistry.getItem(id),
       (id) => dataRegistry.getStatusEffect(id),
+      (id) => dataRegistry.getSupport(id),
     );
     this.game.canvas.dataset.playerDerivedStats = [
       `maxHp:${stats.maxHp}`,
@@ -2706,6 +2781,7 @@ export class UIScene extends Phaser.Scene {
       dataRegistry.getClass(state.character.archetype),
       (id) => dataRegistry.getItem(id),
       (id) => dataRegistry.getStatusEffect(id),
+      (id) => dataRegistry.getSupport(id),
     ).weightLimit;
   }
 

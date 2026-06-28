@@ -8630,5 +8630,52 @@
     "value": 280,
     "allowedClassIds": [],
     "twoHanded": false
+  },
+  {
+    "id": "support-pack-sprite-charm",
+    "name": "Pack Sprite Charm",
+    "description": "Calls a Pack Sprite support companion for hauling, material sorting, and emergency potion help.",
+    "type": "support",
+    "level": 12,
+    "rarity": "Rare",
+    "icon": "placeholder-support-pack-sprite-charm",
+    "equipmentSlot": "supportCharm",
+    "validEquipmentSlots": [
+      "supportCharm"
+    ],
+    "supportId": "pack-sprite",
+    "statModifiers": {
+      "derivedStats": {
+        "weightLimit": 6
+      }
+    },
+    "value": 76,
+    "allowedClassIds": [],
+    "twoHanded": false
+  },
+  {
+    "id": "support-shrine-wisp-charm",
+    "name": "Shrine Wisp Charm",
+    "description": "Calls a Shrine Wisp support companion for automatic healing, cleansing, blessings, and undead warding.",
+    "type": "support",
+    "level": 18,
+    "rarity": "Rare",
+    "icon": "placeholder-support-shrine-wisp-charm",
+    "equipmentSlot": "supportCharm",
+    "validEquipmentSlots": [
+      "supportCharm"
+    ],
+    "supportId": "shrine-wisp",
+    "statModifiers": {
+      "derivedStats": {
+        "magicDefense": 2
+      },
+      "raceDamage": {
+        "undead": 2
+      }
+    },
+    "value": 92,
+    "allowedClassIds": [],
+    "twoHanded": false
   }
 ]

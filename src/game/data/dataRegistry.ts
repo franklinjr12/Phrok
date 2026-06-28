@@ -154,6 +154,10 @@ export class DataRegistry {
     return this.getById("supports", id);
   }
 
+  getSupports(): SupportDefinition[] {
+    return Array.from(this.collections.supports.values());
+  }
+
   getQuest(id: string): QuestDefinition {
     return this.getById("quests", id);
   }
@@ -420,6 +424,7 @@ function validateItem(source: Record<string, unknown>, fileName: string): ItemDe
     appraisable: Boolean(source.appraisable),
     refinable: typeof source.refinable === "boolean" ? source.refinable : undefined,
     value: optionalNumber(source, "value", 0),
+    supportId: optionalString(source, "supportId", "") || undefined,
   };
 }
 
@@ -913,7 +918,69 @@ function validateSupport(source: Record<string, unknown>, fileName: string): Sup
     name: requireString(source, "name", fileName, id),
     description: optionalString(source, "description", ""),
     skillIds: optionalStringArray(source, "skillIds"),
+    maxLevel: Math.max(1, optionalNumber(source, "maxLevel", 5)),
+    affinityPerLevel: Math.max(1, optionalNumber(source, "affinityPerLevel", 100)),
+    effects: validateSupportEffects(source.effects),
+    actions: validateSupportActions(source.actions, fileName, id),
   };
+}
+
+function validateSupportEffects(rawEffects: unknown): SupportDefinition["effects"] {
+  if (!isRecord(rawEffects)) {
+    return {};
+  }
+
+  const rawMaterialFinder = isRecord(rawEffects.materialFinder) ? rawEffects.materialFinder : undefined;
+
+  return {
+    baseStats: optionalNumberRecord(rawEffects.baseStats),
+    derivedStats: optionalNumberRecord(rawEffects.derivedStats) as SupportDefinition["effects"]["derivedStats"],
+    raceDamage: optionalNumberRecord(rawEffects.raceDamage),
+    autoPickupFilters: validateSupportAutoPickupFilters(rawEffects.autoPickupFilters),
+    materialFinder: rawMaterialFinder
+      ? {
+        itemType: "material",
+        chanceBonus: Math.max(0, optionalNumber(rawMaterialFinder, "chanceBonus", 0)),
+      }
+      : undefined,
+  };
+}
+
+function validateSupportAutoPickupFilters(rawFilters: unknown): SupportDefinition["effects"]["autoPickupFilters"] {
+  return Array.isArray(rawFilters)
+    ? rawFilters.filter((filter): filter is "materials" | "gold" | "all" => (
+      filter === "materials" || filter === "gold" || filter === "all"
+    ))
+    : [];
+}
+
+function validateSupportActions(
+  rawActions: unknown,
+  fileName: string,
+  id: string,
+): SupportDefinition["actions"] {
+  return Array.isArray(rawActions)
+    ? rawActions.filter(isRecord).map((action) => {
+      const trigger = optionalString(action, "trigger", "combat");
+
+      return {
+        id: requireString(action, "id", fileName, id),
+        name: requireString(action, "name", fileName, id),
+        trigger: normalizeSupportActionTrigger(trigger),
+        cooldownMs: Math.max(0, optionalNumber(action, "cooldownMs", 0)),
+        minLevel: Math.max(1, optionalNumber(action, "minLevel", 1)),
+        hpThresholdPercent: optionalPositiveNumber(action, "hpThresholdPercent"),
+        useConsumableItemId: optionalString(action, "useConsumableItemId", "") || undefined,
+        restoreHp: optionalPositiveNumber(action, "restoreHp"),
+        statusEffectIds: optionalStringArray(action, "statusEffectIds"),
+        cleanseCategories: optionalStringArray(action, "cleanseCategories"),
+      };
+    })
+    : [];
+}
+
+function normalizeSupportActionTrigger(value: string): SupportDefinition["actions"][number]["trigger"] {
+  return value === "lowHp" || value === "statusPresent" || value === "materialFound" ? value : "combat";
 }
 
 function validateQuest(source: Record<string, unknown>, fileName: string): QuestDefinition {

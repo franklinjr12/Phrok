@@ -27,6 +27,7 @@ export interface SaveData {
   inventory: InventoryState;
   storage: StorageState;
   equipment: EquipmentData;
+  support: GameState["support"];
   skills: string[];
   stats: CharacterStats;
   gold: number;

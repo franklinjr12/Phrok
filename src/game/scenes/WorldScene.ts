@@ -38,6 +38,13 @@ import {
   hasControlEffect,
   updateStatusEffects,
 } from "../systems/statusEffects";
+import {
+  getSupportSummary,
+  grantSupportAffinity,
+  shouldSupportAutoPickup,
+  syncEquippedSupportFromEquipment,
+  updateSupportCompanion,
+} from "../systems/supports";
 import { calculateDerivedStats, getSpentStatPoints, resetAllocatedStats } from "../systems/stats";
 import type { DataRegistry } from "../data/dataRegistry";
 import type { DialogueSceneData } from "./DialogueScene";
@@ -199,6 +206,7 @@ export class WorldScene extends Phaser.Scene {
     this.createAdvancedClassNpcIfAvailable();
 
     this.player = new PlayerEntity(this, state.character, spawnPoint);
+    syncEquippedSupportFromEquipment(state, (id) => dataRegistry.getItem(id));
     applyPassiveSkills(state, dataRegistry.getSkills());
     this.playerCombatStats = this.createPlayerCombatStats(state, dataRegistry);
     this.weaponAttack = this.getEquippedWeaponAttack(state, dataRegistry);
@@ -220,8 +228,10 @@ export class WorldScene extends Phaser.Scene {
       this.game.canvas.dataset.dialogueBlockingMovement = "false";
     });
     this.unsubscribeEquipmentChanged = eventBus.on("equipmentChanged", () => {
+      syncEquippedSupportFromEquipment(state, (id) => dataRegistry.getItem(id));
       this.weaponAttack = this.getEquippedWeaponAttack(state, dataRegistry);
       this.playerCombatStats = this.createPlayerCombatStats(state, dataRegistry);
+      this.syncSupportDataset();
     });
     this.unsubscribeStatsChanged = eventBus.on("statsChanged", () => {
       this.playerCombatStats = this.createPlayerCombatStats(state, dataRegistry);
@@ -277,6 +287,8 @@ export class WorldScene extends Phaser.Scene {
     this.game.canvas.dataset.consumableCooldowns = getConsumableCooldownSummary(state);
     this.game.canvas.dataset.autoPotionSettings = getAutoPotionSettingsSummary(state);
     this.game.canvas.dataset.lastAutoPotionUse = "";
+    this.game.canvas.dataset.lastSupportAction = "";
+    this.game.canvas.dataset.supportSummary = getSupportSummary(state);
     this.game.canvas.dataset.lastXpGain = "";
     this.game.canvas.dataset.lastLevelUp = "";
     this.game.canvas.dataset.lastLootDrop = "";
@@ -347,6 +359,7 @@ export class WorldScene extends Phaser.Scene {
     this.game.canvas.dataset.wasdMovement = "disabled";
     this.game.canvas.dataset.movementMarker = "hidden";
     this.syncPlayerDataset();
+    this.syncSupportDataset();
     this.persistTransitionSpawn();
     this.syncEnemyDataset();
 
@@ -358,6 +371,7 @@ export class WorldScene extends Phaser.Scene {
     if (this.state) {
       expireSkillBuffs(this.state);
       this.updateAutoPotion();
+      this.updateSupportCompanion();
       this.updatePlayerStatusEffects();
     }
     this.player?.update(delta);
@@ -848,6 +862,37 @@ export class WorldScene extends Phaser.Scene {
     this.game.canvas.dataset.playerSp = `${this.state.character.stats.sp}/${this.state.character.stats.maxSp}`;
   }
 
+  private updateSupportCompanion(): void {
+    if (!this.state || !this.dataRegistry) {
+      return;
+    }
+
+    const support = this.state.support.equippedSupportId
+      ? this.dataRegistry.getSupport(this.state.support.equippedSupportId)
+      : null;
+    const result = updateSupportCompanion(
+      this.state,
+      support,
+      (id) => this.dataRegistry!.getItem(id),
+      (id) => this.dataRegistry!.getStatusEffect(id),
+    );
+
+    if (!result) {
+      return;
+    }
+
+    this.game.canvas.dataset.lastSupportAction = result.success
+      ? `${result.supportId}:${result.actionId}:success:hp:${result.restoredHp}:cleanse:${result.cleansedStatusIds.join(",")}:status:${result.appliedStatusEffectIds.join(",")}`
+      : `${result.supportId}:${result.actionId}:failed`;
+    this.game.canvas.dataset.playerHp = `${this.state.character.stats.hp}/${this.state.character.stats.maxHp}`;
+    this.game.canvas.dataset.playerStatusEffects = getStatusSummary(
+      this.state.character.statusEffects,
+      (id) => this.dataRegistry!.getStatusEffect(id),
+    );
+    this.syncSupportDataset();
+    this.playerCombatStats = this.createPlayerCombatStats(this.state, this.dataRegistry);
+  }
+
   private updatePlayerStatusEffects(): void {
     if (!this.state || !this.dataRegistry || this.state.character.statusEffects.length === 0) {
       return;
@@ -1087,11 +1132,43 @@ export class WorldScene extends Phaser.Scene {
     const drops = generateLootDrops(dropTable, dataRegistry, Math.random, {
       quality: enemy.boss ? "boss" : enemy.elite ? "elite" : "normal",
     });
+    this.applySupportMaterialFinder(drops, dropTable.entries);
     if (enemy.bossProtocolEnabled) {
       drops.push({ kind: "gold", quantity: bossRewardGold });
       this.game.canvas.dataset.lastBossReward = `${enemy.id}:gold:${bossRewardGold}`;
     }
+    const support = state.support.equippedSupportId ? dataRegistry.getSupport(state.support.equippedSupportId) : null;
+    grantSupportAffinity(state, support, Math.max(1, Math.ceil(monster.xpReward / 2)));
+    this.syncSupportDataset();
     drops.forEach((drop, index) => this.spawnLootDrop(drop, enemy.sprite.x + index * 28, enemy.sprite.y + 18));
+  }
+
+  private applySupportMaterialFinder(
+    drops: LootDrop[],
+    entries: Array<{ itemId?: string; type?: "item" | "gold" }>,
+  ): void {
+    if (!this.state || !this.dataRegistry || !this.state.support.equippedSupportId) {
+      return;
+    }
+
+    const support = this.dataRegistry.getSupport(this.state.support.equippedSupportId);
+    const finder = support.effects.materialFinder;
+
+    if (!finder || Math.random() > finder.chanceBonus) {
+      return;
+    }
+
+    const materialEntry = entries.find((entry) => (
+      entry.itemId && this.dataRegistry!.getItem(entry.itemId).type === finder.itemType
+    ));
+
+    if (!materialEntry?.itemId || drops.some((drop) => drop.kind === "item" && drop.itemId === materialEntry.itemId)) {
+      return;
+    }
+
+    drops.push({ kind: "item", itemId: materialEntry.itemId, quantity: 1 });
+    this.state.support.cooldowns["material-ping"] = Date.now() + 9000;
+    this.game.canvas.dataset.lastSupportAction = `${support.id}:material-ping:success:${materialEntry.itemId}`;
   }
 
   private spawnLootDrop(drop: LootDrop, x: number, y: number): void {
@@ -1113,6 +1190,10 @@ export class WorldScene extends Phaser.Scene {
     this.game.canvas.dataset.pendingLootCount = String(this.droppedLoot.length);
     this.game.canvas.dataset.lootPosition = `${Math.round(x)},${Math.round(y)}`;
     eventBus.emit("lootDropped", this.getLootEventPayload(drop));
+
+    if (this.trySupportAutoPickup(this.droppedLoot[this.droppedLoot.length - 1])) {
+      this.game.canvas.dataset.lastSupportAction = `auto-pickup:${this.getLootDatasetValue(drop)}`;
+    }
   }
 
   private collectClickedLoot(x: number, y: number): boolean {
@@ -1140,6 +1221,35 @@ export class WorldScene extends Phaser.Scene {
     this.game.canvas.dataset.equipmentInstanceCount = String(this.state.inventory.equipmentInstances.length);
     eventBus.emit("lootPickedUp", this.getLootEventPayload(loot.drop));
 
+    return true;
+  }
+
+  private trySupportAutoPickup(loot: DroppedLootObject): boolean {
+    if (!this.state || !this.dataRegistry) {
+      return false;
+    }
+
+    const support = this.state.support.equippedSupportId
+      ? this.dataRegistry.getSupport(this.state.support.equippedSupportId)
+      : null;
+
+    if (!shouldSupportAutoPickup(this.state, support, loot.drop, (id) => this.dataRegistry!.getItem(id))) {
+      return false;
+    }
+
+    if (loot.drop.kind === "gold") {
+      addGold(this.state.inventory, loot.drop.quantity);
+      this.state.playerProfile.gold = this.state.inventory.gold;
+    } else {
+      addInventoryItem(this.state.inventory, this.dataRegistry.getItem(loot.drop.itemId), loot.drop.quantity);
+    }
+
+    loot.marker.destroy();
+    loot.label.destroy();
+    this.droppedLoot = this.droppedLoot.filter((entry) => entry !== loot);
+    this.game.canvas.dataset.lastLootPickup = this.getLootDatasetValue(loot.drop);
+    this.game.canvas.dataset.pendingLootCount = String(this.droppedLoot.length);
+    eventBus.emit("lootPickedUp", this.getLootEventPayload(loot.drop));
     return true;
   }
 
@@ -1481,7 +1591,25 @@ export class WorldScene extends Phaser.Scene {
     if (this.state) {
       this.game.canvas.dataset.consumableCooldowns = getConsumableCooldownSummary(this.state);
       this.game.canvas.dataset.autoPotionSettings = getAutoPotionSettingsSummary(this.state);
+      this.game.canvas.dataset.supportSummary = getSupportSummary(this.state);
     }
+  }
+
+  private syncSupportDataset(): void {
+    if (!this.state || !this.dataRegistry) {
+      return;
+    }
+
+    const support = this.state.support.equippedSupportId
+      ? this.dataRegistry.getSupport(this.state.support.equippedSupportId)
+      : null;
+
+    this.game.canvas.dataset.supportSummary = getSupportSummary(this.state);
+    this.game.canvas.dataset.supportCompanion = support?.id ?? "";
+    this.game.canvas.dataset.supportCompanionName = support?.name ?? "";
+    this.game.canvas.dataset.supportLevel = support ? String(this.state.support.levels[support.id] ?? 1) : "";
+    this.game.canvas.dataset.supportAffinity = support ? String(this.state.support.affinity[support.id] ?? 0) : "";
+    this.game.canvas.dataset.supportAutoPickupFilter = this.state.support.autoPickupFilter;
   }
 
   private syncEnemyDataset(): void {
@@ -1698,6 +1826,7 @@ export class WorldScene extends Phaser.Scene {
       dataRegistry.getClass(state.character.archetype),
       (id) => dataRegistry.getItem(id),
       (id) => dataRegistry.getStatusEffect(id),
+      (id) => dataRegistry.getSupport(id),
     );
 
     return {

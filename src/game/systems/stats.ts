@@ -1,7 +1,8 @@
 import { getEquipmentStats } from "./equipment";
 import { eventBus } from "./eventBus";
 import { getStatusStatModifiers } from "./statusEffects";
-import type { ClassDefinition, ItemDefinition, StatusEffectDefinition } from "../types/dataDefinitions";
+import { getSupportRaceDamage, getSupportStatModifier } from "./supports";
+import type { ClassDefinition, ItemDefinition, StatusEffectDefinition, SupportDefinition } from "../types/dataDefinitions";
 import type { BaseStatKey, BaseStats, DerivedStats, GameState, StatModifier } from "../types/gameState";
 
 export const baseStatKeys: BaseStatKey[] = ["str", "agi", "vit", "int", "dex", "luk"];
@@ -48,6 +49,7 @@ export function createClassBaseStats(playerClass: ClassDefinition): BaseStats {
 export function getTotalBaseStats(
   state: GameState,
   getStatusEffect?: (id: string) => StatusEffectDefinition,
+  getSupport?: (id: string) => SupportDefinition,
 ): BaseStats {
   const totals = createEmptyBaseStats();
 
@@ -55,7 +57,7 @@ export function getTotalBaseStats(
     totals[key] = state.character.baseStats[key] + state.character.allocatedStats[key];
   }
 
-  for (const modifier of getAllStatModifiers(state, getStatusEffect)) {
+  for (const modifier of getAllStatModifiers(state, getStatusEffect, getSupport)) {
     for (const key of baseStatKeys) {
       totals[key] += modifier.baseStats?.[key] ?? 0;
     }
@@ -148,10 +150,12 @@ export function calculateDerivedStats(
   playerClass: ClassDefinition,
   getItem: (id: string) => ItemDefinition,
   getStatusEffect?: (id: string) => StatusEffectDefinition,
+  getSupport?: (id: string) => SupportDefinition,
 ): DerivedStats {
-  const modifiers = getAllStatModifiers(state, getStatusEffect);
+  const modifiers = getAllStatModifiers(state, getStatusEffect, getSupport);
   const gear = getEquipmentStats(state.equipment, getItem, state.inventory.refinementLevels);
-  const stats = getTotalBaseStats(state, getStatusEffect);
+  const support = state.support.equippedSupportId && getSupport ? getSupport(state.support.equippedSupportId) : null;
+  const stats = getTotalBaseStats(state, getStatusEffect, getSupport);
 
   for (const key of baseStatKeys) {
     stats[key] += gear.baseStats[key] ?? 0;
@@ -176,7 +180,7 @@ export function calculateDerivedStats(
     weightLimit: Math.round(60 + stats.str * 8 + stats.vit * 4),
     dropChance: gear.dropChance,
     elementDamage: { ...gear.elementDamage },
-    raceDamage: { ...gear.raceDamage },
+    raceDamage: { ...gear.raceDamage, ...getSupportRaceDamage(state, support) },
     resistances: { ...gear.resistances },
   };
 
@@ -220,10 +224,18 @@ function applyDerivedModifiers(derived: DerivedStats, modifiers: StatModifier[])
 function getAllStatModifiers(
   state: GameState,
   getStatusEffect?: (id: string) => StatusEffectDefinition,
+  getSupport?: (id: string) => SupportDefinition,
 ): StatModifier[] {
   const statusModifiers = getStatusEffect
     ? getStatusStatModifiers(state.character.statusEffects, getStatusEffect)
     : [];
+  const supportModifier = state.support.equippedSupportId && getSupport
+    ? getSupportStatModifier(state, getSupport(state.support.equippedSupportId))
+    : null;
 
-  return [...state.character.statBuffs, ...statusModifiers];
+  return [
+    ...state.character.statBuffs,
+    ...statusModifiers,
+    ...(supportModifier ? [supportModifier] : []),
+  ];
 }

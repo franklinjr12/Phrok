@@ -1,8 +1,104 @@
 [
   {
+    "id": "pack-sprite",
+    "name": "Pack Sprite",
+    "description": "A nimble support companion that sorts supplies, hauls extra weight, and nudges useful materials into reach.",
+    "skillIds": [],
+    "maxLevel": 5,
+    "affinityPerLevel": 50,
+    "effects": {
+      "derivedStats": {
+        "weightLimit": 24
+      },
+      "autoPickupFilters": ["materials", "gold", "all"],
+      "materialFinder": {
+        "itemType": "material",
+        "chanceBonus": 0.08
+      }
+    },
+    "actions": [
+      {
+        "id": "emergency-potion",
+        "name": "Emergency Potion",
+        "trigger": "lowHp",
+        "cooldownMs": 12000,
+        "minLevel": 1,
+        "hpThresholdPercent": 35,
+        "useConsumableItemId": "minor-health-potion"
+      },
+      {
+        "id": "material-ping",
+        "name": "Material Finder",
+        "trigger": "materialFound",
+        "cooldownMs": 9000,
+        "minLevel": 2
+      }
+    ]
+  },
+  {
+    "id": "shrine-wisp",
+    "name": "Shrine Wisp",
+    "description": "A quiet shrine light that mends wounds, cleanses curses, and shelters the living from undead pressure.",
+    "skillIds": [],
+    "maxLevel": 5,
+    "affinityPerLevel": 50,
+    "effects": {
+      "derivedStats": {
+        "magicDefense": 3
+      },
+      "raceDamage": {
+        "undead": 4
+      }
+    },
+    "actions": [
+      {
+        "id": "minor-heal",
+        "name": "Minor Heal",
+        "trigger": "lowHp",
+        "cooldownMs": 10000,
+        "minLevel": 1,
+        "hpThresholdPercent": 55,
+        "restoreHp": 18
+      },
+      {
+        "id": "cleanse",
+        "name": "Cleanse",
+        "trigger": "statusPresent",
+        "cooldownMs": 16000,
+        "minLevel": 1,
+        "cleanseCategories": ["toxin", "hex", "wound"]
+      },
+      {
+        "id": "blessing-aura",
+        "name": "Blessing Aura",
+        "trigger": "combat",
+        "cooldownMs": 20000,
+        "minLevel": 2,
+        "statusEffectIds": ["blessed"]
+      },
+      {
+        "id": "spirit-barrier",
+        "name": "Spirit Barrier",
+        "trigger": "lowHp",
+        "cooldownMs": 18000,
+        "minLevel": 3,
+        "hpThresholdPercent": 45,
+        "statusEffectIds": ["shielded"]
+      }
+    ]
+  },
+  {
     "id": "mira",
     "name": "Mira",
     "description": "A support companion who keeps new adventurers steady.",
-    "skillIds": ["power-slash"]
+    "skillIds": ["power-slash"],
+    "maxLevel": 5,
+    "affinityPerLevel": 50,
+    "effects": {
+      "derivedStats": {
+        "defense": 1
+      }
+    },
+    "actions": []
   }
 ]

@@ -80,6 +80,7 @@ export interface ItemDefinition {
   appraisable?: boolean;
   refinable?: boolean;
   value: number;
+  supportId?: string;
 }
 
 export type ItemRarity = "Common" | "Uncommon" | "Rare" | "Epic" | "Legendary" | "Mythic";
@@ -292,6 +293,42 @@ export interface SupportDefinition {
   name: string;
   description: string;
   skillIds: string[];
+  maxLevel: number;
+  affinityPerLevel: number;
+  effects: SupportEffectsDefinition;
+  actions: SupportActionDefinition[];
+}
+
+export interface SupportEffectsDefinition {
+  derivedStats?: Partial<Record<keyof DerivedStats, number>>;
+  baseStats?: Partial<BaseStats>;
+  raceDamage?: Record<string, number>;
+  autoPickupFilters?: SupportAutoPickupFilterDefinition[];
+  materialFinder?: {
+    itemType: "material";
+    chanceBonus: number;
+  };
+}
+
+export type SupportAutoPickupFilterDefinition = "materials" | "gold" | "all";
+
+export type SupportActionTrigger =
+  | "lowHp"
+  | "statusPresent"
+  | "combat"
+  | "materialFound";
+
+export interface SupportActionDefinition {
+  id: string;
+  name: string;
+  trigger: SupportActionTrigger;
+  cooldownMs: number;
+  minLevel: number;
+  hpThresholdPercent?: number;
+  useConsumableItemId?: string;
+  restoreHp?: number;
+  statusEffectIds?: string[];
+  cleanseCategories?: string[];
 }
 
 export interface QuestDefinition {

@@ -51,6 +51,7 @@ export interface GameEventMap {
   shopOpened: { shopId: string; npcId: string };
   storageOpened: { npcId: string };
   storageChanged: { storage: StorageState };
+  supportChanged: { supportId: string | null; level: number; affinity: number; actionId: string | null };
 }
 
 type GameEventName = keyof GameEventMap;
