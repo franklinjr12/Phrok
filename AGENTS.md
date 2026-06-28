@@ -32,3 +32,4 @@ This repository does not yet have commit history to derive a local convention fr
 ## Agent-Specific Instructions
 
 For any sprites that do not exist yet at implementation that that you need use the skill "generate single sprite"
+ALWAYS use the skill "/caveman ultra" on every start of conversation unless told otherwise.

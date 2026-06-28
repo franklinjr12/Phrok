@@ -40,3 +40,5 @@ If no match is found, list candidate epic headers with line numbers using:
 Select-String -LiteralPath "docs\backlog.md" -Pattern "^## Epic " |
   ForEach-Object { "$($_.LineNumber):$($_.Line)" }
 ```
+
+ALWAYS use the skill "/caveman ultra" on every start of conversation unless told otherwise.
