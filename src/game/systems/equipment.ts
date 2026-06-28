@@ -152,6 +152,14 @@ export function canEquipItem(
     return false;
   }
 
+  if (slot === "sigil" && item.type !== "sigil") {
+    return false;
+  }
+
+  if (slot === "supportCharm" && item.type !== "support") {
+    return false;
+  }
+
   if (item.type === "weapon" && playerClass?.allowedWeaponTypes.length && item.weaponType) {
     if (!playerClass.allowedWeaponTypes.includes(item.weaponType)) {
       return false;

@@ -8453,5 +8453,182 @@
     "allowedClassIds": [],
     "twoHanded": false,
     "statModifiers": {}
+  },
+  {
+    "id": "sigil-of-the-wolf",
+    "name": "Sigil of the Wolf",
+    "description": "A rare sigil for close-range hunters who trade caution for relentless pressure.",
+    "type": "sigil",
+    "level": 12,
+    "rarity": "Rare",
+    "icon": "placeholder-sigil-of-the-wolf",
+    "equipmentSlot": "sigil",
+    "validEquipmentSlots": [
+      "sigil"
+    ],
+    "statModifiers": {
+      "derivedStats": {
+        "physicalAttack": 4,
+        "attackSpeed": 2
+      },
+      "raceDamage": {
+        "beast": 3
+      }
+    },
+    "value": 72,
+    "allowedClassIds": [],
+    "twoHanded": false
+  },
+  {
+    "id": "sigil-of-flame",
+    "name": "Sigil of Flame",
+    "description": "A rare sigil for fire builds that adds burning pressure to every opening.",
+    "type": "sigil",
+    "level": 18,
+    "rarity": "Rare",
+    "icon": "placeholder-sigil-of-flame",
+    "equipmentSlot": "sigil",
+    "validEquipmentSlots": [
+      "sigil"
+    ],
+    "statModifiers": {
+      "derivedStats": {
+        "magicAttack": 3
+      },
+      "elementDamage": {
+        "fire": 5
+      },
+      "resistances": {
+        "fire": 2
+      }
+    },
+    "value": 88,
+    "allowedClassIds": [],
+    "twoHanded": false
+  },
+  {
+    "id": "sigil-of-the-falcon",
+    "name": "Sigil of the Falcon",
+    "description": "A rare sigil for mobile ranged builds that rewards clean positioning.",
+    "type": "sigil",
+    "level": 24,
+    "rarity": "Rare",
+    "icon": "placeholder-sigil-of-the-falcon",
+    "equipmentSlot": "sigil",
+    "validEquipmentSlots": [
+      "sigil"
+    ],
+    "statModifiers": {
+      "derivedStats": {
+        "rangedAttack": 4,
+        "crit": 2,
+        "moveSpeed": 2
+      }
+    },
+    "value": 104,
+    "allowedClassIds": [],
+    "twoHanded": false
+  },
+  {
+    "id": "sigil-of-venom",
+    "name": "Sigil of Venom",
+    "description": "A rare sigil for attrition builds that favors fast strikes and poison pressure.",
+    "type": "sigil",
+    "level": 30,
+    "rarity": "Epic",
+    "icon": "placeholder-sigil-of-venom",
+    "equipmentSlot": "sigil",
+    "validEquipmentSlots": [
+      "sigil"
+    ],
+    "statModifiers": {
+      "derivedStats": {
+        "attackSpeed": 3,
+        "crit": 2
+      },
+      "elementDamage": {
+        "poison": 5
+      }
+    },
+    "value": 132,
+    "allowedClassIds": [],
+    "twoHanded": false
+  },
+  {
+    "id": "sigil-of-the-guardian",
+    "name": "Sigil of the Guardian",
+    "description": "An epic sigil for defensive builds that turns survival into steady momentum.",
+    "type": "sigil",
+    "level": 44,
+    "rarity": "Epic",
+    "icon": "placeholder-sigil-of-the-guardian",
+    "equipmentSlot": "sigil",
+    "validEquipmentSlots": [
+      "sigil"
+    ],
+    "statModifiers": {
+      "derivedStats": {
+        "maxHp": 28,
+        "defense": 5,
+        "magicDefense": 4
+      },
+      "resistances": {
+        "physical": 3,
+        "dark": 2
+      }
+    },
+    "value": 172,
+    "allowedClassIds": [],
+    "twoHanded": false
+  },
+  {
+    "id": "sigil-of-the-sage",
+    "name": "Sigil of the Sage",
+    "description": "An epic sigil for caster builds that sharpens spell cycles and reserves.",
+    "type": "sigil",
+    "level": 56,
+    "rarity": "Epic",
+    "icon": "placeholder-sigil-of-the-sage",
+    "equipmentSlot": "sigil",
+    "validEquipmentSlots": [
+      "sigil"
+    ],
+    "statModifiers": {
+      "baseStats": {
+        "int": 3
+      },
+      "derivedStats": {
+        "maxSp": 24,
+        "magicAttack": 5,
+        "castSpeed": 3,
+        "cooldownReduction": 2
+      }
+    },
+    "value": 214,
+    "allowedClassIds": [],
+    "twoHanded": false
+  },
+  {
+    "id": "sigil-of-fortune",
+    "name": "Sigil of Fortune",
+    "description": "A legendary sigil for treasure hunters who accept lower defense for better finds.",
+    "type": "sigil",
+    "level": 70,
+    "rarity": "Legendary",
+    "icon": "placeholder-sigil-of-fortune",
+    "equipmentSlot": "sigil",
+    "validEquipmentSlots": [
+      "sigil"
+    ],
+    "statModifiers": {
+      "derivedStats": {
+        "dropChance": 8,
+        "crit": 3,
+        "defense": -2
+      }
+    },
+    "value": 280,
+    "allowedClassIds": [],
+    "twoHanded": false
   }
 ]

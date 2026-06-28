@@ -1281,8 +1281,22 @@ export class UIScene extends Phaser.Scene {
 
     this.addPanelButton(96, 450, 102, 34, "Remove", () => this.removeSelectedEquipment());
     this.addPanelButton(210, 450, 102, 34, "Close", () => this.closePanel());
+    this.renderSelectedEquipmentDetails(state, dataRegistry);
     this.renderComparisonFrame();
     this.syncEquipmentDataset(state, dataRegistry);
+  }
+
+  private renderSelectedEquipmentDetails(state: GameState, dataRegistry: DataRegistry): void {
+    const itemId = state.equipment[this.selectedEquipmentSlot];
+    const item = itemId ? dataRegistry.getItem(itemId) : null;
+    const name = item?.name ?? "Empty";
+    const effects = item ? this.getItemModifierText(item) : "None";
+
+    this.addPanelRectangle(96, 346, 386, 86, 0x17212b, 0.95)
+      .setOrigin(0)
+      .setStrokeStyle(1, 0x475569, 0.86);
+    this.addPanelText(112, 360, `${equipmentSlotLabels[this.selectedEquipmentSlot]}: ${name}`, 14, item ? "#f8fafc" : "#94a3b8");
+    this.addPanelText(112, 388, this.wrapText(`Effects: ${effects}`, 48), 12, item ? "#bbf7d0" : "#64748b");
   }
 
   private renderCharacterPanel(state: GameState, dataRegistry: DataRegistry): void {
@@ -2292,6 +2306,7 @@ export class UIScene extends Phaser.Scene {
       .map((slot) => `${slot}:${state.equipment[slot] ?? "empty"}`)
       .join("|");
     const stats = getEquipmentStats(state.equipment, (id) => dataRegistry.getItem(id));
+    const equippedSigil = state.equipment.sigil ? dataRegistry.getItem(state.equipment.sigil) : null;
     const derivedStats = calculateDerivedStats(
       state,
       dataRegistry.getClass(state.character.archetype),
@@ -2306,6 +2321,8 @@ export class UIScene extends Phaser.Scene {
     this.game.canvas.dataset.equipmentMagicAttackBonus = String(stats.magicAttack);
     this.game.canvas.dataset.equipmentMagicDefenseBonus = String(stats.magicDefense);
     this.game.canvas.dataset.equipmentBonusSummary = this.getEquipmentBonusText(stats);
+    this.game.canvas.dataset.equipmentSigilName = equippedSigil?.name ?? "";
+    this.game.canvas.dataset.equipmentSigilEffectSummary = equippedSigil ? this.getItemModifierText(equippedSigil) : "";
     this.game.canvas.dataset.playerAttackStat = String(derivedStats.physicalAttack);
   }
 
@@ -2616,8 +2633,14 @@ export class UIScene extends Phaser.Scene {
       stats.hp ? `HP +${stats.hp}` : "",
       stats.sp ? `SP +${stats.sp}` : "",
       stats.crit ? `Crit +${stats.crit}` : "",
+      stats.attackSpeed ? `ASPD +${stats.attackSpeed}` : "",
+      stats.castSpeed ? `Cast +${stats.castSpeed}` : "",
+      stats.cooldownReduction ? `CDR +${stats.cooldownReduction}` : "",
       stats.moveSpeed ? `Move +${stats.moveSpeed}` : "",
       stats.dropChance ? `Drop +${stats.dropChance}` : "",
+      ...Object.entries(stats.elementDamage).map(([element, value]) => `${element} +${value}`),
+      ...Object.entries(stats.raceDamage).map(([race, value]) => `${race} +${value}`),
+      ...Object.entries(stats.resistances).map(([resist, value]) => `${resist} resist +${value}`),
     ].filter((entry) => entry.length > 0);
 
     return bonuses.length > 0 ? bonuses.join(" ") : "None";

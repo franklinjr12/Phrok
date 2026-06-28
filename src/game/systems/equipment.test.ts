@@ -124,6 +124,32 @@ describe("equipment", () => {
     });
     expect(getItemSellValue(item)).toBe(180);
   });
+
+  it("equips only one sigil and applies its build-defining effects", () => {
+    const state = createNewGameState();
+    state.inventory.items.push(
+      { id: "wolf-sigil", quantity: 1 },
+      { id: "flame-sigil", quantity: 1 },
+      { id: "fake-sigil-token", quantity: 1 },
+    );
+
+    expect(equipItem(state, getItem("fake-sigil-token"), false, undefined, "sigil")).toBe(false);
+    expect(equipItem(state, getItem("wolf-sigil"), false)).toBe(true);
+    expect(state.equipment.sigil).toBe("wolf-sigil");
+    expect(getEquipmentStats(state.equipment, getItem)).toMatchObject({
+      attack: 6,
+      attackSpeed: 2,
+      raceDamage: { beast: 3 },
+    });
+
+    expect(equipItem(state, getItem("flame-sigil"), false)).toBe(true);
+    expect(state.equipment.sigil).toBe("flame-sigil");
+    expect(getEquipmentStats(state.equipment, getItem)).toMatchObject({
+      magicAttack: 3,
+      elementDamage: { fire: 5 },
+      resistances: { fire: 2 },
+    });
+  });
 });
 
 function getItem(id: string): ItemDefinition {
@@ -217,6 +243,43 @@ function getItem(id: string): ItemDefinition {
       equipmentSlot: "body",
       validEquipmentSlots: ["body"],
       statModifiers: { derivedStats: { defense: 4, magicDefense: 2 } },
+    };
+  }
+
+  if (id === "wolf-sigil") {
+    return {
+      id,
+      name: "Wolf Sigil",
+      description: "",
+      type: "sigil",
+      value: 60,
+      equipmentSlot: "sigil",
+      validEquipmentSlots: ["sigil"],
+      statModifiers: { derivedStats: { physicalAttack: 4, attackSpeed: 2 }, raceDamage: { beast: 3 } },
+    };
+  }
+
+  if (id === "flame-sigil") {
+    return {
+      id,
+      name: "Flame Sigil",
+      description: "",
+      type: "sigil",
+      value: 60,
+      equipmentSlot: "sigil",
+      validEquipmentSlots: ["sigil"],
+      statModifiers: { derivedStats: { magicAttack: 3 }, elementDamage: { fire: 5 }, resistances: { fire: 2 } },
+    };
+  }
+
+  if (id === "fake-sigil-token") {
+    return {
+      id,
+      name: "Fake Sigil Token",
+      description: "",
+      type: "material",
+      value: 1,
+      validEquipmentSlots: ["sigil"],
     };
   }
 

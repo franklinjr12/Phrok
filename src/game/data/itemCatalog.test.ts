@@ -65,6 +65,41 @@ describe("item catalog", () => {
     expect(dropTables.flatMap((table) => table.entries).some((entry) => entry.rarity === "Mythic")).toBe(true);
   });
 
+  it("defines named rare sigils with unique build effects and rare source drops", () => {
+    const expectedSigilIds = [
+      "sigil-of-the-wolf",
+      "sigil-of-flame",
+      "sigil-of-the-falcon",
+      "sigil-of-venom",
+      "sigil-of-the-guardian",
+      "sigil-of-the-sage",
+      "sigil-of-fortune",
+    ];
+    const sourceDropIds = new Set(dropTables.flatMap((table) => (
+      table.entries
+        .filter((entry) => expectedSigilIds.includes(entry.itemId ?? ""))
+        .map((entry) => {
+          expect(entry.chance).toBeGreaterThan(0);
+          expect(entry.chance).toBeLessThanOrEqual(0.055);
+          return entry.itemId;
+        })
+    )));
+
+    for (const id of expectedSigilIds) {
+      const sigil = items.find((item) => item.id === id);
+
+      expect(sigil).toMatchObject({
+        id,
+        type: "sigil",
+        equipmentSlot: "sigil",
+        validEquipmentSlots: ["sigil"],
+      });
+      expect(["Rare", "Epic", "Legendary"]).toContain(sigil?.rarity);
+      expect(JSON.stringify(sigil?.statModifiers ?? {})).not.toBe("{}");
+      expect(sourceDropIds.has(id)).toBe(true);
+    }
+  });
+
   it("defines usable HP, SP, and buff consumables with cooldowns and status icons", () => {
     const consumables = items.filter((item) => item.type === "consumable");
     const statusEffectIds = new Set(statusEffects.map((effect) => effect.id));

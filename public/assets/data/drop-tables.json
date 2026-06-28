@@ -60,6 +60,12 @@
         "chance": 0.16,
         "minQuantity": 1,
         "maxQuantity": 2
+      },
+      {
+        "itemId": "sigil-of-the-wolf",
+        "chance": 0.05,
+        "minQuantity": 1,
+        "maxQuantity": 1
       }
     ]
   },
@@ -364,6 +370,12 @@
         "chance": 1,
         "minQuantity": 38,
         "maxQuantity": 62
+      },
+      {
+        "itemId": "sigil-of-venom",
+        "chance": 0.04,
+        "minQuantity": 1,
+        "maxQuantity": 1
       }
     ]
   },
@@ -404,6 +416,12 @@
         "chance": 1,
         "minQuantity": 52,
         "maxQuantity": 76
+      },
+      {
+        "itemId": "sigil-of-the-falcon",
+        "chance": 0.045,
+        "minQuantity": 1,
+        "maxQuantity": 1
       }
     ]
   },
@@ -494,6 +512,12 @@
         "chance": 0.22,
         "minQuantity": 1,
         "maxQuantity": 2
+      },
+      {
+        "itemId": "sigil-of-flame",
+        "chance": 0.045,
+        "minQuantity": 1,
+        "maxQuantity": 1
       }
     ]
   },
@@ -712,6 +736,12 @@
         "chance": 0.1,
         "minQuantity": 1,
         "maxQuantity": 1
+      },
+      {
+        "itemId": "sigil-of-the-sage",
+        "chance": 0.04,
+        "minQuantity": 1,
+        "maxQuantity": 1
       }
     ]
   },
@@ -769,6 +799,12 @@
         "type": "item",
         "itemId": "rune-ore",
         "chance": 0.1,
+        "minQuantity": 1,
+        "maxQuantity": 1
+      },
+      {
+        "itemId": "sigil-of-fortune",
+        "chance": 0.035,
         "minQuantity": 1,
         "maxQuantity": 1
       }
@@ -1349,6 +1385,12 @@
         "type": "item",
         "itemId": "stabilizer",
         "chance": 0.08,
+        "minQuantity": 1,
+        "maxQuantity": 1
+      },
+      {
+        "itemId": "sigil-of-the-guardian",
+        "chance": 0.055,
         "minQuantity": 1,
         "maxQuantity": 1
       }
