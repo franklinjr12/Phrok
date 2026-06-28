@@ -390,10 +390,30 @@ function normalizePosition(rawPosition: unknown, fallback: GameState["position"]
 
 function normalizeQuestState(rawQuestState: unknown, fallback: GameState["quests"]): GameState["quests"] {
   const source = isRecord(rawQuestState) ? rawQuestState : {};
+  const activeQuestIds = stringArray(source.activeQuestIds, fallback.activeQuestIds);
+  const completedQuestIds = stringArray(source.completedQuestIds, fallback.completedQuestIds);
+  const activeQuests = Array.isArray(source.activeQuests)
+    ? source.activeQuests
+      .filter(isRecord)
+      .map((entry) => ({
+        questId: stringValue(entry.questId, ""),
+        objectiveProgress: normalizePositiveIntegerRecord(entry.objectiveProgress, {}),
+        acceptedAt: stringValue(entry.acceptedAt, new Date(0).toISOString()),
+        readyToComplete: Boolean(entry.readyToComplete),
+      }))
+      .filter((entry) => entry.questId.length > 0)
+    : activeQuestIds.map((questId) => ({
+      questId,
+      objectiveProgress: {},
+      acceptedAt: new Date(0).toISOString(),
+      readyToComplete: false,
+    }));
 
   return {
-    activeQuestIds: stringArray(source.activeQuestIds, fallback.activeQuestIds),
-    completedQuestIds: stringArray(source.completedQuestIds, fallback.completedQuestIds),
+    activeQuestIds,
+    completedQuestIds,
+    activeQuests,
+    completedAt: normalizeStringRecord(source.completedAt, fallback.completedAt),
   };
 }
 
@@ -511,6 +531,14 @@ function normalizeBooleanRecord(rawRecord: unknown, fallback: Record<string, boo
 
   return Object.fromEntries(
     Object.entries(source).filter((entry): entry is [string, boolean] => typeof entry[1] === "boolean"),
+  );
+}
+
+function normalizeStringRecord(rawRecord: unknown, fallback: Record<string, string>): Record<string, string> {
+  const source = isRecord(rawRecord) ? rawRecord : fallback;
+
+  return Object.fromEntries(
+    Object.entries(source).filter((entry): entry is [string, string] => typeof entry[1] === "string"),
   );
 }
 

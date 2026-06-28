@@ -166,7 +166,31 @@ const validFiles: Record<string, unknown[]> = {
       restoreHp: 10,
     }],
   }],
-  "quests.json": [{ id: "first-steps", name: "First Steps" }],
+  "quests.json": [{
+    id: "first-steps",
+    name: "First Steps",
+    type: "main",
+    objectives: [{
+      id: "enter-meadow",
+      type: "visitMap",
+      targetId: "crownfield-meadows",
+      targetCount: 1,
+      regionHint: "Crownfield Meadows",
+      mapId: "crownfield-meadows",
+    }],
+    rewards: {
+      xp: 40,
+      gold: 12,
+      items: [{ itemId: "jelly-gel", quantity: 2 }],
+      unlockFlags: ["meadows-clear"],
+    },
+    requiredLevel: 1,
+    requiredFlags: [],
+    unlockFlags: ["act1"],
+    npcStart: "field-guide",
+    npcTurnIn: "field-guide",
+    mapMarkers: [{ mapId: "crownfield-meadows", label: "Meadow", x: 1, y: 2 }],
+  }],
   "status-effects.json": [
     {
       id: "guarded",
@@ -342,6 +366,24 @@ describe("loadDataRegistry", () => {
         hpThresholdPercent: 40,
         restoreHp: 10,
       }],
+    });
+    expect(registry.getQuest("first-steps")).toMatchObject({
+      type: "main",
+      objectives: [{
+        id: "enter-meadow",
+        type: "visitMap",
+        targetId: "crownfield-meadows",
+        targetCount: 1,
+      }],
+      rewards: {
+        xp: 40,
+        gold: 12,
+        items: [{ itemId: "jelly-gel", quantity: 2 }],
+        unlockFlags: ["meadows-clear"],
+      },
+      requiredLevel: 1,
+      npcStart: "field-guide",
+      npcTurnIn: "field-guide",
     });
     expect(registry.getStatusEffect("guarded")).toMatchObject({
       type: "buff",

@@ -94,11 +94,18 @@ import {
   turnInHuntingContract,
   type HuntingContractDefinition,
 } from "../systems/huntingBoard";
+import {
+  acceptQuest,
+  completeQuest,
+  getQuestLogSummary,
+  getQuestObjectiveProgress,
+  getQuestStatus,
+} from "../systems/quests";
 import type { DataRegistry } from "../data/dataRegistry";
-import type { ItemDefinition, ItemRarity, MonsterDefinition, RecipeDefinition, ShopDefinition, SkillDefinition } from "../types/dataDefinitions";
+import type { ItemDefinition, ItemRarity, MonsterDefinition, QuestDefinition, RecipeDefinition, ShopDefinition, SkillDefinition } from "../types/dataDefinitions";
 import type { BaseStatKey, EquipmentInstance, EquipmentSlot, GameState, InventoryItem } from "../types/gameState";
 
-type PanelMode = "inventory" | "equipment" | "character" | "skills" | "bestiary" | "crafting" | "refinement" | "shop" | "appraiser" | "storage" | "huntingBoard";
+type PanelMode = "inventory" | "equipment" | "character" | "skills" | "bestiary" | "crafting" | "refinement" | "shop" | "appraiser" | "storage" | "huntingBoard" | "questLog";
 type InventoryPanelEntry = {
   itemId: string;
   quantity: number;
@@ -141,6 +148,7 @@ export class UIScene extends Phaser.Scene {
   private unsubscribeCraftingOpened?: () => void;
   private unsubscribeCraftingChanged?: () => void;
   private unsubscribeHuntingBoardChanged?: () => void;
+  private unsubscribeQuestChanged?: () => void;
   private unsubscribeRefinementOpened?: () => void;
   private unsubscribeRecipeUnlocked?: () => void;
   private unsubscribeShopOpened?: () => void;
@@ -175,6 +183,7 @@ export class UIScene extends Phaser.Scene {
   private selectedCraftingIndex = 0;
   private selectedRefinementIndex = 0;
   private selectedHuntingContractIndex = 0;
+  private selectedQuestIndex = 0;
   private storageInventoryPage = 0;
   private storagePage = 0;
   private selectedEquipmentSlot: EquipmentSlot = "weapon";
@@ -211,6 +220,7 @@ export class UIScene extends Phaser.Scene {
     this.game.canvas.dataset.gameplayInputBlocked = "false";
     this.syncPlayerStats(state, dataRegistry);
     this.syncHuntingBoardDataset(state, dataRegistry);
+    this.syncQuestDataset(state, dataRegistry);
     this.createHud(state, dataRegistry);
     this.createAdvancedClassNotification(state);
     this.createMapLabel(state.currentMapId, dataRegistry);
@@ -229,6 +239,7 @@ export class UIScene extends Phaser.Scene {
     this.input.keyboard?.on("keydown-P", this.toggleEquipmentPanel, this);
     this.input.keyboard?.on("keydown-R", this.toggleCraftingPanel, this);
     this.input.keyboard?.on("keydown-H", this.toggleHuntingBoardPanel, this);
+    this.input.keyboard?.on("keydown-L", this.toggleQuestLogPanel, this);
     this.input.keyboard?.on("keydown-S", this.manualSave, this);
     this.input.keyboard?.on("keydown-ESC", this.closePanel, this);
     this.input.keyboard?.on("keydown", this.handleHotbarKey, this);
@@ -241,6 +252,7 @@ export class UIScene extends Phaser.Scene {
       this.input.keyboard?.off("keydown-P", this.toggleEquipmentPanel, this);
       this.input.keyboard?.off("keydown-R", this.toggleCraftingPanel, this);
       this.input.keyboard?.off("keydown-H", this.toggleHuntingBoardPanel, this);
+      this.input.keyboard?.off("keydown-L", this.toggleQuestLogPanel, this);
       this.input.keyboard?.off("keydown-S", this.manualSave, this);
       this.input.keyboard?.off("keydown-ESC", this.closePanel, this);
       this.input.keyboard?.off("keydown", this.handleHotbarKey, this);
@@ -272,6 +284,7 @@ export class UIScene extends Phaser.Scene {
       this.unsubscribeCraftingOpened?.();
       this.unsubscribeCraftingChanged?.();
       this.unsubscribeHuntingBoardChanged?.();
+      this.unsubscribeQuestChanged?.();
       this.unsubscribeRefinementOpened?.();
       this.unsubscribeRecipeUnlocked?.();
       this.unsubscribeShopOpened?.();
@@ -493,6 +506,12 @@ export class UIScene extends Phaser.Scene {
 
     this.unsubscribeHuntingBoardChanged = eventBus.on("huntingBoardChanged", () => {
       this.syncHuntingBoardDataset(state, dataRegistry);
+      this.refreshOpenPanel();
+    });
+
+    this.unsubscribeQuestChanged = eventBus.on("questChanged", ({ questId, reason }) => {
+      this.game.canvas.dataset.lastQuestAction = `${reason}:${questId}`;
+      this.syncQuestDataset(state, dataRegistry);
       this.refreshOpenPanel();
     });
 
@@ -754,6 +773,19 @@ export class UIScene extends Phaser.Scene {
     this.openPanel("huntingBoard");
   }
 
+  private toggleQuestLogPanel(): void {
+    if (this.activePanel === "storage") {
+      return;
+    }
+
+    if (this.activePanel === "questLog") {
+      this.closePanel();
+      return;
+    }
+
+    this.openPanel("questLog");
+  }
+
   private openPanel(mode: PanelMode): void {
     this.activePanel = mode;
     this.game.canvas.dataset.uiPanel = mode;
@@ -780,6 +812,7 @@ export class UIScene extends Phaser.Scene {
     this.game.canvas.dataset.supportPanel = "hidden";
     this.game.canvas.dataset.bestiaryPanel = "hidden";
     this.game.canvas.dataset.huntingBoardPanel = "hidden";
+    this.game.canvas.dataset.questLogPanel = "hidden";
   }
 
   private manualSave(): void {
@@ -907,9 +940,69 @@ export class UIScene extends Phaser.Scene {
       this.renderAppraiserPanel(this.state, this.dataRegistry);
     } else if (this.activePanel === "storage") {
       this.renderStoragePanel(this.state, this.dataRegistry);
+    } else if (this.activePanel === "questLog") {
+      this.renderQuestLogPanel(this.state, this.dataRegistry);
     } else {
       this.renderHuntingBoardPanel(this.state, this.dataRegistry);
     }
+  }
+
+  private renderQuestLogPanel(state: GameState, dataRegistry: DataRegistry): void {
+    const quests = dataRegistry.getQuests();
+    const selectedQuest = quests[this.clampSelectedQuestIndex(quests)] ?? null;
+    const selectedProgress = selectedQuest
+      ? state.quests.activeQuests.find((entry) => entry.questId === selectedQuest.id) ?? null
+      : null;
+    const selectedStatus = selectedQuest ? getQuestStatus(state, selectedQuest) : "";
+
+    this.addPanelRectangle(64, 54, 672, 500, panelFill, 0.96)
+      .setOrigin(0)
+      .setStrokeStyle(2, panelStroke, 0.9);
+    this.addPanelText(92, 78, "Quest Log", 23, "#f8fafc");
+    this.addPanelText(92, 112, `Active ${state.quests.activeQuestIds.length}   Completed ${state.quests.completedQuestIds.length}`, 14, "#fde68a");
+    this.addPanelText(92, 146, "Campaign", 14, "#94a3b8");
+
+    quests.slice(0, 10).forEach((quest, index) => {
+      const y = 174 + index * 28;
+      const status = getQuestStatus(state, quest);
+      const row = this.addPanelRectangle(92, y - 6, 360, 26, index === this.selectedQuestIndex ? 0x293548 : 0x18222c, 0.94)
+        .setOrigin(0)
+        .setInteractive({ useHandCursor: true });
+      row.on("pointerdown", () => {
+        this.selectedQuestIndex = index;
+        this.renderPanel();
+      });
+      this.addPanelText(104, y, this.truncateText(quest.name, 28), 13, "#f8fafc");
+      this.addPanelText(344, y, quest.type, 12, "#93c5fd");
+      this.addPanelText(398, y, status, 12, this.getQuestStatusColor(status));
+    });
+
+    this.addPanelRectangle(482, 146, 220, 286, 0x17212b, 0.95)
+      .setOrigin(0)
+      .setStrokeStyle(1, 0x334155, 0.9);
+
+    if (selectedQuest) {
+      const markers = selectedQuest.mapMarkers.map((marker) => `${marker.label || marker.mapId}`).join(", ");
+      const rewardItems = selectedQuest.rewards.items
+        .map((item) => `${dataRegistry.getItem(item.itemId).name} x${item.quantity}`)
+        .join(", ");
+      this.addPanelText(502, 168, this.truncateText(selectedQuest.name, 22), 16, "#f8fafc");
+      this.addPanelText(502, 198, `Status ${selectedStatus}`, 13, this.getQuestStatusColor(selectedStatus));
+      this.addPanelText(502, 224, this.wrapText(selectedQuest.description, 25), 12, "#cbd5e1");
+      this.addPanelText(502, 292, this.wrapText(selectedQuest.objectives.map((objective) => {
+        const progress = selectedProgress?.objectiveProgress[objective.id] ?? 0;
+        return `${objective.description} ${progress}/${objective.targetCount}`;
+      }).join(" | "), 24), 12, "#f8fafc");
+      this.addPanelText(502, 358, this.wrapText(`Hints ${markers || selectedQuest.mapMarkers.map((marker) => marker.mapId).join(", ") || "None"}`, 24), 12, "#93c5fd");
+      this.addPanelText(502, 392, this.wrapText(`Rewards XP ${selectedQuest.rewards.xp} Gold ${selectedQuest.rewards.gold} ${rewardItems}`, 24), 12, "#fde68a");
+    } else {
+      this.addPanelText(502, 184, "No quests", 15, "#94a3b8");
+    }
+
+    this.addPanelButton(482, 450, 92, 34, "Accept", () => this.acceptSelectedQuest());
+    this.addPanelButton(584, 450, 92, 34, "Complete", () => this.completeSelectedQuest());
+    this.addPanelButton(606, 496, 92, 30, "Close", () => this.closePanel());
+    this.syncQuestDataset(state, dataRegistry, selectedQuest);
   }
 
   private renderHuntingBoardPanel(state: GameState, dataRegistry: DataRegistry): void {
@@ -2831,6 +2924,32 @@ export class UIScene extends Phaser.Scene {
     this.refreshOpenPanel();
   }
 
+  private acceptSelectedQuest(): void {
+    if (!this.state || !this.dataRegistry) {
+      return;
+    }
+
+    const quest = this.dataRegistry.getQuests()[this.selectedQuestIndex];
+    const accepted = quest ? acceptQuest(this.state, quest) : null;
+
+    this.game.canvas.dataset.lastQuestAction = accepted && quest ? `accepted:${quest.id}` : "accept-failed";
+    this.syncQuestDataset(this.state, this.dataRegistry, quest);
+    this.refreshOpenPanel();
+  }
+
+  private completeSelectedQuest(): void {
+    if (!this.state || !this.dataRegistry) {
+      return;
+    }
+
+    const quest = this.dataRegistry.getQuests()[this.selectedQuestIndex];
+    const completed = quest ? completeQuest(this.state, this.dataRegistry, quest.id) : false;
+
+    this.game.canvas.dataset.lastQuestAction = completed && quest ? `completed:${quest.id}` : "complete-failed";
+    this.syncQuestDataset(this.state, this.dataRegistry, quest);
+    this.refreshOpenPanel();
+  }
+
   private restRefreshHuntingBoard(): void {
     if (!this.state || !this.dataRegistry) {
       return;
@@ -2874,6 +2993,33 @@ export class UIScene extends Phaser.Scene {
       : "";
     this.game.canvas.dataset.selectedHuntingContractReward = selectedContract
       ? `xp:${selectedContract.rewardXp}|gold:${selectedContract.rewardGold}|items:${selectedContract.rewardItems.map((entry) => `${entry.itemId}:${entry.quantity}`).join(",")}`
+      : "";
+  }
+
+  private syncQuestDataset(
+    state: GameState,
+    dataRegistry: DataRegistry,
+    selectedQuest = dataRegistry.getQuests()[this.clampSelectedQuestIndex(dataRegistry.getQuests())] ?? null,
+  ): void {
+    const quests = dataRegistry.getQuests();
+    const selectedProgress = selectedQuest
+      ? state.quests.activeQuests.find((entry) => entry.questId === selectedQuest.id) ?? null
+      : null;
+
+    this.game.canvas.dataset.questLogPanel = this.activePanel === "questLog" ? "visible" : "hidden";
+    this.game.canvas.dataset.questCount = String(quests.length);
+    this.game.canvas.dataset.questLogSummary = getQuestLogSummary(state, quests);
+    this.game.canvas.dataset.activeQuests = state.quests.activeQuestIds.join("|");
+    this.game.canvas.dataset.completedQuests = state.quests.completedQuestIds.join("|");
+    this.game.canvas.dataset.questLogButtons = "Accept|Complete|Close";
+    this.game.canvas.dataset.selectedQuest = selectedQuest?.id ?? "";
+    this.game.canvas.dataset.selectedQuestName = selectedQuest?.name ?? "";
+    this.game.canvas.dataset.selectedQuestStatus = selectedQuest ? getQuestStatus(state, selectedQuest) : "";
+    this.game.canvas.dataset.selectedQuestObjectives = selectedQuest
+      ? getQuestObjectiveProgress(selectedQuest, selectedProgress)
+      : "";
+    this.game.canvas.dataset.selectedQuestHints = selectedQuest
+      ? selectedQuest.objectives.map((objective) => objective.regionHint || objective.mapId).filter((hint) => hint.length > 0).join("|")
       : "";
   }
 
@@ -3173,6 +3319,16 @@ export class UIScene extends Phaser.Scene {
     return this.selectedHuntingContractIndex;
   }
 
+  private clampSelectedQuestIndex(quests: QuestDefinition[]): number {
+    if (quests.length === 0) {
+      this.selectedQuestIndex = 0;
+      return 0;
+    }
+
+    this.selectedQuestIndex = Phaser.Math.Clamp(this.selectedQuestIndex, 0, quests.length - 1);
+    return this.selectedQuestIndex;
+  }
+
   private getSelectedHuntingContract(
     state: GameState,
     dataRegistry: DataRegistry,
@@ -3214,6 +3370,26 @@ export class UIScene extends Phaser.Scene {
     }
 
     return "#fde68a";
+  }
+
+  private getQuestStatusColor(status: string): string {
+    if (status === "completed") {
+      return "#bbf7d0";
+    }
+
+    if (status === "ready") {
+      return "#fde68a";
+    }
+
+    if (status === "active") {
+      return "#93c5fd";
+    }
+
+    if (status === "locked") {
+      return "#94a3b8";
+    }
+
+    return "#f8fafc";
   }
 
   private isSkillUnlocked(state: GameState, skill: SkillDefinition): boolean {

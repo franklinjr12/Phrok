@@ -166,6 +166,10 @@ export class DataRegistry {
     return this.getById("quests", id);
   }
 
+  getQuests(): QuestDefinition[] {
+    return Array.from(this.collections.quests.values());
+  }
+
   getStatusEffect(id: string): StatusEffectDefinition {
     return this.getById("statusEffects", id);
   }
@@ -992,13 +996,93 @@ function normalizeSupportActionTrigger(value: string): SupportDefinition["action
 
 function validateQuest(source: Record<string, unknown>, fileName: string): QuestDefinition {
   const id = readId(source, fileName);
+  const type = optionalString(source, "type", "side");
+  const rewardItemIds = optionalStringArray(source, "rewardItemIds");
+  const rawRewards = isRecord(source.rewards) ? source.rewards : {};
 
   return {
     id,
     name: requireString(source, "name", fileName, id),
+    type: normalizeQuestType(type),
     description: optionalString(source, "description", ""),
-    rewardItemIds: optionalStringArray(source, "rewardItemIds"),
+    objectives: validateQuestObjectives(source.objectives, fileName, id),
+    rewards: {
+      xp: Math.max(0, optionalNumber(rawRewards, "xp", 0)),
+      gold: Math.max(0, optionalNumber(rawRewards, "gold", 0)),
+      items: validateQuestRewardItems(rawRewards.items, rewardItemIds),
+      unlockFlags: optionalStringArray(rawRewards, "unlockFlags"),
+    },
+    requiredLevel: Math.max(1, optionalNumber(source, "requiredLevel", 1)),
+    requiredFlags: optionalStringArray(source, "requiredFlags"),
+    unlockFlags: optionalStringArray(source, "unlockFlags"),
+    npcStart: optionalString(source, "npcStart", ""),
+    npcTurnIn: optionalString(source, "npcTurnIn", ""),
+    mapMarkers: validateQuestMapMarkers(source.mapMarkers, fileName, id),
+    rewardItemIds,
   };
+}
+
+function normalizeQuestType(value: string): QuestDefinition["type"] {
+  return value === "main"
+    || value === "tutorial"
+    || value === "service"
+    || value === "endgame"
+    ? value
+    : "side";
+}
+
+function normalizeQuestObjectiveType(value: string): QuestDefinition["objectives"][number]["type"] {
+  return value === "killMonster"
+    || value === "collectItem"
+    || value === "talkToNpc"
+    || value === "reachLevel"
+    || value === "completeQuest"
+    ? value
+    : "visitMap";
+}
+
+function validateQuestObjectives(
+  rawObjectives: unknown,
+  fileName: string,
+  id: string,
+): QuestDefinition["objectives"] {
+  return Array.isArray(rawObjectives)
+    ? rawObjectives.filter(isRecord).map((objective, index) => ({
+      id: optionalString(objective, "id", `objective-${index + 1}`),
+      type: normalizeQuestObjectiveType(optionalString(objective, "type", "visitMap")),
+      description: optionalString(objective, "description", ""),
+      targetId: requireString(objective, "targetId", fileName, id),
+      targetCount: Math.max(1, optionalNumber(objective, "targetCount", 1)),
+      regionHint: optionalString(objective, "regionHint", ""),
+      mapId: optionalString(objective, "mapId", ""),
+    }))
+    : [];
+}
+
+function validateQuestRewardItems(rawItems: unknown, fallbackItemIds: string[]): QuestDefinition["rewards"]["items"] {
+  if (Array.isArray(rawItems)) {
+    return rawItems.filter(isRecord).map((item) => ({
+      itemId: optionalString(item, "itemId", ""),
+      quantity: Math.max(1, optionalNumber(item, "quantity", 1)),
+    })).filter((item) => item.itemId.length > 0);
+  }
+
+  return fallbackItemIds.map((itemId) => ({ itemId, quantity: 1 }));
+}
+
+function validateQuestMapMarkers(
+  rawMarkers: unknown,
+  fileName: string,
+  id: string,
+): QuestDefinition["mapMarkers"] {
+  return Array.isArray(rawMarkers)
+    ? rawMarkers.filter(isRecord).map((marker) => ({
+      mapId: requireString(marker, "mapId", fileName, id),
+      label: optionalString(marker, "label", ""),
+      x: optionalNumber(marker, "x", 0),
+      y: optionalNumber(marker, "y", 0),
+    }))
+    : [];
 }
 
 function validateStatusEffect(source: Record<string, unknown>, fileName: string): StatusEffectDefinition {

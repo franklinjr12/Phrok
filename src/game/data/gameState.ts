@@ -3,6 +3,7 @@ import type { ClassDefinition } from "../types/dataDefinitions";
 import { createEmptyEquipment } from "../systems/equipment";
 import { createEmptyStorageState } from "../systems/storage";
 import { createInitialHuntingBoardState } from "../systems/huntingBoard";
+import { createInitialQuestState } from "../systems/quests";
 import { createInitialHotbar, createInitialSkillState } from "../systems/skills";
 import { calculateDerivedStats, createClassBaseStats, createEmptyBaseStats, syncCharacterVitalsToDerivedStats } from "../systems/stats";
 
@@ -73,10 +74,7 @@ export function createNewGameState(): GameState {
       cooldowns: {},
       autoPickupFilter: "none",
     },
-    quests: {
-      activeQuestIds: [],
-      completedQuestIds: [],
-    },
+    quests: createInitialQuestState(),
     bestiary: {
       discoveredEnemyIds: [],
       defeatedEnemyIds: [],

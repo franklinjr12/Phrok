@@ -1,4 +1,4 @@
-import type { ActiveStatusEffect, BaseStatKey, DerivedStats, HotbarSlotState, HuntingBoardState, InventoryState, StorageState } from "../types/gameState";
+import type { ActiveStatusEffect, BaseStatKey, DerivedStats, HotbarSlotState, HuntingBoardState, InventoryState, QuestState, StorageState } from "../types/gameState";
 import type { ConsumableUseResult } from "./consumables";
 
 export interface GameEventMap {
@@ -48,6 +48,7 @@ export interface GameEventMap {
   recipeUnlocked: { recipeId: string; recipeName: string };
   craftingChanged: { unlockedRecipeIds: string[] };
   huntingBoardChanged: { huntingBoard: HuntingBoardState };
+  questChanged: { quests: QuestState; questId: string; reason: "accepted" | "progress" | "completed" };
   refinementOpened: { npcId: string };
   refinementAttempted: { itemId: string; success: boolean; previousLevel: number; nextLevel: number; consumedGold: number };
   shopOpened: { shopId: string; npcId: string };

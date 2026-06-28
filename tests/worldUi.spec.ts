@@ -154,6 +154,30 @@ test("hunting board lists regional contracts and accepts one active contract", a
   await expect(canvas).toHaveAttribute("data-ui-panel", "closed");
 });
 
+test("quest log opens with L and tracks campaign quest state", async ({ page }) => {
+  await startApp(page);
+
+  const canvas = await confirmDefaultCharacter(page);
+
+  await page.keyboard.press("KeyL");
+  await expect(canvas).toHaveAttribute("data-ui-panel", "questLog");
+  await expect(canvas).toHaveAttribute("data-quest-log-panel", "visible");
+  await expect(canvas).toHaveAttribute("data-quest-count", "5");
+  await expect(canvas).toHaveAttribute("data-selected-quest", "act1-crownfield-first-steps");
+  await expect(canvas).toHaveAttribute("data-selected-quest-status", "available");
+  await expect(canvas).toHaveAttribute("data-selected-quest-objectives", /enter-meadows:0\/1/);
+  await expect(canvas).toHaveAttribute("data-selected-quest-hints", /Crownfield Meadows/);
+  await expect(canvas).toHaveAttribute("data-quest-log-buttons", "Accept|Complete|Close");
+
+  await canvas.click({ position: { x: 526, y: 466 } });
+  await expect(canvas).toHaveAttribute("data-last-quest-action", "accepted:act1-crownfield-first-steps");
+  await expect(canvas).toHaveAttribute("data-active-quests", "act1-crownfield-first-steps");
+  await expect(canvas).toHaveAttribute("data-selected-quest-status", "active");
+
+  await canvas.click({ position: { x: 626, y: 466 } });
+  await expect(canvas).toHaveAttribute("data-last-quest-action", "complete-failed");
+});
+
 test("crafting screen lists recipes, shows missing materials, and blocks unavailable crafts", async ({ page }) => {
   await startApp(page);
 

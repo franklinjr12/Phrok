@@ -161,6 +161,15 @@ export type EquipmentData = Record<EquipmentSlot, string | null>;
 export interface QuestState {
   activeQuestIds: string[];
   completedQuestIds: string[];
+  activeQuests: QuestProgressState[];
+  completedAt: Record<string, string>;
+}
+
+export interface QuestProgressState {
+  questId: string;
+  objectiveProgress: Record<string, number>;
+  acceptedAt: string;
+  readyToComplete: boolean;
 }
 
 export interface BestiaryMonsterState {

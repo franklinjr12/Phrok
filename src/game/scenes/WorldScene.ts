@@ -20,6 +20,7 @@ import {
   refreshHuntingBoard,
   unlockBossContractForMonster,
 } from "../systems/huntingBoard";
+import { getQuestLogSummary, updateQuestObjectives } from "../systems/quests";
 import { autosaveSlot, writeAutosave, writeSaveSlot } from "../systems/autosave";
 import { recordMonsterKill } from "../systems/bestiary";
 import { getAdvancedClassOptionsForBase, isAdvancedClassServiceAvailable } from "../systems/advancedClasses";
@@ -360,6 +361,7 @@ export class WorldScene extends Phaser.Scene {
     this.game.canvas.dataset.lastBestiaryUpdate = "";
     this.game.canvas.dataset.lastBestiaryMilestone = "";
     this.game.canvas.dataset.huntingBoardSummary = getHuntingBoardSummary(state, dataRegistry, region.id);
+    this.game.canvas.dataset.questLogSummary = getQuestLogSummary(state, dataRegistry.getQuests());
     this.game.canvas.dataset.huntingBoardRefreshCount = String(state.huntingBoard.refreshCount);
     this.game.canvas.dataset.huntingBoardLastRefresh = state.huntingBoard.lastRefreshReason;
     this.game.canvas.dataset.lastHuntingBoardProgress = "";
@@ -380,6 +382,7 @@ export class WorldScene extends Phaser.Scene {
 
     this.scene.launch(SceneKeys.UI);
     eventBus.emit("mapChanged", { mapId: state.currentMapId, musicKey: map.musicKey });
+    this.recordQuestEvent("visitMap", state.currentMapId);
   }
 
   update(_time: number, delta: number): void {
@@ -588,6 +591,8 @@ export class WorldScene extends Phaser.Scene {
     if (!dataRegistry || !npc.dialogueId) {
       return;
     }
+
+    this.recordQuestEvent("talkToNpc", npc.id);
 
     const shop = dataRegistry.getShopByNpcId(npc.id);
     if (shop && (npc.serviceType === "merchant" || npc.serviceType === "appraiser")) {
@@ -1143,8 +1148,10 @@ export class WorldScene extends Phaser.Scene {
 
     if (xpResult.levelsGained.length > 0) {
       this.game.canvas.dataset.lastLevelUp = String(xpResult.levelsGained.at(-1));
+      this.recordQuestEvent("reachLevel", String(state.playerProfile.level), state.playerProfile.level);
     }
 
+    this.recordQuestEvent("killMonster", enemy.id);
     eventBus.emit("enemyKilled", { enemyId: enemy.id });
     const huntingProgress = recordHuntingBoardKill(state, dataRegistry, enemy.id);
     this.game.canvas.dataset.lastHuntingBoardProgress = huntingProgress.join("|");
@@ -1184,6 +1191,15 @@ export class WorldScene extends Phaser.Scene {
     this.game.canvas.dataset.huntingBoardSummary = getHuntingBoardSummary(this.state, this.dataRegistry, map.regionId);
     this.game.canvas.dataset.huntingBoardRefreshCount = String(this.state.huntingBoard.refreshCount);
     this.game.canvas.dataset.huntingBoardLastRefresh = this.state.huntingBoard.lastRefreshReason;
+  }
+
+  private recordQuestEvent(type: Parameters<typeof updateQuestObjectives>[2]["type"], targetId: string, amount?: number): void {
+    if (!this.state || !this.dataRegistry) {
+      return;
+    }
+
+    const progress = updateQuestObjectives(this.state, this.dataRegistry, { type, targetId, amount } as Parameters<typeof updateQuestObjectives>[2]);
+    this.game.canvas.dataset.lastQuestProgress = progress.join("|");
   }
 
   private getBestiaryKillDataset(): string {
@@ -1262,6 +1278,7 @@ export class WorldScene extends Phaser.Scene {
       this.state.playerProfile.gold = this.state.inventory.gold;
     } else {
       addInventoryItem(this.state.inventory, this.dataRegistry.getItem(loot.drop.itemId), loot.drop.quantity);
+      this.recordQuestEvent("collectItem", loot.drop.itemId, loot.drop.quantity);
     }
 
     loot.marker.destroy();
@@ -1296,6 +1313,7 @@ export class WorldScene extends Phaser.Scene {
       this.state.playerProfile.gold = this.state.inventory.gold;
     } else {
       addInventoryItem(this.state.inventory, this.dataRegistry.getItem(loot.drop.itemId), loot.drop.quantity);
+      this.recordQuestEvent("collectItem", loot.drop.itemId, loot.drop.quantity);
     }
 
     loot.marker.destroy();

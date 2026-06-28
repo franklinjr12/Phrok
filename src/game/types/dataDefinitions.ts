@@ -337,8 +337,54 @@ export interface SupportActionDefinition {
 export interface QuestDefinition {
   id: string;
   name: string;
+  type: "main" | "side" | "tutorial" | "service" | "endgame";
   description: string;
+  objectives: QuestObjectiveDefinition[];
+  rewards: QuestRewardDefinition;
+  requiredLevel: number;
+  requiredFlags: string[];
+  unlockFlags: string[];
+  npcStart: string;
+  npcTurnIn: string;
+  mapMarkers: QuestMapMarkerDefinition[];
   rewardItemIds: string[];
+}
+
+export type QuestObjectiveType =
+  | "visitMap"
+  | "killMonster"
+  | "collectItem"
+  | "talkToNpc"
+  | "reachLevel"
+  | "completeQuest";
+
+export interface QuestObjectiveDefinition {
+  id: string;
+  type: QuestObjectiveType;
+  description: string;
+  targetId: string;
+  targetCount: number;
+  regionHint: string;
+  mapId: string;
+}
+
+export interface QuestRewardItemDefinition {
+  itemId: string;
+  quantity: number;
+}
+
+export interface QuestRewardDefinition {
+  xp: number;
+  gold: number;
+  items: QuestRewardItemDefinition[];
+  unlockFlags: string[];
+}
+
+export interface QuestMapMarkerDefinition {
+  mapId: string;
+  label: string;
+  x: number;
+  y: number;
 }
 
 export interface StatusEffectDefinition {
