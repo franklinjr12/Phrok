@@ -22,6 +22,7 @@ import {
 } from "../systems/huntingBoard";
 import { getQuestLogSummary, updateQuestObjectives } from "../systems/quests";
 import { autosaveSlot, writeAutosave, writeSaveSlot } from "../systems/autosave";
+import { audioManager } from "../systems/audioManager";
 import { recordMonsterKill } from "../systems/bestiary";
 import {
   beginBossArenaEncounter,
@@ -281,9 +282,16 @@ export class WorldScene extends Phaser.Scene {
     this.unsubscribeHotbarActionRequested = eventBus.on("hotbarActionRequested", ({ slot }) => {
       this.useHotbarSlot(slot);
     });
+    audioManager.initialize(state, this.game.canvas);
     this.input.keyboard?.on("keydown-F9", this.toggleAssistDebugOverlay, this);
     this.input.keyboard?.on("keydown-V", this.handleChallengeDungeonStart, this);
     this.input.keyboard?.on("keydown-T", this.handleClassTrialAction, this);
+    this.input.keyboard?.on("keydown-OPEN_BRACKET", this.decreaseMusicVolume, this);
+    this.input.keyboard?.on("keydown-CLOSED_BRACKET", this.increaseMusicVolume, this);
+    this.input.keyboard?.on("keydown-MINUS", this.decreaseSfxVolume, this);
+    this.input.keyboard?.on("keydown-PLUS", this.increaseSfxVolume, this);
+    this.input.keyboard?.on("keydown-N", this.toggleMusicMute, this);
+    this.input.keyboard?.on("keydown-J", this.toggleSfxMute, this);
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
       this.unsubscribeDialogueClosed?.();
       this.unsubscribeEquipmentChanged?.();
@@ -293,6 +301,12 @@ export class WorldScene extends Phaser.Scene {
       this.input.keyboard?.off("keydown-F9", this.toggleAssistDebugOverlay, this);
       this.input.keyboard?.off("keydown-V", this.handleChallengeDungeonStart, this);
       this.input.keyboard?.off("keydown-T", this.handleClassTrialAction, this);
+      this.input.keyboard?.off("keydown-OPEN_BRACKET", this.decreaseMusicVolume, this);
+      this.input.keyboard?.off("keydown-CLOSED_BRACKET", this.increaseMusicVolume, this);
+      this.input.keyboard?.off("keydown-MINUS", this.decreaseSfxVolume, this);
+      this.input.keyboard?.off("keydown-PLUS", this.increaseSfxVolume, this);
+      this.input.keyboard?.off("keydown-N", this.toggleMusicMute, this);
+      this.input.keyboard?.off("keydown-J", this.toggleSfxMute, this);
       this.input.off("pointerdown", this.handlePointerDown, this);
     });
 
@@ -760,6 +774,7 @@ export class WorldScene extends Phaser.Scene {
       return;
     }
 
+    audioManager.playSfx("attack");
     const result = resolveAttack({
       attacker: this.playerCombatStats,
       defender: this.createEnemyCombatStats(enemy),
@@ -820,6 +835,9 @@ export class WorldScene extends Phaser.Scene {
     this.game.canvas.dataset.lastSkillUse = result.success
       ? `${slot}:${result.skillId}:success:${result.damage}:${result.affectedTargetIds.join(",")}`
       : `${slot}:${result.skillId}:failed:${result.reason}`;
+    if (result.success) {
+      eventBus.emit("skillUsed", { skillId: result.skillId, actorId: this.state.character.id });
+    }
     this.game.canvas.dataset.skillCooldowns = Object.entries(this.state.character.skills.cooldowns)
       .map(([skillId, readyAt]) => `${skillId}:${readyAt}`)
       .join("|");
@@ -852,6 +870,30 @@ export class WorldScene extends Phaser.Scene {
     }
 
     this.playerCombatStats = this.createPlayerCombatStats(this.state, this.dataRegistry);
+  }
+
+  private decreaseMusicVolume(): void {
+    audioManager.adjustMusicVolume(-0.1);
+  }
+
+  private increaseMusicVolume(): void {
+    audioManager.adjustMusicVolume(0.1);
+  }
+
+  private decreaseSfxVolume(): void {
+    audioManager.adjustSfxVolume(-0.1);
+  }
+
+  private increaseSfxVolume(): void {
+    audioManager.adjustSfxVolume(0.1);
+  }
+
+  private toggleMusicMute(): void {
+    audioManager.toggleMusicMute();
+  }
+
+  private toggleSfxMute(): void {
+    audioManager.toggleSfxMute();
   }
 
   private createSkillTarget(): SkillExecutionTarget | undefined {

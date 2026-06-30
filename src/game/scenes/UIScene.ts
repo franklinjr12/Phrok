@@ -2132,6 +2132,13 @@ export class UIScene extends Phaser.Scene {
     this.game.canvas.dataset.lastRefinementAction = result.success
       ? `success:${result.itemId}:${result.previousLevel}->${result.nextLevel}:${result.consumedGold}`
       : `failed:${result.reason}:${result.itemId}:${result.previousLevel}->${result.nextLevel}:${result.consumedGold}`;
+    eventBus.emit("refinementAttempted", {
+      itemId: result.itemId,
+      success: result.success,
+      previousLevel: result.previousLevel,
+      nextLevel: result.nextLevel,
+      consumedGold: result.consumedGold,
+    });
     this.syncDerivedStatsDataset(this.state, this.dataRegistry);
     this.refreshOpenPanel();
   }

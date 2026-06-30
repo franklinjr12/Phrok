@@ -97,6 +97,8 @@ export function createNewGameState(): GameState {
     settings: {
       musicVolume: 0.8,
       sfxVolume: 0.8,
+      musicMuted: false,
+      sfxMuted: false,
       textSpeed: 1,
     },
   };

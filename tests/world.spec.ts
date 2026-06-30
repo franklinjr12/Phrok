@@ -72,3 +72,34 @@ test("world portals connect town and field", async ({ page }) => {
   await expect(canvas).toHaveAttribute("data-spawned-monster", "");
   await expect(canvas).toHaveAttribute("data-last-autosave-map", "crownfield-town");
 });
+
+test("audio manager plays map music, action SFX, and updates volume settings", async ({ page }) => {
+  await startApp(page);
+
+  const canvas = await enterMeadows(page);
+
+  await expect(canvas).toHaveAttribute("data-audio-music-key", "music-crownfield-meadows");
+  await expect(canvas).toHaveAttribute("data-audio-music-volume", "0.8");
+  await expect(canvas).toHaveAttribute("data-audio-sfx-volume", "0.8");
+  await expect(canvas).toHaveAttribute("data-audio-music-muted", "false");
+  await expect(canvas).toHaveAttribute("data-audio-sfx-muted", "false");
+  await expect(canvas).toHaveAttribute("data-audio-placeholder-sfx", /ui-click.*attack.*hit.*skill-cast.*rare-drop/);
+  await expect(canvas).toHaveAttribute("data-audio-missing-key", "");
+
+  await expect.poll(async () => {
+    const enemyPosition = (await canvas.getAttribute("data-enemy-position")) ?? "528,300";
+    const [enemyX, enemyY] = enemyPosition.split(",").map((value) => Number(value));
+
+    await canvas.click({ position: { x: enemyX, y: enemyY } });
+    return await canvas.getAttribute("data-last-audio-sfx") ?? "";
+  }, { timeout: 6000 }).toMatch(/hit|attack/);
+
+  await page.keyboard.press("BracketLeft");
+  await expect(canvas).toHaveAttribute("data-audio-music-volume", "0.7");
+  await page.keyboard.press("Minus");
+  await expect(canvas).toHaveAttribute("data-audio-sfx-volume", "0.7");
+  await page.keyboard.press("KeyN");
+  await expect(canvas).toHaveAttribute("data-audio-music-muted", "true");
+  await page.keyboard.press("KeyJ");
+  await expect(canvas).toHaveAttribute("data-audio-sfx-muted", "true");
+});

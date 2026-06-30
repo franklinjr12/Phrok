@@ -604,6 +604,8 @@ function normalizeSettings(rawSettings: unknown, fallback: GameState["settings"]
   return {
     musicVolume: numberValue(source.musicVolume, fallback.musicVolume),
     sfxVolume: numberValue(source.sfxVolume, fallback.sfxVolume),
+    musicMuted: typeof source.musicMuted === "boolean" ? source.musicMuted : fallback.musicMuted,
+    sfxMuted: typeof source.sfxMuted === "boolean" ? source.sfxMuted : fallback.sfxMuted,
     textSpeed: numberValue(source.textSpeed, fallback.textSpeed),
   };
 }

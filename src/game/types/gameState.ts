@@ -243,6 +243,8 @@ export interface ChallengeDungeonRunState {
 export interface SettingsState {
   musicVolume: number;
   sfxVolume: number;
+  musicMuted: boolean;
+  sfxMuted: boolean;
   textSpeed: number;
 }
 

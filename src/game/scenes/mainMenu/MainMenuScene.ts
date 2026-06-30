@@ -2,6 +2,7 @@ import Phaser from "phaser";
 import { RegistryKeys } from "../../constants/registryKeys";
 import { SceneKeys } from "../../constants/sceneKeys";
 import type { DataRegistry } from "../../data/dataRegistry";
+import { audioManager } from "../../systems/audioManager";
 import {
   readSaveSlots,
   saveDataToGameState,
@@ -41,6 +42,7 @@ export class MainMenuScene extends Phaser.Scene {
     const canvas = this.game.canvas;
     this.saveSlots = readSaveSlots();
     this.dataRegistry = this.registry.get(RegistryKeys.DataRegistry) as DataRegistry;
+    audioManager.initialize(this.registry.get(RegistryKeys.GameState), canvas);
 
     this.cameras.main.setBackgroundColor("#101318");
 
@@ -73,6 +75,7 @@ export class MainMenuScene extends Phaser.Scene {
     });
 
     button.on("pointerdown", () => {
+      audioManager.playSfx("ui-click");
       this.game.canvas.dataset.pressedButton = label;
       button.setAlpha(0.82);
     });

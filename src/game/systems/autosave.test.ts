@@ -123,6 +123,7 @@ describe("autosave", () => {
       },
       settings: {
         musicVolume: 0.8,
+        musicMuted: false,
       },
       gameState: {
         currentMapId: "crownfield-meadows",
@@ -161,6 +162,28 @@ describe("autosave", () => {
           autoPickupFilter: "none",
         },
       },
+    });
+  });
+
+  it("normalizes audio mute settings when loading saves", () => {
+    const saveData = deserializeSaveData(JSON.stringify({
+      version: 1,
+      savedAt: "2026-06-20T00:00:00.000Z",
+      settings: {
+        musicVolume: 0.4,
+        sfxVolume: 0.2,
+        musicMuted: true,
+        sfxMuted: true,
+        textSpeed: 1,
+      },
+      gameState: createNewGameState(),
+    }));
+
+    expect(saveData.gameState.settings).toMatchObject({
+      musicVolume: 0.4,
+      sfxVolume: 0.2,
+      musicMuted: true,
+      sfxMuted: true,
     });
   });
 
