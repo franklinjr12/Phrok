@@ -84,7 +84,7 @@
     "musicKey": "music-crownfield-field",
     "recommendedElements": ["neutral", "fire"],
     "dropHighlights": ["road-token", "practice-daggers", "soft-hide"],
-    "tilemapKey": "map-crownfield-meadows"
+    "tilemapKey": "map-old-road-west"
   },
   {
     "id": "training-sewers-entrance",
