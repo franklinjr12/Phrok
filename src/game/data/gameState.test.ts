@@ -38,6 +38,12 @@ describe("createNewGameState", () => {
     expect(state.equipment.weapon).toBe("training-sword");
     expect(state.quests.activeQuestIds).toEqual([]);
     expect(state.bestiary.discoveredEnemyIds).toEqual([]);
+    expect(state.endgameTower).toMatchObject({
+      unlocked: false,
+      currentFloor: 1,
+      highestFloorCompleted: 0,
+      completedMilestoneFloors: [],
+    });
     expect(state.worldFlags).toEqual({});
     expect(state.settings.musicVolume).toBe(0.8);
   });

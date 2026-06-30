@@ -155,6 +155,7 @@ function normalizeSaveData(rawSave: unknown): SaveData {
       fallbackState.huntingBoard,
     ),
     bossEncounters: normalizeBossEncounterState(rawGameState.bossEncounters, fallbackState.bossEncounters),
+    endgameTower: normalizeEndgameTowerState(rawGameState.endgameTower, fallbackState.endgameTower),
     worldFlags: normalizeBooleanRecord(rawSave.worldFlags, fallbackState.worldFlags),
     settings: normalizeSettings(isRecord(rawSave.settings) ? rawSave.settings : rawGameState.settings, fallbackState.settings),
   };
@@ -518,6 +519,34 @@ function normalizeBossEncounterState(
     summonedMvpIds: stringArray(source.summonedMvpIds, fallback.summonedMvpIds),
     mvpRespawnTimers: normalizeNumberRecord(source.mvpRespawnTimers),
     lastPhaseByBossId: normalizeStringRecord(source.lastPhaseByBossId, fallback.lastPhaseByBossId),
+  };
+}
+
+function normalizeEndgameTowerState(
+  rawEndgameTower: unknown,
+  fallback: GameState["endgameTower"],
+): GameState["endgameTower"] {
+  const source = isRecord(rawEndgameTower) ? rawEndgameTower : {};
+
+  return {
+    unlocked: typeof source.unlocked === "boolean" ? source.unlocked : fallback.unlocked,
+    currentFloor: Math.max(1, Math.min(30, Math.floor(numberValue(source.currentFloor, fallback.currentFloor)))),
+    highestFloorCompleted: Math.max(0, Math.min(30, Math.floor(numberValue(
+      source.highestFloorCompleted,
+      fallback.highestFloorCompleted,
+    )))),
+    completedMilestoneFloors: Array.isArray(source.completedMilestoneFloors)
+      ? source.completedMilestoneFloors
+        .filter((floor): floor is number => typeof floor === "number" && Number.isFinite(floor))
+        .map((floor) => Math.max(5, Math.min(30, Math.floor(floor))))
+        .filter((floor) => floor % 5 === 0)
+        .sort((left, right) => left - right)
+      : fallback.completedMilestoneFloors,
+    repeatClearCountByFloor: normalizePositiveIntegerRecord(
+      source.repeatClearCountByFloor,
+      fallback.repeatClearCountByFloor,
+    ),
+    activeRunId: typeof source.activeRunId === "string" && source.activeRunId.length > 0 ? source.activeRunId : null,
   };
 }
 

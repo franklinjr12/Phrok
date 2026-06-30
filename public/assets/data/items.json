@@ -8703,5 +8703,31 @@
     "allowedClassIds": [],
     "twoHanded": false,
     "statModifiers": {}
+  },
+  {
+    "id": "starfall-raiment-token",
+    "name": "Starfall Raiment Token",
+    "description": "A cosmetic token traded for astral tower outfits and dye trims.",
+    "type": "material",
+    "value": 160,
+    "level": 70,
+    "rarity": "Epic",
+    "icon": "placeholder-material-starfall-raiment-token",
+    "allowedClassIds": [],
+    "twoHanded": false,
+    "statModifiers": {}
+  },
+  {
+    "id": "starfall-skill-augment",
+    "name": "Starfall Skill Augment",
+    "description": "An endgame augment used to unlock advanced skill variants from tower milestones.",
+    "type": "material",
+    "value": 240,
+    "level": 80,
+    "rarity": "Legendary",
+    "icon": "placeholder-material-starfall-skill-augment",
+    "allowedClassIds": [],
+    "twoHanded": false,
+    "statModifiers": {}
   }
 ]

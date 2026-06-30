@@ -213,6 +213,15 @@ export interface BossEncounterState {
   lastPhaseByBossId: Record<string, string>;
 }
 
+export interface EndgameTowerState {
+  unlocked: boolean;
+  currentFloor: number;
+  highestFloorCompleted: number;
+  completedMilestoneFloors: number[];
+  repeatClearCountByFloor: Record<string, number>;
+  activeRunId: string | null;
+}
+
 export interface SettingsState {
   musicVolume: number;
   sfxVolume: number;
@@ -239,6 +248,7 @@ export interface GameState {
   crafting: CraftingState;
   huntingBoard: HuntingBoardState;
   bossEncounters: BossEncounterState;
+  endgameTower: EndgameTowerState;
   worldFlags: Record<string, boolean>;
   settings: SettingsState;
 }
