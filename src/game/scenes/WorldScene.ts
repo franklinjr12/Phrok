@@ -38,6 +38,19 @@ import {
   removeNonPersistentConsumableStatusEffects,
   updateAutoPotion,
 } from "../systems/consumables";
+import {
+  beginChallengeDungeon,
+  challengeDungeonModifiers,
+  classTrials,
+  completeChallengeDungeon,
+  completeClassTrial,
+  formatChallengeDifficultyDisplay,
+  formatChallengeModifierDisplay,
+  getChallengeDungeonModifier,
+  getClassTrial,
+  isChallengeDungeonAvailable,
+  startClassTrial,
+} from "../systems/challengeDungeons";
 import { getEquipmentStats } from "../systems/equipment";
 import {
   decideEnemyAiIntent,
@@ -64,7 +77,7 @@ import {
 import { calculateDerivedStats, getSpentStatPoints, resetAllocatedStats } from "../systems/stats";
 import type { DataRegistry } from "../data/dataRegistry";
 import type { DialogueSceneData } from "./DialogueScene";
-import type { MapDefinition, RegionDefinition } from "../types/dataDefinitions";
+import type { MapDefinition, MonsterDefinition, RegionDefinition } from "../types/dataDefinitions";
 import type { GameState } from "../types/gameState";
 
 const mapKeysById: Record<string, string> = {
@@ -269,6 +282,8 @@ export class WorldScene extends Phaser.Scene {
       this.useHotbarSlot(slot);
     });
     this.input.keyboard?.on("keydown-F9", this.toggleAssistDebugOverlay, this);
+    this.input.keyboard?.on("keydown-V", this.handleChallengeDungeonStart, this);
+    this.input.keyboard?.on("keydown-T", this.handleClassTrialAction, this);
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
       this.unsubscribeDialogueClosed?.();
       this.unsubscribeEquipmentChanged?.();
@@ -276,6 +291,8 @@ export class WorldScene extends Phaser.Scene {
       this.unsubscribeStatResetRequested?.();
       this.unsubscribeHotbarActionRequested?.();
       this.input.keyboard?.off("keydown-F9", this.toggleAssistDebugOverlay, this);
+      this.input.keyboard?.off("keydown-V", this.handleChallengeDungeonStart, this);
+      this.input.keyboard?.off("keydown-T", this.handleClassTrialAction, this);
       this.input.off("pointerdown", this.handlePointerDown, this);
     });
 
@@ -1200,6 +1217,7 @@ export class WorldScene extends Phaser.Scene {
     if (bossRewards.length > 0) {
       this.game.canvas.dataset.lastMvpReward = `${enemy.id}:${bossRewards.join(",")}`;
     }
+    this.completeActiveChallengeForBoss(enemy.id);
     this.syncBossEncounterDataset();
     const support = state.support.equippedSupportId ? dataRegistry.getSupport(state.support.equippedSupportId) : null;
     grantSupportAffinity(state, support, Math.max(1, Math.ceil(monster.xpReward / 2)));
@@ -2042,6 +2060,101 @@ export class WorldScene extends Phaser.Scene {
     return spawnMonsterIds.length > 0 ? spawnMonsterIds : map.monsterIds;
   }
 
+  private handleChallengeDungeonStart(): void {
+    if (!this.state || !this.dataRegistry) {
+      return;
+    }
+
+    const dungeon = this.dataRegistry.getDungeonByMapId(this.state.currentMapId);
+    const result = dungeon ? beginChallengeDungeon(this.state, dungeon) : null;
+    this.game.canvas.dataset.lastChallengeDungeonStart = result
+      ? `${result.dungeonId}:${result.modifier.id}`
+      : "unavailable";
+
+    if (result) {
+      this.game.canvas.dataset.challengeDungeonActive = `${result.dungeonId}:${result.modifier.id}`;
+      this.game.canvas.dataset.challengeDungeonModifier = result.modifierDisplay;
+      this.game.canvas.dataset.challengeDungeonDifficulty = result.difficultyDisplay;
+      this.game.canvas.dataset.challengeDungeonRewards = result.rewardDisplay;
+    }
+  }
+
+  private handleClassTrialAction(): void {
+    if (!this.state || !this.dataRegistry) {
+      return;
+    }
+
+    if (this.state.challengeDungeons.activeClassTrialId) {
+      const trial = completeClassTrial(this.state, this.dataRegistry);
+      this.game.canvas.dataset.lastClassTrialCompletion = trial ? `${trial.id}:${trial.rewardItemId}` : "";
+      this.syncClassTrialDataset();
+      return;
+    }
+
+    const result = startClassTrial(this.state);
+    this.game.canvas.dataset.lastClassTrialStart = result.success
+      ? `${result.trial.id}:${result.replay ? "replay" : "first"}`
+      : `failed:${result.reason}`;
+    this.syncClassTrialDataset();
+  }
+
+  private completeActiveChallengeForBoss(bossId: string): void {
+    if (!this.state || !this.dataRegistry || !this.state.challengeDungeons.activeRun) {
+      return;
+    }
+
+    const dungeon = this.dataRegistry.getDungeon(this.state.challengeDungeons.activeRun.dungeonId);
+
+    if (dungeon.bossId !== bossId) {
+      return;
+    }
+
+    const result = completeChallengeDungeon(this.state, this.dataRegistry);
+    this.game.canvas.dataset.lastChallengeDungeonCompletion = result
+      ? `${result.dungeonId}:${result.modifierId}:gold:${result.gold}:rewards:${result.rewards.map((reward) => `${reward.itemId}x${reward.quantity}`).join(",")}`
+      : "";
+    this.game.canvas.dataset.challengeDungeonActive = "";
+    this.game.canvas.dataset.challengeDungeonModifier = "";
+    this.game.canvas.dataset.challengeDungeonDifficulty = "";
+    this.game.canvas.dataset.challengeDungeonRewards = "";
+  }
+
+  private getChallengeScaledMonster(monster: MonsterDefinition): MonsterDefinition {
+    const activeRun = this.state?.challengeDungeons.activeRun;
+
+    if (!activeRun) {
+      return monster;
+    }
+
+    return {
+      ...monster,
+      hp: Math.ceil(monster.hp * activeRun.enemyHpMultiplier),
+      attack: Math.ceil(monster.attack * activeRun.enemyDamageMultiplier),
+    };
+  }
+
+  private syncClassTrialDataset(): void {
+    if (!this.state) {
+      return;
+    }
+
+    const activeTrial = this.state.challengeDungeons.activeClassTrialId
+      ? classTrials.find((trial) => trial.id === this.state!.challengeDungeons.activeClassTrialId)
+      : undefined;
+    const availableTrial = this.state.character.advancedClass
+      ? getClassTrial(this.state.character.advancedClass.id)
+      : undefined;
+
+    this.game.canvas.dataset.classTrialOptions = classTrials.map((trial) => trial.advancedClassId).join("|");
+    this.game.canvas.dataset.currentClassTrial = availableTrial?.id ?? "";
+    this.game.canvas.dataset.currentClassTrialLesson = availableTrial?.lesson ?? "";
+    this.game.canvas.dataset.currentClassTrialReward = availableTrial
+      ? `${availableTrial.rewardKind}:${availableTrial.rewardItemId}`
+      : "";
+    this.game.canvas.dataset.activeClassTrial = activeTrial?.id ?? "";
+    this.game.canvas.dataset.completedClassTrials = this.state.challengeDungeons.completedClassTrialIds.join("|");
+  }
+
   private syncMapMetadataDataset(map: MapDefinition, region: RegionDefinition): void {
     this.game.canvas.dataset.currentRegion = region.id;
     this.game.canvas.dataset.currentRegionName = region.name;
@@ -2081,6 +2194,23 @@ export class WorldScene extends Phaser.Scene {
     this.game.canvas.dataset.currentDungeonReplayable = dungeon ? String(dungeon.replayable) : "false";
     this.game.canvas.dataset.currentDungeonShortcut = dungeon?.shortcutUnlockId ?? "";
     this.game.canvas.dataset.currentDungeonBossMechanics = dungeon?.bossMechanics.join("|") ?? "";
+    this.game.canvas.dataset.challengeDungeonAvailable = String(isChallengeDungeonAvailable(this.state!, dungeon));
+    this.game.canvas.dataset.challengeDungeonModifiers = challengeDungeonModifiers
+      .map((modifier) => `${modifier.id}:${modifier.name}:${modifier.rewardMultiplier}`)
+      .join("|");
+    this.game.canvas.dataset.challengeDungeonActive = this.state?.challengeDungeons.activeRun
+      ? `${this.state.challengeDungeons.activeRun.dungeonId}:${this.state.challengeDungeons.activeRun.modifierId}`
+      : "";
+    this.game.canvas.dataset.challengeDungeonModifier = this.state?.challengeDungeons.activeRun
+      ? formatChallengeModifierDisplay(getChallengeDungeonModifier(this.state.challengeDungeons.activeRun.modifierId))
+      : "";
+    this.game.canvas.dataset.challengeDungeonDifficulty = this.state?.challengeDungeons.activeRun
+      ? formatChallengeDifficultyDisplay(getChallengeDungeonModifier(this.state.challengeDungeons.activeRun.modifierId))
+      : "";
+    this.game.canvas.dataset.challengeDungeonRewards = this.state?.challengeDungeons.activeRun
+      ? `x${this.state.challengeDungeons.activeRun.rewardMultiplier.toFixed(2)}`
+      : "";
+    this.syncClassTrialDataset();
   }
 
   private spawnInitialEnemies(collisionLayer: PrototypeTilemapLayer | null): void {
@@ -2104,7 +2234,7 @@ export class WorldScene extends Phaser.Scene {
       return;
     }
 
-    const monster = this.dataRegistry.getMonster(zone.monsterId);
+    const monster = this.getChallengeScaledMonster(this.dataRegistry.getMonster(zone.monsterId));
     const respawnMs = getEffectiveEnemyRespawnMs(zone.respawnMs, monster);
     const spawnPoint = this.getWalkableSpawnPoint(zone);
     const enemy = new EnemyEntity(this, {

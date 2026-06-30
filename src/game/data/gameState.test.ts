@@ -44,6 +44,13 @@ describe("createNewGameState", () => {
       highestFloorCompleted: 0,
       completedMilestoneFloors: [],
     });
+    expect(state.challengeDungeons).toMatchObject({
+      unlocked: false,
+      activeRun: null,
+      completedRunsByDungeonId: {},
+      completedClassTrialIds: [],
+      activeClassTrialId: null,
+    });
     expect(state.worldFlags).toEqual({});
     expect(state.settings.musicVolume).toBe(0.8);
   });

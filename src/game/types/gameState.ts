@@ -222,6 +222,24 @@ export interface EndgameTowerState {
   activeRunId: string | null;
 }
 
+export interface ChallengeDungeonState {
+  unlocked: boolean;
+  activeRun: ChallengeDungeonRunState | null;
+  completedRunsByDungeonId: Record<string, number>;
+  completedRunsByModifierId: Record<string, number>;
+  completedClassTrialIds: string[];
+  activeClassTrialId: string | null;
+}
+
+export interface ChallengeDungeonRunState {
+  dungeonId: string;
+  modifierId: string;
+  startedAt: string;
+  rewardMultiplier: number;
+  enemyHpMultiplier: number;
+  enemyDamageMultiplier: number;
+}
+
 export interface SettingsState {
   musicVolume: number;
   sfxVolume: number;
@@ -249,6 +267,7 @@ export interface GameState {
   huntingBoard: HuntingBoardState;
   bossEncounters: BossEncounterState;
   endgameTower: EndgameTowerState;
+  challengeDungeons: ChallengeDungeonState;
   worldFlags: Record<string, boolean>;
   settings: SettingsState;
 }

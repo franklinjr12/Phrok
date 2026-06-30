@@ -156,6 +156,7 @@ function normalizeSaveData(rawSave: unknown): SaveData {
     ),
     bossEncounters: normalizeBossEncounterState(rawGameState.bossEncounters, fallbackState.bossEncounters),
     endgameTower: normalizeEndgameTowerState(rawGameState.endgameTower, fallbackState.endgameTower),
+    challengeDungeons: normalizeChallengeDungeonState(rawGameState.challengeDungeons, fallbackState.challengeDungeons),
     worldFlags: normalizeBooleanRecord(rawSave.worldFlags, fallbackState.worldFlags),
     settings: normalizeSettings(isRecord(rawSave.settings) ? rawSave.settings : rawGameState.settings, fallbackState.settings),
   };
@@ -547,6 +548,40 @@ function normalizeEndgameTowerState(
       fallback.repeatClearCountByFloor,
     ),
     activeRunId: typeof source.activeRunId === "string" && source.activeRunId.length > 0 ? source.activeRunId : null,
+  };
+}
+
+function normalizeChallengeDungeonState(
+  rawChallengeDungeons: unknown,
+  fallback: GameState["challengeDungeons"],
+): GameState["challengeDungeons"] {
+  const source = isRecord(rawChallengeDungeons) ? rawChallengeDungeons : {};
+  const activeRun = isRecord(source.activeRun) ? source.activeRun : null;
+
+  return {
+    unlocked: typeof source.unlocked === "boolean" ? source.unlocked : fallback.unlocked,
+    activeRun: activeRun
+      ? {
+        dungeonId: stringValue(activeRun.dungeonId, ""),
+        modifierId: stringValue(activeRun.modifierId, ""),
+        startedAt: stringValue(activeRun.startedAt, new Date(0).toISOString()),
+        rewardMultiplier: Math.max(1, numberValue(activeRun.rewardMultiplier, 1)),
+        enemyHpMultiplier: Math.max(1, numberValue(activeRun.enemyHpMultiplier, 1)),
+        enemyDamageMultiplier: Math.max(1, numberValue(activeRun.enemyDamageMultiplier, 1)),
+      }
+      : null,
+    completedRunsByDungeonId: normalizePositiveIntegerRecord(
+      source.completedRunsByDungeonId,
+      fallback.completedRunsByDungeonId,
+    ),
+    completedRunsByModifierId: normalizePositiveIntegerRecord(
+      source.completedRunsByModifierId,
+      fallback.completedRunsByModifierId,
+    ),
+    completedClassTrialIds: stringArray(source.completedClassTrialIds, fallback.completedClassTrialIds),
+    activeClassTrialId: typeof source.activeClassTrialId === "string" && source.activeClassTrialId.length > 0
+      ? source.activeClassTrialId
+      : null,
   };
 }
 

@@ -5,6 +5,7 @@ import { createEmptyStorageState } from "../systems/storage";
 import { createInitialHuntingBoardState } from "../systems/huntingBoard";
 import { createInitialBossEncounterState } from "../systems/bossEncounters";
 import { createInitialEndgameTowerState } from "../systems/endgameTower";
+import { createInitialChallengeDungeonState } from "../systems/challengeDungeons";
 import { createInitialQuestState } from "../systems/quests";
 import { createInitialHotbar, createInitialSkillState } from "../systems/skills";
 import { calculateDerivedStats, createClassBaseStats, createEmptyBaseStats, syncCharacterVitalsToDerivedStats } from "../systems/stats";
@@ -91,6 +92,7 @@ export function createNewGameState(): GameState {
     huntingBoard: createInitialHuntingBoardState(),
     bossEncounters: createInitialBossEncounterState(),
     endgameTower: createInitialEndgameTowerState(),
+    challengeDungeons: createInitialChallengeDungeonState(),
     worldFlags: {},
     settings: {
       musicVolume: 0.8,
