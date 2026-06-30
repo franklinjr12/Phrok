@@ -549,7 +549,49 @@
     "castRange": 250,
     "castCooldownMs": 1900,
     "respawnMs": 95000,
-    "boss": true
+    "boss": true,
+    "bossArena": {
+      "mapId": "green-chapel-ruins",
+      "spawnZoneId": "thorn-priest-altar",
+      "exitPortalId": "chapel-road-return",
+      "locksEncounter": true,
+      "canLeaveAfterVictory": true
+    },
+    "bossPhases": [
+      {
+        "id": "opening",
+        "hpPercent": 100,
+        "behavior": "caster",
+        "dialogueId": "thorn-priest-opening",
+        "vfxKey": "boss-aura",
+        "attackIds": [
+          "root-prison"
+        ]
+      },
+      {
+        "id": "pressure",
+        "hpPercent": 66,
+        "behavior": "caster",
+        "dialogueId": "thorn-priest-pressure",
+        "vfxKey": "phase-surge",
+        "attackIds": [
+          "root-prison",
+          "thorn-sermon"
+        ]
+      },
+      {
+        "id": "enrage",
+        "hpPercent": 33,
+        "behavior": "caster",
+        "dialogueId": "thorn-priest-enrage",
+        "vfxKey": "enrage-flare",
+        "attackIds": [
+          "root-prison",
+          "thorn-sermon",
+          "petal-storm"
+        ]
+      }
+    ]
   },
   {
     "id": "drowned-raider",
@@ -594,7 +636,71 @@
     "attackRange": 88,
     "leashDistance": 460,
     "respawnMs": 100000,
-    "boss": true
+    "boss": true,
+    "bossArena": {
+      "mapId": "tide-cave",
+      "spawnZoneId": "corsair-wreck",
+      "exitPortalId": "sea-cave-return",
+      "locksEncounter": true,
+      "canLeaveAfterVictory": true
+    },
+    "bossPhases": [
+      {
+        "id": "opening",
+        "hpPercent": 100,
+        "behavior": "aggressive",
+        "dialogueId": "sunken-corsair-opening",
+        "vfxKey": "boss-aura",
+        "attackIds": [
+          "anchor-lunge"
+        ]
+      },
+      {
+        "id": "pressure",
+        "hpPercent": 66,
+        "behavior": "aggressive",
+        "dialogueId": "sunken-corsair-pressure",
+        "vfxKey": "phase-surge",
+        "attackIds": [
+          "anchor-lunge",
+          "blackwater-broadside"
+        ]
+      },
+      {
+        "id": "enrage",
+        "hpPercent": 33,
+        "behavior": "aggressive",
+        "dialogueId": "sunken-corsair-enrage",
+        "vfxKey": "enrage-flare",
+        "attackIds": [
+          "anchor-lunge",
+          "blackwater-broadside",
+          "crew-call"
+        ]
+      }
+    ],
+    "mvp": {
+      "regional": true,
+      "respawnActivityMs": 600000,
+      "summon": {
+        "arenaMapId": "tide-cave",
+        "requiredMaterials": [
+          {
+            "itemId": "corsair-coin",
+            "quantity": 5
+          },
+          {
+            "itemId": "abyssal-coral",
+            "quantity": 2
+          }
+        ],
+        "repeatable": true
+      },
+      "specialRewardItemIds": [
+        "corsair-coin",
+        "boss-catalyst"
+      ]
+    }
   },
   {
     "id": "mine-automaton",
@@ -639,7 +745,71 @@
     "attackRange": 90,
     "leashDistance": 480,
     "respawnMs": 105000,
-    "boss": true
+    "boss": true,
+    "bossArena": {
+      "mapId": "ironroot-mine",
+      "spawnZoneId": "brass-burrower-nest",
+      "exitPortalId": "mine-road-return",
+      "locksEncounter": true,
+      "canLeaveAfterVictory": true
+    },
+    "bossPhases": [
+      {
+        "id": "opening",
+        "hpPercent": 100,
+        "behavior": "aggressive",
+        "dialogueId": "brass-burrower-opening",
+        "vfxKey": "boss-aura",
+        "attackIds": [
+          "drill-charge"
+        ]
+      },
+      {
+        "id": "pressure",
+        "hpPercent": 66,
+        "behavior": "aggressive",
+        "dialogueId": "brass-burrower-pressure",
+        "vfxKey": "phase-surge",
+        "attackIds": [
+          "drill-charge",
+          "ore-shrapnel"
+        ]
+      },
+      {
+        "id": "enrage",
+        "hpPercent": 33,
+        "behavior": "aggressive",
+        "dialogueId": "brass-burrower-enrage",
+        "vfxKey": "enrage-flare",
+        "attackIds": [
+          "drill-charge",
+          "ore-shrapnel",
+          "collapse-line"
+        ]
+      }
+    ],
+    "mvp": {
+      "regional": true,
+      "respawnActivityMs": 600000,
+      "summon": {
+        "arenaMapId": "ironroot-mine",
+        "requiredMaterials": [
+          {
+            "itemId": "deep-ore-cluster",
+            "quantity": 5
+          },
+          {
+            "itemId": "refined-nickel",
+            "quantity": 2
+          }
+        ],
+        "repeatable": true
+      },
+      "specialRewardItemIds": [
+        "brass-burrower-plate",
+        "boss-catalyst"
+      ]
+    }
   },
   {
     "id": "tomb-sentinel",
@@ -685,7 +855,71 @@
     "attackRange": 92,
     "leashDistance": 500,
     "respawnMs": 112000,
-    "boss": true
+    "boss": true,
+    "bossArena": {
+      "mapId": "buried-sun-tomb",
+      "spawnZoneId": "dune-tyrant-sanctum",
+      "exitPortalId": "approach-return",
+      "locksEncounter": true,
+      "canLeaveAfterVictory": true
+    },
+    "bossPhases": [
+      {
+        "id": "opening",
+        "hpPercent": 100,
+        "behavior": "aggressive",
+        "dialogueId": "dune-tyrant-opening",
+        "vfxKey": "boss-aura",
+        "attackIds": [
+          "sun-roar"
+        ]
+      },
+      {
+        "id": "pressure",
+        "hpPercent": 66,
+        "behavior": "aggressive",
+        "dialogueId": "dune-tyrant-pressure",
+        "vfxKey": "phase-surge",
+        "attackIds": [
+          "sun-roar",
+          "sand-maw"
+        ]
+      },
+      {
+        "id": "enrage",
+        "hpPercent": 33,
+        "behavior": "aggressive",
+        "dialogueId": "dune-tyrant-enrage",
+        "vfxKey": "enrage-flare",
+        "attackIds": [
+          "sun-roar",
+          "sand-maw",
+          "glassquake"
+        ]
+      }
+    ],
+    "mvp": {
+      "regional": true,
+      "respawnActivityMs": 600000,
+      "summon": {
+        "arenaMapId": "buried-sun-tomb",
+        "requiredMaterials": [
+          {
+            "itemId": "sun-sigil-fragment",
+            "quantity": 4
+          },
+          {
+            "itemId": "buried-sun-shard",
+            "quantity": 3
+          }
+        ],
+        "repeatable": true
+      },
+      "specialRewardItemIds": [
+        "tyrant-scale",
+        "boss-catalyst"
+      ]
+    }
   },
   {
     "id": "crypt-bellringer",
@@ -733,7 +967,71 @@
     "castRange": 285,
     "castCooldownMs": 1650,
     "respawnMs": 120000,
-    "boss": true
+    "boss": true,
+    "bossArena": {
+      "mapId": "cursed-bell-crypt",
+      "spawnZoneId": "bell-wraith-nave",
+      "exitPortalId": "rotting-fen-return",
+      "locksEncounter": true,
+      "canLeaveAfterVictory": true
+    },
+    "bossPhases": [
+      {
+        "id": "opening",
+        "hpPercent": 100,
+        "behavior": "caster",
+        "dialogueId": "bell-wraith-opening",
+        "vfxKey": "boss-aura",
+        "attackIds": [
+          "dirge-ring"
+        ]
+      },
+      {
+        "id": "pressure",
+        "hpPercent": 66,
+        "behavior": "caster",
+        "dialogueId": "bell-wraith-pressure",
+        "vfxKey": "phase-surge",
+        "attackIds": [
+          "dirge-ring",
+          "silence-peal"
+        ]
+      },
+      {
+        "id": "enrage",
+        "hpPercent": 33,
+        "behavior": "caster",
+        "dialogueId": "bell-wraith-enrage",
+        "vfxKey": "enrage-flare",
+        "attackIds": [
+          "dirge-ring",
+          "silence-peal",
+          "grave-echo"
+        ]
+      }
+    ],
+    "mvp": {
+      "regional": true,
+      "respawnActivityMs": 600000,
+      "summon": {
+        "arenaMapId": "cursed-bell-crypt",
+        "requiredMaterials": [
+          {
+            "itemId": "curse-bell-clapper",
+            "quantity": 5
+          },
+          {
+            "itemId": "hallowed-bell-charm",
+            "quantity": 2
+          }
+        ],
+        "repeatable": true
+      },
+      "specialRewardItemIds": [
+        "wraith-ash",
+        "boss-catalyst"
+      ]
+    }
   },
   {
     "id": "elemental-rune",
@@ -781,7 +1079,71 @@
     "castRange": 300,
     "castCooldownMs": 1500,
     "respawnMs": 130000,
-    "boss": true
+    "boss": true,
+    "bossArena": {
+      "mapId": "starfall-astral-spire",
+      "spawnZoneId": "rune-chimera-aerie",
+      "exitPortalId": "starfall-approach-return",
+      "locksEncounter": true,
+      "canLeaveAfterVictory": true
+    },
+    "bossPhases": [
+      {
+        "id": "opening",
+        "hpPercent": 100,
+        "behavior": "caster",
+        "dialogueId": "rune-chimera-opening",
+        "vfxKey": "boss-aura",
+        "attackIds": [
+          "element-shift"
+        ]
+      },
+      {
+        "id": "pressure",
+        "hpPercent": 66,
+        "behavior": "caster",
+        "dialogueId": "rune-chimera-pressure",
+        "vfxKey": "phase-surge",
+        "attackIds": [
+          "element-shift",
+          "triple-rune"
+        ]
+      },
+      {
+        "id": "enrage",
+        "hpPercent": 33,
+        "behavior": "caster",
+        "dialogueId": "rune-chimera-enrage",
+        "vfxKey": "enrage-flare",
+        "attackIds": [
+          "element-shift",
+          "triple-rune",
+          "arcane-maul"
+        ]
+      }
+    ],
+    "mvp": {
+      "regional": true,
+      "respawnActivityMs": 600000,
+      "summon": {
+        "arenaMapId": "starfall-astral-spire",
+        "requiredMaterials": [
+          {
+            "itemId": "rune-glass",
+            "quantity": 5
+          },
+          {
+            "itemId": "star-iron",
+            "quantity": 2
+          }
+        ],
+        "repeatable": true
+      },
+      "specialRewardItemIds": [
+        "chimera-runeplate",
+        "boss-catalyst"
+      ]
+    }
   },
   {
     "id": "fallen-astrologer",
@@ -830,6 +1192,244 @@
     "castRange": 320,
     "castCooldownMs": 1400,
     "respawnMs": 150000,
-    "boss": true
+    "boss": true,
+    "bossArena": {
+      "mapId": "fallen-observatory",
+      "spawnZoneId": "fallen-star-saint-sanctum",
+      "exitPortalId": "observatory-approach-return",
+      "locksEncounter": true,
+      "canLeaveAfterVictory": true
+    },
+    "bossPhases": [
+      {
+        "id": "opening",
+        "hpPercent": 100,
+        "behavior": "caster",
+        "dialogueId": "fallen-star-saint-opening",
+        "vfxKey": "boss-aura",
+        "attackIds": [
+          "fallen-halo"
+        ]
+      },
+      {
+        "id": "pressure",
+        "hpPercent": 66,
+        "behavior": "caster",
+        "dialogueId": "fallen-star-saint-pressure",
+        "vfxKey": "phase-surge",
+        "attackIds": [
+          "fallen-halo",
+          "meteor-litany"
+        ]
+      },
+      {
+        "id": "enrage",
+        "hpPercent": 33,
+        "behavior": "caster",
+        "dialogueId": "fallen-star-saint-enrage",
+        "vfxKey": "enrage-flare",
+        "attackIds": [
+          "fallen-halo",
+          "meteor-litany",
+          "saintfall"
+        ]
+      }
+    ],
+    "mvp": {
+      "regional": true,
+      "respawnActivityMs": 600000,
+      "summon": {
+        "arenaMapId": "fallen-observatory",
+        "requiredMaterials": [
+          {
+            "itemId": "mythic-meteor-core",
+            "quantity": 3
+          },
+          {
+            "itemId": "observatory-lens",
+            "quantity": 4
+          }
+        ],
+        "repeatable": true
+      },
+      "specialRewardItemIds": [
+        "fallen-saint-lens",
+        "boss-catalyst"
+      ]
+    }
+  },
+  {
+    "id": "king-slime-verdant",
+    "name": "King Slime Verdant",
+    "family": "slime",
+    "element": "earth",
+    "combatTip": "Clear small slimes before phase two splits.",
+    "level": 12,
+    "hp": 440,
+    "attack": 22,
+    "defense": 16,
+    "xpReward": 260,
+    "dropTableId": "king-slime-verdant-drops",
+    "behavior": "assist",
+    "aggroRange": 250,
+    "attackRange": 84,
+    "leashDistance": 420,
+    "leashTimeoutMs": 9000,
+    "assistRadius": 180,
+    "respawnMs": 90000,
+    "elite": false,
+    "boss": true,
+    "bossArena": {
+      "mapId": "crownfield-meadows",
+      "spawnZoneId": "verdant-throne",
+      "exitPortalId": "town-road-return",
+      "locksEncounter": true,
+      "canLeaveAfterVictory": true
+    },
+    "bossPhases": [
+      {
+        "id": "opening",
+        "hpPercent": 100,
+        "behavior": "assist",
+        "dialogueId": "king-slime-verdant-opening",
+        "vfxKey": "boss-aura",
+        "attackIds": [
+          "split-crown"
+        ]
+      },
+      {
+        "id": "pressure",
+        "hpPercent": 66,
+        "behavior": "assist",
+        "dialogueId": "king-slime-verdant-pressure",
+        "vfxKey": "phase-surge",
+        "attackIds": [
+          "split-crown",
+          "gel-tide"
+        ]
+      },
+      {
+        "id": "enrage",
+        "hpPercent": 33,
+        "behavior": "assist",
+        "dialogueId": "king-slime-verdant-enrage",
+        "vfxKey": "enrage-flare",
+        "attackIds": [
+          "split-crown",
+          "gel-tide",
+          "royal-bounce"
+        ]
+      }
+    ],
+    "mvp": {
+      "regional": true,
+      "respawnActivityMs": 600000,
+      "summon": {
+        "arenaMapId": "crownfield-meadows",
+        "requiredMaterials": [
+          {
+            "itemId": "jelly-gel",
+            "quantity": 8
+          },
+          {
+            "itemId": "hopper-leg",
+            "quantity": 4
+          }
+        ],
+        "repeatable": true
+      },
+      "specialRewardItemIds": [
+        "verdant-crown-gel",
+        "boss-catalyst"
+      ]
+    }
+  },
+  {
+    "id": "thorn-matriarch",
+    "name": "Thorn Matriarch",
+    "family": "plant",
+    "element": "earth",
+    "combatTip": "Break away when briars root the arena floor.",
+    "level": 28,
+    "hp": 720,
+    "attack": 38,
+    "defense": 28,
+    "xpReward": 620,
+    "dropTableId": "thorn-matriarch-drops",
+    "behavior": "caster",
+    "aggroRange": 295,
+    "attackRange": 86,
+    "leashDistance": 470,
+    "leashTimeoutMs": 9500,
+    "assistRadius": 190,
+    "castRange": 260,
+    "castCooldownMs": 1850,
+    "respawnMs": 105000,
+    "elite": false,
+    "boss": true,
+    "bossArena": {
+      "mapId": "green-chapel-ruins",
+      "spawnZoneId": "thorn-priest-altar",
+      "exitPortalId": "chapel-road-return",
+      "locksEncounter": true,
+      "canLeaveAfterVictory": true
+    },
+    "bossPhases": [
+      {
+        "id": "opening",
+        "hpPercent": 100,
+        "behavior": "caster",
+        "dialogueId": "thorn-matriarch-opening",
+        "vfxKey": "boss-aura",
+        "attackIds": [
+          "root-prison"
+        ]
+      },
+      {
+        "id": "pressure",
+        "hpPercent": 66,
+        "behavior": "caster",
+        "dialogueId": "thorn-matriarch-pressure",
+        "vfxKey": "phase-surge",
+        "attackIds": [
+          "root-prison",
+          "thorn-sermon"
+        ]
+      },
+      {
+        "id": "enrage",
+        "hpPercent": 33,
+        "behavior": "caster",
+        "dialogueId": "thorn-matriarch-enrage",
+        "vfxKey": "enrage-flare",
+        "attackIds": [
+          "root-prison",
+          "thorn-sermon",
+          "petal-storm"
+        ]
+      }
+    ],
+    "mvp": {
+      "regional": true,
+      "respawnActivityMs": 600000,
+      "summon": {
+        "arenaMapId": "green-chapel-ruins",
+        "requiredMaterials": [
+          {
+            "itemId": "thorny-vine",
+            "quantity": 6
+          },
+          {
+            "itemId": "chapel-prayer-bead",
+            "quantity": 3
+          }
+        ],
+        "repeatable": true
+      },
+      "specialRewardItemIds": [
+        "matriarch-thornheart",
+        "boss-catalyst"
+      ]
+    }
   }
 ]

@@ -12,7 +12,7 @@
     ],
     "dungeonIds": ["old-sewers"],
     "monsterIds": ["green-jelly", "field-hopper", "meadow-pup", "road-thief", "sewer-rat", "bloated-sewer-rat", "sluice-slime"],
-    "bossIds": ["old-road-bruiser", "sewer-glutton"]
+    "bossIds": ["old-road-bruiser", "sewer-glutton", "king-slime-verdant"]
   },
   {
     "id": "mossvale",
@@ -27,7 +27,7 @@
     ],
     "dungeonIds": ["green-chapel-ruins"],
     "monsterIds": ["moss-sprite", "thorn-runner", "grove-stalker", "chapel-spirit", "thorn-acolyte"],
-    "bossIds": ["chapel-rootguard", "thorn-priest"]
+    "bossIds": ["chapel-rootguard", "thorn-priest", "thorn-matriarch"]
   },
   {
     "id": "blueharbor-coast",

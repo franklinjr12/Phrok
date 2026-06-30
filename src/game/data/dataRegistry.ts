@@ -10,6 +10,7 @@ import type {
   ItemRarity,
   ItemStatModifiers,
   MapDefinition,
+  MvpDefinition,
   MonsterDefinition,
   NpcDefinition,
   QuestDefinition,
@@ -574,6 +575,60 @@ function validateMonster(source: Record<string, unknown>, fileName: string): Mon
     respawnMs: optionalNumber(source, "respawnMs", 8000),
     elite: Boolean(source.elite),
     boss: Boolean(source.boss),
+    bossArena: validateBossArena(source.bossArena),
+    bossPhases: validateBossPhases(source.bossPhases),
+    mvp: validateMvp(source.mvp),
+  };
+}
+
+function validateBossArena(rawArena: unknown): MonsterDefinition["bossArena"] {
+  if (!isRecord(rawArena)) {
+    return undefined;
+  }
+
+  return {
+    mapId: optionalString(rawArena, "mapId", ""),
+    spawnZoneId: optionalString(rawArena, "spawnZoneId", ""),
+    exitPortalId: optionalString(rawArena, "exitPortalId", ""),
+    locksEncounter: rawArena.locksEncounter !== false,
+    canLeaveAfterVictory: rawArena.canLeaveAfterVictory !== false,
+  };
+}
+
+function validateBossPhases(rawPhases: unknown): MonsterDefinition["bossPhases"] {
+  if (!Array.isArray(rawPhases)) {
+    return [];
+  }
+
+  return rawPhases
+    .filter(isRecord)
+    .map((phase, index) => ({
+      id: optionalString(phase, "id", `phase-${index + 1}`),
+      hpPercent: Math.max(0, Math.min(100, optionalNumber(phase, "hpPercent", 100))),
+      behavior: normalizeMonsterBehavior(optionalString(phase, "behavior", "aggressive")),
+      dialogueId: optionalString(phase, "dialogueId", "") || undefined,
+      vfxKey: optionalString(phase, "vfxKey", "") || undefined,
+      attackIds: optionalStringArray(phase, "attackIds"),
+    }))
+    .sort((left, right) => right.hpPercent - left.hpPercent);
+}
+
+function validateMvp(rawMvp: unknown): MvpDefinition | undefined {
+  if (!isRecord(rawMvp)) {
+    return undefined;
+  }
+
+  const rawSummon = isRecord(rawMvp.summon) ? rawMvp.summon : {};
+
+  return {
+    regional: rawMvp.regional !== false,
+    respawnActivityMs: Math.max(1000, optionalNumber(rawMvp, "respawnActivityMs", 600000)),
+    summon: {
+      arenaMapId: optionalString(rawSummon, "arenaMapId", ""),
+      requiredMaterials: validateRecipeMaterials(rawSummon.requiredMaterials, [], "monsters.json", "mvp"),
+      repeatable: rawSummon.repeatable !== false,
+    },
+    specialRewardItemIds: optionalStringArray(rawMvp, "specialRewardItemIds"),
   };
 }
 

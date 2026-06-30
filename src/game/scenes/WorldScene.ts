@@ -23,6 +23,14 @@ import {
 import { getQuestLogSummary, updateQuestObjectives } from "../systems/quests";
 import { autosaveSlot, writeAutosave, writeSaveSlot } from "../systems/autosave";
 import { recordMonsterKill } from "../systems/bestiary";
+import {
+  beginBossArenaEncounter,
+  completeBossEncounter,
+  recordBossPhase,
+  resetActiveBossEncounter,
+  resolveBossPhase,
+  updateMvpRespawnTimers,
+} from "../systems/bossEncounters";
 import { getAdvancedClassOptionsForBase, isAdvancedClassServiceAvailable } from "../systems/advancedClasses";
 import {
   getAutoPotionSettingsSummary,
@@ -1065,7 +1073,7 @@ export class WorldScene extends Phaser.Scene {
   }
 
   private handleBossPhaseChange(enemy: EnemyEntity, previousPhase: number): void {
-    if (!enemy.bossProtocolEnabled) {
+    if (!enemy.bossProtocolEnabled || !this.state || !this.dataRegistry) {
       return;
     }
 
@@ -1073,6 +1081,24 @@ export class WorldScene extends Phaser.Scene {
 
     if (enemy.bossPhase !== previousPhase) {
       this.game.canvas.dataset.lastBossPhase = `${enemy.id}:${previousPhase}->${enemy.bossPhase}`;
+    }
+
+    const monster = this.dataRegistry.getMonster(enemy.id);
+    const phase = resolveBossPhase(monster, enemy.hp, enemy.maxHp);
+    const phaseChange = recordBossPhase(this.state, enemy.id, phase);
+
+    if (phase) {
+      this.game.canvas.dataset.bossPhaseData = [
+        phase.id,
+        phase.behavior,
+        phase.dialogueId ?? "",
+        phase.vfxKey ?? "",
+        phase.attackIds.join(","),
+      ].join(":");
+    }
+
+    if (phaseChange) {
+      this.game.canvas.dataset.lastBossPhaseData = phaseChange;
     }
   }
 
@@ -1170,6 +1196,11 @@ export class WorldScene extends Phaser.Scene {
       drops.push({ kind: "gold", quantity: bossRewardGold });
       this.game.canvas.dataset.lastBossReward = `${enemy.id}:gold:${bossRewardGold}`;
     }
+    const bossRewards = enemy.boss ? completeBossEncounter(state, monster, dataRegistry) : [];
+    if (bossRewards.length > 0) {
+      this.game.canvas.dataset.lastMvpReward = `${enemy.id}:${bossRewards.join(",")}`;
+    }
+    this.syncBossEncounterDataset();
     const support = state.support.equippedSupportId ? dataRegistry.getSupport(state.support.equippedSupportId) : null;
     grantSupportAffinity(state, support, Math.max(1, Math.ceil(monster.xpReward / 2)));
     this.syncSupportDataset();
@@ -1369,6 +1400,9 @@ export class WorldScene extends Phaser.Scene {
       this.game.canvas.dataset.autoAttack = "stopped";
       this.player?.clearDestination();
       this.attackTarget = undefined;
+      const resetBossId = resetActiveBossEncounter(state);
+      this.game.canvas.dataset.lastBossReset = resetBossId ?? "";
+      this.syncBossEncounterDataset();
     }
   }
 
@@ -1610,8 +1644,17 @@ export class WorldScene extends Phaser.Scene {
   }
 
   private updateSpawnZones(deltaMs: number): void {
-    if (!this.dataRegistry) {
+    if (!this.dataRegistry || !this.state) {
       return;
+    }
+
+    const readyMvpIds = updateMvpRespawnTimers(
+      this.state,
+      this.dataRegistry.getMonsters().filter((monster) => Boolean(monster.mvp)),
+      deltaMs,
+    );
+    if (readyMvpIds.length > 0) {
+      this.game.canvas.dataset.lastMvpRespawnReady = readyMvpIds.join("|");
     }
 
     for (const zone of this.spawnZones) {
@@ -1624,6 +1667,9 @@ export class WorldScene extends Phaser.Scene {
 
       zone.respawnTimerMs += deltaMs;
       const monster = this.dataRegistry.getMonster(zone.monsterId);
+      if (monster.mvp && (this.state.bossEncounters.mvpRespawnTimers[monster.id] ?? 0) > 0) {
+        continue;
+      }
       const respawnMs = getEffectiveEnemyRespawnMs(zone.respawnMs, monster);
 
       if (zone.respawnTimerMs >= respawnMs) {
@@ -1706,6 +1752,7 @@ export class WorldScene extends Phaser.Scene {
       this.game.canvas.dataset.bossProtocol = "disabled";
       this.game.canvas.dataset.bossPhase = "";
       this.game.canvas.dataset.bossHp = "";
+      this.syncBossEncounterDataset();
       this.syncAssistDataset();
       return;
     }
@@ -1730,6 +1777,7 @@ export class WorldScene extends Phaser.Scene {
       ? getStatusSummary(this.enemy.statusEffects, (id) => this.dataRegistry!.getStatusEffect(id))
       : "";
     this.syncBossProtocolDataset(this.enemy);
+    this.syncBossEncounterDataset();
     this.syncCasterDataset(this.enemy);
     this.syncAssistDataset();
   }
@@ -2037,12 +2085,18 @@ export class WorldScene extends Phaser.Scene {
 
   private spawnInitialEnemies(collisionLayer: PrototypeTilemapLayer | null): void {
     for (const zone of this.spawnZones) {
+      const monster = this.dataRegistry?.getMonster(zone.monsterId);
+      if (monster?.mvp && this.state && (this.state.bossEncounters.mvpRespawnTimers[monster.id] ?? 0) > 0) {
+        continue;
+      }
+
       for (let count = 0; count < zone.maxCount; count += 1) {
         this.spawnEnemyFromZone(zone, collisionLayer);
       }
     }
 
     this.refreshPrimaryEnemy();
+    this.beginCurrentMapBossArena();
   }
 
   private spawnEnemyFromZone(zone: SpawnZoneRuntime, collisionLayer: PrototypeTilemapLayer | null): void {
@@ -2075,6 +2129,44 @@ export class WorldScene extends Phaser.Scene {
       castWindupMs: null,
     });
     this.refreshPrimaryEnemy();
+  }
+
+  private beginCurrentMapBossArena(): void {
+    if (!this.state || !this.dataRegistry) {
+      return;
+    }
+
+    const map = this.dataRegistry.getMap(this.state.currentMapId);
+    const dungeonBossId = this.dataRegistry.getDungeonByMapId(map.id)?.bossId;
+    const boss = dungeonBossId
+      ? this.dataRegistry.getMonster(dungeonBossId)
+      : this.enemies.find((enemy) => enemy.boss)?.id
+        ? this.dataRegistry.getMonster(this.enemies.find((enemy) => enemy.boss)!.id)
+        : null;
+
+    if (!boss) {
+      this.syncBossEncounterDataset();
+      return;
+    }
+
+    const result = beginBossArenaEncounter(this.state, boss, map.id);
+    this.game.canvas.dataset.bossArenaFlow = result ? `${result.bossId}:${result.arenaMapId}:locked:${result.locked}` : "";
+    this.syncBossEncounterDataset();
+  }
+
+  private syncBossEncounterDataset(): void {
+    if (!this.state) {
+      return;
+    }
+
+    const bossState = this.state.bossEncounters;
+    this.game.canvas.dataset.activeBossEncounter = bossState.activeBossId ?? "";
+    this.game.canvas.dataset.activeBossArena = bossState.activeArenaMapId ?? "";
+    this.game.canvas.dataset.defeatedBosses = bossState.defeatedBossIds.join("|");
+    this.game.canvas.dataset.bossArenaExitUnlocked = bossState.victoryExitUnlockedBossIds.join("|");
+    this.game.canvas.dataset.mvpRespawnTimers = Object.entries(bossState.mvpRespawnTimers)
+      .map(([bossId, remaining]) => `${bossId}:${Math.ceil(remaining)}`)
+      .join("|");
   }
 
   private getWalkableSpawnPoint(zone: SpawnZoneRuntime): Phaser.Math.Vector2 {

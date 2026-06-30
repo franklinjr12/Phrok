@@ -124,6 +124,37 @@ export interface MonsterDefinition {
   respawnMs: number;
   elite: boolean;
   boss: boolean;
+  bossArena?: BossArenaDefinition;
+  bossPhases?: BossPhaseDefinition[];
+  mvp?: MvpDefinition;
+}
+
+export interface BossArenaDefinition {
+  mapId: string;
+  spawnZoneId: string;
+  exitPortalId: string;
+  locksEncounter: boolean;
+  canLeaveAfterVictory: boolean;
+}
+
+export interface BossPhaseDefinition {
+  id: string;
+  hpPercent: number;
+  behavior: MonsterDefinition["behavior"];
+  dialogueId?: string;
+  vfxKey?: string;
+  attackIds: string[];
+}
+
+export interface MvpDefinition {
+  regional: boolean;
+  respawnActivityMs: number;
+  summon: {
+    arenaMapId: string;
+    requiredMaterials: RecipeMaterialRequirement[];
+    repeatable: boolean;
+  };
+  specialRewardItemIds: string[];
 }
 
 export interface LevelRangeDefinition {

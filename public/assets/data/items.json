@@ -8677,5 +8677,31 @@
     "value": 92,
     "allowedClassIds": [],
     "twoHanded": false
+  },
+  {
+    "id": "verdant-crown-gel",
+    "name": "Verdant Crown Gel",
+    "description": "A crowned slime core used for early MVP crafts.",
+    "type": "material",
+    "value": 46,
+    "level": 12,
+    "rarity": "Rare",
+    "icon": "placeholder-material-verdant-crown-gel",
+    "allowedClassIds": [],
+    "twoHanded": false,
+    "statModifiers": {}
+  },
+  {
+    "id": "matriarch-thornheart",
+    "name": "Matriarch Thornheart",
+    "description": "A living briar heart from the Thorn Matriarch MVP.",
+    "type": "material",
+    "value": 72,
+    "level": 28,
+    "rarity": "Epic",
+    "icon": "placeholder-material-matriarch-thornheart",
+    "allowedClassIds": [],
+    "twoHanded": false,
+    "statModifiers": {}
   }
 ]

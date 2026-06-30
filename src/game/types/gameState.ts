@@ -203,6 +203,16 @@ export interface HuntingBoardState {
   lastRefreshReason: string;
 }
 
+export interface BossEncounterState {
+  activeBossId: string | null;
+  activeArenaMapId: string | null;
+  defeatedBossIds: string[];
+  victoryExitUnlockedBossIds: string[];
+  summonedMvpIds: string[];
+  mvpRespawnTimers: Record<string, number>;
+  lastPhaseByBossId: Record<string, string>;
+}
+
 export interface SettingsState {
   musicVolume: number;
   sfxVolume: number;
@@ -228,6 +238,7 @@ export interface GameState {
   bestiary: BestiaryState;
   crafting: CraftingState;
   huntingBoard: HuntingBoardState;
+  bossEncounters: BossEncounterState;
   worldFlags: Record<string, boolean>;
   settings: SettingsState;
 }

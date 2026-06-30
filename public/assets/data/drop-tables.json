@@ -1567,5 +1567,71 @@
         "maxQuantity": 1
       }
     ]
+  },
+  {
+    "id": "king-slime-verdant-drops",
+    "entries": [
+      {
+        "itemId": "verdant-crown-gel",
+        "chance": 0.9,
+        "minQuantity": 1,
+        "maxQuantity": 2
+      },
+      {
+        "itemId": "jelly-gel",
+        "chance": 1,
+        "minQuantity": 3,
+        "maxQuantity": 6
+      },
+      {
+        "type": "gold",
+        "chance": 1,
+        "minQuantity": 60,
+        "maxQuantity": 90
+      },
+      {
+        "type": "item",
+        "itemId": "boss-catalyst",
+        "chance": 0.04,
+        "minQuantity": 1,
+        "maxQuantity": 1
+      }
+    ]
+  },
+  {
+    "id": "thorn-matriarch-drops",
+    "entries": [
+      {
+        "itemId": "matriarch-thornheart",
+        "chance": 0.88,
+        "minQuantity": 1,
+        "maxQuantity": 2
+      },
+      {
+        "itemId": "rootbound-sigil",
+        "chance": 0.72,
+        "minQuantity": 1,
+        "maxQuantity": 2
+      },
+      {
+        "itemId": "thorny-vine",
+        "chance": 1,
+        "minQuantity": 3,
+        "maxQuantity": 6
+      },
+      {
+        "type": "gold",
+        "chance": 1,
+        "minQuantity": 105,
+        "maxQuantity": 155
+      },
+      {
+        "type": "item",
+        "itemId": "boss-catalyst",
+        "chance": 0.04,
+        "minQuantity": 1,
+        "maxQuantity": 1
+      }
+    ]
   }
 ]

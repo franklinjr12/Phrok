@@ -154,6 +154,7 @@ function normalizeSaveData(rawSave: unknown): SaveData {
       isRecord(rawSave.huntingBoard) ? rawSave.huntingBoard : rawGameState.huntingBoard,
       fallbackState.huntingBoard,
     ),
+    bossEncounters: normalizeBossEncounterState(rawGameState.bossEncounters, fallbackState.bossEncounters),
     worldFlags: normalizeBooleanRecord(rawSave.worldFlags, fallbackState.worldFlags),
     settings: normalizeSettings(isRecord(rawSave.settings) ? rawSave.settings : rawGameState.settings, fallbackState.settings),
   };
@@ -500,6 +501,23 @@ function normalizeHuntingBoardState(
     ),
     refreshCount: Math.max(0, Math.floor(numberValue(source.refreshCount, fallback.refreshCount))),
     lastRefreshReason: stringValue(source.lastRefreshReason, fallback.lastRefreshReason),
+  };
+}
+
+function normalizeBossEncounterState(
+  rawBossEncounters: unknown,
+  fallback: GameState["bossEncounters"],
+): GameState["bossEncounters"] {
+  const source = isRecord(rawBossEncounters) ? rawBossEncounters : {};
+
+  return {
+    activeBossId: typeof source.activeBossId === "string" && source.activeBossId.length > 0 ? source.activeBossId : null,
+    activeArenaMapId: typeof source.activeArenaMapId === "string" && source.activeArenaMapId.length > 0 ? source.activeArenaMapId : null,
+    defeatedBossIds: stringArray(source.defeatedBossIds, fallback.defeatedBossIds),
+    victoryExitUnlockedBossIds: stringArray(source.victoryExitUnlockedBossIds, fallback.victoryExitUnlockedBossIds),
+    summonedMvpIds: stringArray(source.summonedMvpIds, fallback.summonedMvpIds),
+    mvpRespawnTimers: normalizeNumberRecord(source.mvpRespawnTimers),
+    lastPhaseByBossId: normalizeStringRecord(source.lastPhaseByBossId, fallback.lastPhaseByBossId),
   };
 }
 

@@ -3,6 +3,7 @@ import type { ClassDefinition } from "../types/dataDefinitions";
 import { createEmptyEquipment } from "../systems/equipment";
 import { createEmptyStorageState } from "../systems/storage";
 import { createInitialHuntingBoardState } from "../systems/huntingBoard";
+import { createInitialBossEncounterState } from "../systems/bossEncounters";
 import { createInitialQuestState } from "../systems/quests";
 import { createInitialHotbar, createInitialSkillState } from "../systems/skills";
 import { calculateDerivedStats, createClassBaseStats, createEmptyBaseStats, syncCharacterVitalsToDerivedStats } from "../systems/stats";
@@ -87,6 +88,7 @@ export function createNewGameState(): GameState {
       unlockNotifications: [],
     },
     huntingBoard: createInitialHuntingBoardState(),
+    bossEncounters: createInitialBossEncounterState(),
     worldFlags: {},
     settings: {
       musicVolume: 0.8,
