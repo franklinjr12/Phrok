@@ -99,6 +99,41 @@ test("skill screen supports leveling, requirements, hotbar assignment, and persi
   await expect(canvas).toHaveAttribute("data-hotbar-assignments", /2:item:minor-health-potion/);
 });
 
+test("polished HUD exposes minimap, world map, readable bars, and tooltips", async ({ page }) => {
+  await startApp(page);
+
+  const canvas = await confirmDefaultCharacter(page);
+
+  await expect(canvas).toHaveAttribute("data-hud-layout", "final");
+  await expect(canvas).toHaveAttribute("data-hp-bar-width", /\d+/);
+  await expect(canvas).toHaveAttribute("data-sp-bar-width", /\d+/);
+  await expect(canvas).toHaveAttribute("data-xp-bar", "visible");
+  await expect(canvas).toHaveAttribute("data-hotbar-icon-labels", /1:PS/);
+  await expect(canvas).toHaveAttribute("data-minimap-visible", "true");
+  await expect(canvas).toHaveAttribute("data-minimap-shape", /town/);
+  await expect(canvas).toHaveAttribute("data-minimap-markers", /player/);
+  await expect(canvas).toHaveAttribute("data-minimap-markers", /portal:crownfield-meadows/);
+
+  await canvas.hover({ position: { x: 264, y: 542 } });
+  await expect(canvas).toHaveAttribute("data-tooltip", "visible");
+  await expect(canvas).toHaveAttribute("data-tooltip-text", /Power Slash/);
+  await expect(canvas).toHaveAttribute("data-tooltip-bounds", /\d+,\d+,238,\d+/);
+
+  await page.keyboard.press("KeyM");
+  await expect(canvas).toHaveAttribute("data-minimap-visible", "false");
+  await page.keyboard.press("KeyM");
+  await expect(canvas).toHaveAttribute("data-minimap-visible", "true");
+
+  await page.keyboard.press("KeyO");
+  await expect(canvas).toHaveAttribute("data-ui-panel", "worldMap");
+  await expect(canvas).toHaveAttribute("data-world-map-panel", "visible");
+  await expect(canvas).toHaveAttribute("data-world-map-regions", /crownfield:1-10/);
+  await expect(canvas).toHaveAttribute("data-world-map-current-location", "crownfield-town");
+  await expect(canvas).toHaveAttribute("data-world-map-discovered-maps", /crownfield-town/);
+  await expect(canvas).toHaveAttribute("data-world-map-fast-travel", /crownfield-town/);
+  await expect(canvas).toHaveAttribute("data-world-map-buttons", "Close");
+});
+
 test("bestiary opens with B, filters entries, and shows partial monster knowledge", async ({ page }) => {
   await startApp(page);
 

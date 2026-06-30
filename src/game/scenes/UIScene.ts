@@ -105,11 +105,14 @@ import type { DataRegistry } from "../data/dataRegistry";
 import type { ItemDefinition, ItemRarity, MonsterDefinition, QuestDefinition, RecipeDefinition, ShopDefinition, SkillDefinition } from "../types/dataDefinitions";
 import type { BaseStatKey, EquipmentInstance, EquipmentSlot, GameState, InventoryItem } from "../types/gameState";
 
-type PanelMode = "inventory" | "equipment" | "character" | "skills" | "bestiary" | "crafting" | "refinement" | "shop" | "appraiser" | "storage" | "huntingBoard" | "questLog";
+type PanelMode = "inventory" | "equipment" | "character" | "skills" | "bestiary" | "crafting" | "refinement" | "shop" | "appraiser" | "storage" | "huntingBoard" | "questLog" | "worldMap";
 type InventoryPanelEntry = {
   itemId: string;
   quantity: number;
   source: "stack" | "equipment";
+};
+type VisibleGameObject = Phaser.GameObjects.GameObject & {
+  setVisible(visible: boolean): VisibleGameObject;
 };
 
 const panelDepth = 130;
@@ -160,12 +163,16 @@ export class UIScene extends Phaser.Scene {
   private goldText?: Phaser.GameObjects.Text;
   private weightText?: Phaser.GameObjects.Text;
   private xpText?: Phaser.GameObjects.Text;
+  private hpBarFill?: Phaser.GameObjects.Rectangle;
+  private spBarFill?: Phaser.GameObjects.Rectangle;
   private attackText?: Phaser.GameObjects.Text;
   private statusText?: Phaser.GameObjects.Text;
   private xpBarFill?: Phaser.GameObjects.Rectangle;
+  private targetHpBarFill?: Phaser.GameObjects.Rectangle;
   private targetFrame?: Phaser.GameObjects.Rectangle;
   private targetNameText?: Phaser.GameObjects.Text;
   private targetHpText?: Phaser.GameObjects.Text;
+  private targetHpBarBackground?: Phaser.GameObjects.Rectangle;
   private bossFrame?: Phaser.GameObjects.Rectangle;
   private bossHpBarBackground?: Phaser.GameObjects.Rectangle;
   private bossHpBarFill?: Phaser.GameObjects.Rectangle;
@@ -174,6 +181,10 @@ export class UIScene extends Phaser.Scene {
   private bossPhaseText?: Phaser.GameObjects.Text;
   private mapNameText?: Phaser.GameObjects.Text;
   private advancedClassNotificationText?: Phaser.GameObjects.Text;
+  private minimapObjects: VisibleGameObject[] = [];
+  private minimapPlayerMarker?: Phaser.GameObjects.Arc;
+  private minimapVisible = true;
+  private tooltipObjects: Phaser.GameObjects.GameObject[] = [];
   private activePanel: PanelMode | null = null;
   private selectedInventoryIndex = 0;
   private selectedShopIndex = 0;
@@ -227,6 +238,7 @@ export class UIScene extends Phaser.Scene {
     this.syncXpBar(state, dataRegistry);
     this.createTargetFrame();
     this.createBossFrame();
+    this.createMinimap(state, dataRegistry);
     this.registerKeyboard();
     this.registerEvents(state, dataRegistry);
   }
@@ -240,6 +252,8 @@ export class UIScene extends Phaser.Scene {
     this.input.keyboard?.on("keydown-R", this.toggleCraftingPanel, this);
     this.input.keyboard?.on("keydown-H", this.toggleHuntingBoardPanel, this);
     this.input.keyboard?.on("keydown-L", this.toggleQuestLogPanel, this);
+    this.input.keyboard?.on("keydown-M", this.toggleMinimap, this);
+    this.input.keyboard?.on("keydown-O", this.toggleWorldMapPanel, this);
     this.input.keyboard?.on("keydown-S", this.manualSave, this);
     this.input.keyboard?.on("keydown-ESC", this.closePanel, this);
     this.input.keyboard?.on("keydown", this.handleHotbarKey, this);
@@ -253,6 +267,8 @@ export class UIScene extends Phaser.Scene {
       this.input.keyboard?.off("keydown-R", this.toggleCraftingPanel, this);
       this.input.keyboard?.off("keydown-H", this.toggleHuntingBoardPanel, this);
       this.input.keyboard?.off("keydown-L", this.toggleQuestLogPanel, this);
+      this.input.keyboard?.off("keydown-M", this.toggleMinimap, this);
+      this.input.keyboard?.off("keydown-O", this.toggleWorldMapPanel, this);
       this.input.keyboard?.off("keydown-S", this.manualSave, this);
       this.input.keyboard?.off("keydown-ESC", this.closePanel, this);
       this.input.keyboard?.off("keydown", this.handleHotbarKey, this);
@@ -290,18 +306,26 @@ export class UIScene extends Phaser.Scene {
       this.unsubscribeShopOpened?.();
       this.unsubscribeStorageOpened?.();
       this.unsubscribeStorageChanged?.();
+      this.clearTooltip();
+      this.clearMinimap();
     });
+  }
+
+  update(): void {
+    this.updateMinimapPlayerMarker();
   }
 
   private registerEvents(state: GameState, dataRegistry: DataRegistry): void {
     this.unsubscribeHealth = eventBus.on("playerHealthChanged", ({ hp, maxHp }) => {
       this.game.canvas.dataset.playerHp = `${hp}/${maxHp}`;
       this.hpText?.setText(`HP ${hp}/${maxHp}`);
+      this.syncVitalBars();
     });
 
     this.unsubscribeSp = eventBus.on("playerSpChanged", ({ sp, maxSp }) => {
       this.game.canvas.dataset.playerSp = `${sp}/${maxSp}`;
       this.spText?.setText(`SP ${sp}/${maxSp}`);
+      this.syncVitalBars();
     });
 
     this.unsubscribeXp = eventBus.on("xpGained", ({ totalXp }) => {
@@ -319,6 +343,7 @@ export class UIScene extends Phaser.Scene {
       this.hpText?.setText(`HP ${hp}/${maxHp}`);
       this.spText?.setText(`SP ${sp}/${maxSp}`);
       this.levelText?.setText(`Lv ${level}`);
+      this.syncVitalBars();
       this.syncAdvancedClassDataset(state, dataRegistry);
       if (level >= advancedClassUnlockLevel && !state.character.advancedClass) {
         this.showAdvancedClassNotification();
@@ -369,6 +394,7 @@ export class UIScene extends Phaser.Scene {
       this.refreshCombatText(state, dataRegistry);
       this.hpText?.setText(`HP ${state.character.stats.hp}/${state.character.stats.maxHp}`);
       this.spText?.setText(`SP ${state.character.stats.sp}/${state.character.stats.maxSp}`);
+      this.syncVitalBars();
       this.weightText?.setText(`Weight ${this.getInventoryWeight(state)}/${this.getWeightLimit(state, dataRegistry)}`);
       this.refreshOpenPanel();
     });
@@ -422,6 +448,7 @@ export class UIScene extends Phaser.Scene {
 
     this.unsubscribeMapChanged = eventBus.on("mapChanged", ({ mapId, musicKey }) => {
       this.updateMapMetadata(mapId, dataRegistry);
+      this.refreshMinimap(state, dataRegistry);
       this.game.canvas.dataset.currentMapMusicKey = musicKey;
     });
 
@@ -476,10 +503,12 @@ export class UIScene extends Phaser.Scene {
         this.game.canvas.dataset.playerStatusEffects = summary;
         this.game.canvas.dataset.playerStatusEffectIcons = this.getPlayerStatusIcons(state, dataRegistry);
         this.statusText?.setText(this.getPlayerStatusText(state, dataRegistry));
+        this.syncHudStatusIcons(state, dataRegistry);
         this.syncDerivedStatsDataset(state, dataRegistry);
         this.refreshCombatText(state, dataRegistry);
       } else if (this.game.canvas.dataset.targetEnemyId === targetId) {
         this.game.canvas.dataset.targetStatusEffects = summary;
+        this.game.canvas.dataset.targetEnemyStatusIcons = statuses.map((status) => dataRegistry.getStatusEffect(status.id).visualIcon).join("|");
       }
     });
 
@@ -553,13 +582,29 @@ export class UIScene extends Phaser.Scene {
   }
 
   private createHud(state: GameState, dataRegistry: DataRegistry): void {
-    this.add.rectangle(12, 12, 318, 118, 0x101820, 0.82)
+    this.add.rectangle(12, 12, 318, 136, 0x101820, 0.86)
       .setOrigin(0)
       .setStrokeStyle(1, 0xd6b45f, 0.65)
       .setScrollFactor(0)
       .setDepth(hudDepth);
     this.hpText = this.addHudText(24, 22, `HP ${state.character.stats.hp}/${state.character.stats.maxHp}`, "#fca5a5");
     this.spText = this.addHudText(24, 46, `SP ${state.character.stats.sp}/${state.character.stats.maxSp}`, "#93c5fd");
+    this.add.rectangle(82, 32, 88, 8, 0x111827, 0.95)
+      .setOrigin(0, 0.5)
+      .setScrollFactor(0)
+      .setDepth(hudDepth);
+    this.hpBarFill = this.add.rectangle(82, 32, 1, 6, 0xef4444, 1)
+      .setOrigin(0, 0.5)
+      .setScrollFactor(0)
+      .setDepth(hudDepth + 1);
+    this.add.rectangle(82, 56, 88, 8, 0x111827, 0.95)
+      .setOrigin(0, 0.5)
+      .setScrollFactor(0)
+      .setDepth(hudDepth);
+    this.spBarFill = this.add.rectangle(82, 56, 1, 6, 0x3b82f6, 1)
+      .setOrigin(0, 0.5)
+      .setScrollFactor(0)
+      .setDepth(hudDepth + 1);
     this.levelText = this.addHudText(178, 22, `Lv ${state.playerProfile.level}`, "#f8fafc");
     this.goldText = this.addHudText(178, 46, `Gold ${state.inventory.gold}`, "#fde68a");
     this.weightText = this.addHudText(24, 92, `Weight ${this.getInventoryWeight(state)}/${this.getWeightLimit(state, dataRegistry)}`, "#cbd5e1");
@@ -576,12 +621,15 @@ export class UIScene extends Phaser.Scene {
       .setDepth(hudDepth + 1);
     this.xpText = this.addHudText(246, 70, "", "#fde68a");
     this.createHotbar();
+    this.syncVitalBars();
+    this.syncHudStatusIcons(state, dataRegistry);
     this.refreshCombatText(state, dataRegistry);
     this.syncEquipmentDataset(state, dataRegistry);
     this.syncBaseStatsDataset(state, dataRegistry);
     this.syncDerivedStatsDataset(state, dataRegistry);
     this.game.canvas.dataset.hudVisible = "true";
     this.game.canvas.dataset.hotbarVisible = "true";
+    this.game.canvas.dataset.hudLayout = "final";
     this.game.canvas.dataset.xpBar = "visible";
     this.game.canvas.dataset.xpBarWidth = "0";
     this.game.canvas.dataset.playerStatusEffects = getStatusSummary(
@@ -601,10 +649,13 @@ export class UIScene extends Phaser.Scene {
 
     for (let index = 0; index < hotbarSlotCount; index += 1) {
       const assignment = this.state?.character.hotbar.find((entry) => entry.slot === index + 1);
-      this.add.rectangle(x + index * 42, y, 36, 36, 0x17212b, 0.9)
-        .setStrokeStyle(1, index === 0 ? 0xfacc15 : 0x64748b, 0.9)
+      const slot = this.add.rectangle(x + index * 42, y, 36, 36, 0x17212b, 0.94)
+        .setStrokeStyle(2, assignment ? (assignment.type === "skill" ? 0x60a5fa : 0xf87171) : 0x64748b, 0.9)
         .setScrollFactor(0)
-        .setDepth(hudDepth);
+        .setDepth(hudDepth)
+        .setInteractive({ useHandCursor: true });
+      slot.on("pointerover", () => this.showTooltipForHotbar(index + 1, x + index * 42 + 22, y - 70));
+      slot.on("pointerout", () => this.clearTooltip());
       this.add.text(x + index * 42 - 12, y - 12, String(index + 1), {
         color: "#f8fafc",
         fontFamily: "Arial, sans-serif",
@@ -612,8 +663,9 @@ export class UIScene extends Phaser.Scene {
       })
         .setScrollFactor(0)
         .setDepth(hudDepth + 1);
-      this.add.text(x + index * 42 - 12, y + 2, assignment?.type === "item" ? "POT" : (assignment?.id.slice(0, 3).toUpperCase() ?? ""), {
-        color: "#cbd5e1",
+      const label = assignment ? this.getHotbarIconLabel(assignment.type, assignment.id) : "";
+      this.add.text(x + index * 42 - 12, y + 2, label, {
+        color: assignment?.type === "item" ? "#fecaca" : "#bfdbfe",
         fontFamily: "Arial, sans-serif",
         fontSize: "10px",
       })
@@ -623,6 +675,9 @@ export class UIScene extends Phaser.Scene {
 
     this.game.canvas.dataset.hotbarSlots = Array.from({ length: hotbarSlotCount }, (_, index) => String(index + 1)).join("|");
     this.game.canvas.dataset.hotbarAssignments = this.state?.character.hotbar.map((entry) => `${entry.slot}:${entry.type}:${entry.id}`).join("|") ?? "";
+    this.game.canvas.dataset.hotbarIconLabels = this.state?.character.hotbar
+      .map((entry) => `${entry.slot}:${this.getHotbarIconLabel(entry.type, entry.id)}`)
+      .join("|") ?? "";
   }
 
   private addHudText(x: number, y: number, text: string, color: string): Phaser.GameObjects.Text {
@@ -786,6 +841,37 @@ export class UIScene extends Phaser.Scene {
     this.openPanel("questLog");
   }
 
+  private toggleWorldMapPanel(): void {
+    if (this.activePanel === "bestiary") {
+      return;
+    }
+
+    if (this.activePanel === "storage") {
+      return;
+    }
+
+    if (this.activePanel === "worldMap") {
+      this.closePanel();
+      return;
+    }
+
+    this.openPanel("worldMap");
+  }
+
+  private toggleMinimap(): void {
+    if (this.activePanel === "bestiary" || this.activePanel === "storage") {
+      return;
+    }
+
+    this.minimapVisible = !this.minimapVisible;
+
+    for (const object of this.minimapObjects) {
+      object.setVisible(this.minimapVisible);
+    }
+
+    this.game.canvas.dataset.minimapVisible = this.minimapVisible ? "true" : "false";
+  }
+
   private openPanel(mode: PanelMode): void {
     this.activePanel = mode;
     this.game.canvas.dataset.uiPanel = mode;
@@ -813,6 +899,7 @@ export class UIScene extends Phaser.Scene {
     this.game.canvas.dataset.bestiaryPanel = "hidden";
     this.game.canvas.dataset.huntingBoardPanel = "hidden";
     this.game.canvas.dataset.questLogPanel = "hidden";
+    this.game.canvas.dataset.worldMapPanel = "hidden";
   }
 
   private manualSave(): void {
@@ -942,9 +1029,62 @@ export class UIScene extends Phaser.Scene {
       this.renderStoragePanel(this.state, this.dataRegistry);
     } else if (this.activePanel === "questLog") {
       this.renderQuestLogPanel(this.state, this.dataRegistry);
+    } else if (this.activePanel === "worldMap") {
+      this.renderWorldMapPanel(this.state, this.dataRegistry);
     } else {
       this.renderHuntingBoardPanel(this.state, this.dataRegistry);
     }
+  }
+
+  private renderWorldMapPanel(state: GameState, dataRegistry: DataRegistry): void {
+    const currentMap = dataRegistry.getMap(state.currentMapId);
+    const currentRegion = dataRegistry.getRegion(currentMap.regionId);
+    const maps = dataRegistry.getMaps();
+    const discoveredMaps = this.getDiscoveredMaps(state, dataRegistry);
+    const fastTravelMaps = maps.filter((map) => map.type === "town" && discoveredMaps.some((entry) => entry.id === map.id));
+
+    this.addPanelRectangle(58, 46, 684, 514, panelFill, 0.97)
+      .setOrigin(0)
+      .setStrokeStyle(2, panelStroke, 0.9);
+    this.addPanelText(86, 72, "World Map", 24, "#f8fafc");
+    this.addPanelText(86, 108, `${currentRegion.name} | Current ${currentMap.name}`, 14, "#fde68a");
+
+    dataRegistry.getRegions().slice(0, 7).forEach((region, index) => {
+      const x = 96 + (index % 4) * 150;
+      const y = 152 + Math.floor(index / 4) * 126;
+      const isCurrent = region.id === currentRegion.id;
+      const regionMaps = maps.filter((map) => map.regionId === region.id);
+      const discoveredCount = regionMaps.filter((map) => discoveredMaps.some((entry) => entry.id === map.id)).length;
+      const box = this.addPanelRectangle(x, y, 128, 88, isCurrent ? 0x24364a : 0x17212b, 0.95)
+        .setOrigin(0)
+        .setStrokeStyle(2, isCurrent ? 0xfacc15 : 0x334155, 0.9)
+        .setInteractive({ useHandCursor: true });
+      box.on("pointerover", () => this.showTooltip(
+        [region.name, `Lv ${region.levelRange.min}-${region.levelRange.max}`, `${discoveredCount}/${regionMaps.length} maps`],
+        x + 14,
+        y - 74,
+      ));
+      box.on("pointerout", () => this.clearTooltip());
+      this.addPanelText(x + 12, y + 12, this.truncateText(region.name, 14), 14, "#f8fafc");
+      this.addPanelText(x + 12, y + 38, `Lv ${region.levelRange.min}-${region.levelRange.max}`, 12, "#93c5fd");
+      this.addPanelText(x + 12, y + 62, isCurrent ? "Current" : `Maps ${discoveredCount}`, 12, isCurrent ? "#fde68a" : "#cbd5e1");
+    });
+
+    this.addPanelRectangle(86, 420, 400, 92, 0x17212b, 0.95)
+      .setOrigin(0)
+      .setStrokeStyle(1, 0x334155, 0.9);
+    this.addPanelText(104, 438, "Discovered", 14, "#94a3b8");
+    this.addPanelText(104, 464, this.wrapText(discoveredMaps.map((map) => `${map.name} Lv ${map.levelRange.min}-${map.levelRange.max}`).join(" | "), 48), 12, "#f8fafc");
+    this.addPanelText(514, 438, "Fast Travel", 14, "#94a3b8");
+    this.addPanelText(514, 464, this.wrapText(fastTravelMaps.map((map) => map.name).join(" | ") || "None unlocked", 22), 12, "#bbf7d0");
+    this.addPanelButton(606, 514, 92, 28, "Close", () => this.closePanel());
+
+    this.game.canvas.dataset.worldMapPanel = "visible";
+    this.game.canvas.dataset.worldMapRegions = dataRegistry.getRegions().map((region) => `${region.id}:${region.levelRange.min}-${region.levelRange.max}`).join("|");
+    this.game.canvas.dataset.worldMapCurrentLocation = currentMap.id;
+    this.game.canvas.dataset.worldMapDiscoveredMaps = discoveredMaps.map((map) => map.id).join("|");
+    this.game.canvas.dataset.worldMapFastTravel = fastTravelMaps.map((map) => map.id).join("|");
+    this.game.canvas.dataset.worldMapButtons = "Close";
   }
 
   private renderQuestLogPanel(state: GameState, dataRegistry: DataRegistry): void {
@@ -1093,6 +1233,8 @@ export class UIScene extends Phaser.Scene {
         this.selectedSkillIndex = index;
         this.renderPanel();
       });
+      row.on("pointerover", () => this.showTooltip([skill.name, `${skill.type} ${skill.targetingMode}`, this.getSkillEffectText(skill)], 438, y - 8));
+      row.on("pointerout", () => this.clearTooltip());
       this.addPanelText(110, y + 5, `${skill.name} ${level}/${skill.maxSkillLevel}`, 13, locked ? "#94a3b8" : "#f8fafc");
       this.addPanelText(292, y + 5, skill.type, 12, "#cbd5e1");
       this.addPanelText(352, y + 5, locked ? `Req Lv ${skill.requiredLevel}` : "Unlocked", 11, locked ? "#fca5a5" : "#bbf7d0");
@@ -1169,6 +1311,12 @@ export class UIScene extends Phaser.Scene {
         this.selectedBestiaryIndex = index;
         this.renderPanel();
       });
+      row.on("pointerover", () => this.showTooltip([
+        known ? entry.monster.name : "Unknown monster",
+        familyKnown ? `${getMonsterFamily(entry.monster)} ${getMonsterElement(entry.monster, entry.region)}` : "Traits locked",
+        `Kills ${kills}`,
+      ], 438, y - 8));
+      row.on("pointerout", () => this.clearTooltip());
       this.addPanelText(110, y + 5, known ? entry.monster.name : "Unknown monster", 13, known ? "#f8fafc" : "#94a3b8");
       this.addPanelText(292, y + 5, familyKnown ? getMonsterFamily(entry.monster) : "???", 12, familyKnown ? "#cbd5e1" : "#64748b");
       this.addPanelText(376, y + 5, String(kills), 12, "#fde68a");
@@ -1243,7 +1391,14 @@ export class UIScene extends Phaser.Scene {
         this.selectedInventoryIndex = index;
         this.renderPanel();
       });
-      row.on("pointerover", () => this.showComparison(item));
+      row.on("pointerover", () => {
+        this.showComparison(item);
+        this.showTooltip([getVisibleItemName(state.inventory, item), getItemRarity(item), getVisibleItemDescription(state.inventory, item)], 340, y - 8);
+      });
+      row.on("pointerout", () => {
+        this.clearComparisonObjects();
+        this.clearTooltip();
+      });
       this.addPanelRectangle(124, y, 18, 18, this.getItemIconColor(item), 0.94)
         .setOrigin(0)
         .setStrokeStyle(1, 0xf8fafc, 0.58);
@@ -1706,6 +1861,11 @@ export class UIScene extends Phaser.Scene {
       const y = 174 + index * 42;
       const cost = getStatCost(totalStats[key]);
       const canIncrease = state.playerProfile.statPoints >= cost;
+      const statRow = this.addPanelRectangle(84, y - 8, 176, 28, 0x000000, 0.01)
+        .setOrigin(0)
+        .setInteractive({ useHandCursor: true });
+      statRow.on("pointerover", () => this.showTooltip([baseStatLabels[key], `Total ${totalStats[key]}`, `Next cost ${cost}`], 320, y - 8));
+      statRow.on("pointerout", () => this.clearTooltip());
 
       this.addPanelText(92, y, baseStatLabels[key], 15, "#94a3b8");
       this.addPanelText(152, y, String(totalStats[key]), 15, "#f8fafc");
@@ -1743,6 +1903,11 @@ export class UIScene extends Phaser.Scene {
       const row = index % 7;
       const x = 342 + column * 178;
       const y = 174 + row * 36;
+      const statRow = this.addPanelRectangle(x - 8, y - 7, 160, 26, 0x000000, 0.01)
+        .setOrigin(0)
+        .setInteractive({ useHandCursor: true });
+      statRow.on("pointerover", () => this.showTooltip([label, `Value ${value}`, "Includes class, gear, buffs, support."], x - 12, y + 22));
+      statRow.on("pointerout", () => this.clearTooltip());
       this.addPanelText(x, y, label, 13, "#94a3b8");
       this.addPanelText(x + 104, y, String(value), 13, "#f8fafc");
     });
@@ -2470,6 +2635,230 @@ export class UIScene extends Phaser.Scene {
     this.comparisonObjects = [];
   }
 
+  private createMinimap(state: GameState, dataRegistry: DataRegistry): void {
+    this.refreshMinimap(state, dataRegistry);
+    this.game.canvas.dataset.minimapVisible = "true";
+  }
+
+  private refreshMinimap(state: GameState, dataRegistry: DataRegistry): void {
+    this.clearMinimap();
+    const map = dataRegistry.getMap(state.currentMapId);
+    const region = dataRegistry.getRegion(map.regionId);
+    const x = Number(this.scale.width || 800) - 172;
+    const y = 20;
+
+    const frame = this.add.rectangle(x, y, 152, 104, 0x101820, 0.86)
+      .setOrigin(0)
+      .setStrokeStyle(1, 0xd6b45f, 0.72)
+      .setScrollFactor(0)
+      .setDepth(hudDepth)
+      .setVisible(this.minimapVisible)
+      .setInteractive({ useHandCursor: true });
+    frame.on("pointerover", () => this.showTooltip([map.name, region.name, `Lv ${map.levelRange.min}-${map.levelRange.max}`], x - 18, y + 110));
+    frame.on("pointerout", () => this.clearTooltip());
+    this.minimapObjects.push(frame);
+
+    this.addMinimapText(x + 12, y + 10, this.truncateText(map.name, 18), "#f8fafc");
+    const shape = this.add.rectangle(x + 16, y + 34, 120, 52, 0x1f2937, 0.95)
+      .setOrigin(0)
+      .setStrokeStyle(1, 0x64748b, 0.9)
+      .setScrollFactor(0)
+      .setDepth(hudDepth + 1)
+      .setVisible(this.minimapVisible);
+    this.minimapObjects.push(shape);
+
+    map.portals.slice(0, 4).forEach((portal, index) => {
+      const marker = this.add.circle(x + 34 + index * 26, y + 78, 4, 0x38bdf8, 1)
+        .setScrollFactor(0)
+        .setDepth(hudDepth + 2)
+        .setVisible(this.minimapVisible)
+        .setInteractive({ useHandCursor: true });
+      marker.on("pointerover", () => this.showTooltip(["Portal", portal.name, portal.targetMapId], x - 12, y + 110));
+      marker.on("pointerout", () => this.clearTooltip());
+      this.minimapObjects.push(marker);
+    });
+
+    map.npcIds.slice(0, 4).forEach((npcId, index) => {
+      const npc = dataRegistry.getNpc(npcId);
+      const marker = this.add.circle(x + 32 + index * 24, y + 48, 3, 0xfacc15, 1)
+        .setScrollFactor(0)
+        .setDepth(hudDepth + 2)
+        .setVisible(this.minimapVisible)
+        .setInteractive({ useHandCursor: true });
+      marker.on("pointerover", () => this.showTooltip(["NPC", npc.name, npc.serviceType], x - 12, y + 110));
+      marker.on("pointerout", () => this.clearTooltip());
+      this.minimapObjects.push(marker);
+    });
+
+    this.addQuestMarkersToMinimap(state, x, y);
+    this.minimapPlayerMarker = this.add.circle(x + 76, y + 60, 5, 0x22c55e, 1)
+      .setStrokeStyle(1, 0xf8fafc, 0.9)
+      .setScrollFactor(0)
+      .setDepth(hudDepth + 3)
+      .setVisible(this.minimapVisible);
+    this.minimapObjects.push(this.minimapPlayerMarker);
+    this.updateMinimapPlayerMarker();
+
+    this.game.canvas.dataset.minimapShape = `${map.type}:${map.portals.length}:${map.npcIds.length}`;
+    this.game.canvas.dataset.minimapMarkers = [
+      "player",
+      ...map.npcIds.map((id) => `npc:${id}`),
+      ...map.portals.map((portal) => `portal:${portal.targetMapId}`),
+      ...this.getQuestMapMarkers(state).map((marker) => `quest:${marker.label || marker.mapId}`),
+    ].join("|");
+  }
+
+  private addMinimapText(x: number, y: number, text: string, color: string): void {
+    const object = this.add.text(x, y, text, {
+      color,
+      fontFamily: "Arial, sans-serif",
+      fontSize: "11px",
+    })
+      .setScrollFactor(0)
+      .setDepth(hudDepth + 2)
+      .setVisible(this.minimapVisible);
+    this.minimapObjects.push(object);
+  }
+
+  private addQuestMarkersToMinimap(state: GameState, x: number, y: number): void {
+    const markers = this.getQuestMapMarkers(state).filter((marker) => marker.mapId === state.currentMapId);
+
+    markers.slice(0, 3).forEach((marker, index) => {
+      const object = this.add.star(x + 110 + index * 10, y + 48, 5, 3, 6, 0xf97316, 1)
+        .setScrollFactor(0)
+        .setDepth(hudDepth + 2)
+        .setVisible(this.minimapVisible)
+        .setInteractive({ useHandCursor: true });
+      object.on("pointerover", () => this.showTooltip(["Quest", marker.label || marker.mapId, `${marker.x},${marker.y}`], x - 12, y + 110));
+      object.on("pointerout", () => this.clearTooltip());
+      this.minimapObjects.push(object);
+    });
+  }
+
+  private clearMinimap(): void {
+    for (const object of this.minimapObjects) {
+      object.destroy();
+    }
+
+    this.minimapObjects = [];
+    this.minimapPlayerMarker = undefined;
+  }
+
+  private updateMinimapPlayerMarker(): void {
+    if (!this.minimapPlayerMarker || !this.state) {
+      return;
+    }
+
+    const x = Number(this.scale.width || 800) - 172;
+    const y = 20;
+    const playerX = Number(this.game.canvas.dataset.playerX ?? this.state.position.x);
+    const playerY = Number(this.game.canvas.dataset.playerY ?? this.state.position.y);
+    const markerX = x + 16 + Phaser.Math.Clamp(playerX / 1024, 0, 1) * 120;
+    const markerY = y + 34 + Phaser.Math.Clamp(playerY / 768, 0, 1) * 52;
+
+    this.minimapPlayerMarker.setPosition(markerX, markerY);
+    this.game.canvas.dataset.minimapPlayer = `${Math.round(markerX)},${Math.round(markerY)}`;
+  }
+
+  private syncVitalBars(): void {
+    if (!this.state) {
+      return;
+    }
+
+    const hpWidth = Math.round(88 * (this.state.character.stats.hp / this.state.character.stats.maxHp));
+    const spWidth = Math.round(88 * (this.state.character.stats.sp / this.state.character.stats.maxSp));
+    this.hpBarFill?.setDisplaySize(Math.max(0, hpWidth), 6);
+    this.spBarFill?.setDisplaySize(Math.max(0, spWidth), 6);
+    this.game.canvas.dataset.hpBarWidth = String(hpWidth);
+    this.game.canvas.dataset.spBarWidth = String(spWidth);
+  }
+
+  private syncHudStatusIcons(state: GameState, dataRegistry: DataRegistry): void {
+    this.game.canvas.dataset.hudStatusIcons = state.character.statusEffects
+      .map((effect) => `${dataRegistry.getStatusEffect(effect.id).visualIcon}:${effect.stacks}`)
+      .join("|");
+  }
+
+  private showTooltip(lines: string[], x: number, y: number): void {
+    this.clearTooltip();
+    const width = 238;
+    const height = Math.max(52, 22 + lines.length * 18);
+    const clampedX = Phaser.Math.Clamp(x, 8, Number(this.scale.width || 800) - width - 8);
+    const clampedY = Phaser.Math.Clamp(y, 8, Number(this.scale.height || 600) - height - 8);
+    const box = this.add.rectangle(clampedX, clampedY, width, height, 0x0f172a, 0.96)
+      .setOrigin(0)
+      .setStrokeStyle(1, 0xfacc15, 0.9)
+      .setScrollFactor(0)
+      .setDepth(panelDepth + 20);
+    const text = this.add.text(clampedX + 12, clampedY + 10, lines.join("\n"), {
+      color: "#f8fafc",
+      fontFamily: "Arial, sans-serif",
+      fontSize: "12px",
+      lineSpacing: 4,
+    })
+      .setScrollFactor(0)
+      .setDepth(panelDepth + 21);
+    this.tooltipObjects.push(box, text);
+    this.game.canvas.dataset.tooltip = "visible";
+    this.game.canvas.dataset.tooltipText = lines.join("|");
+    this.game.canvas.dataset.tooltipBounds = `${Math.round(clampedX)},${Math.round(clampedY)},${width},${height}`;
+  }
+
+  private clearTooltip(): void {
+    for (const object of this.tooltipObjects) {
+      object.destroy();
+    }
+
+    this.tooltipObjects = [];
+    this.game.canvas.dataset.tooltip = "hidden";
+    this.game.canvas.dataset.tooltipText = "";
+    this.game.canvas.dataset.tooltipBounds = "";
+  }
+
+  private showTooltipForHotbar(slot: number, x: number, y: number): void {
+    const assignment = this.state?.character.hotbar.find((entry) => entry.slot === slot);
+
+    if (!assignment || !this.dataRegistry) {
+      this.showTooltip([`Slot ${slot}`, "Empty"], x, y);
+      return;
+    }
+
+    if (assignment.type === "skill") {
+      const skill = this.dataRegistry.getSkill(assignment.id);
+      this.showTooltip([`Slot ${slot}: ${skill.name}`, `${skill.type} ${skill.targetingMode}`, `SP ${skill.spCost} CD ${skill.cooldown}ms`, this.getSkillEffectText(skill)], x, y);
+      return;
+    }
+
+    const item = this.dataRegistry.getItem(assignment.id);
+    this.showTooltip([`Slot ${slot}: ${item.name}`, item.type, getVisibleItemDescription(this.state!.inventory, item)], x, y);
+  }
+
+  private getHotbarIconLabel(type: "skill" | "item", id: string): string {
+    if (type === "item") {
+      return "POT";
+    }
+
+    return id.split("-").map((part) => part[0]?.toUpperCase() ?? "").join("").slice(0, 3);
+  }
+
+  private getQuestMapMarkers(state: GameState): QuestDefinition["mapMarkers"] {
+    if (!this.dataRegistry) {
+      return [];
+    }
+
+    return state.quests.activeQuestIds
+      .flatMap((questId) => this.dataRegistry!.getQuest(questId).mapMarkers);
+  }
+
+  private getDiscoveredMaps(state: GameState, dataRegistry: DataRegistry): ReturnType<DataRegistry["getMap"]>[] {
+    const currentMap = dataRegistry.getMap(state.currentMapId);
+    const currentRegion = dataRegistry.getRegion(currentMap.regionId);
+    const maps = dataRegistry.getMaps()
+      .filter((map) => map.regionId === currentRegion.id || state.worldFlags[`map:${map.id}:discovered`]);
+
+    return maps.length > 0 ? maps : [currentMap];
+  }
+
   private createTargetFrame(): void {
     this.targetFrame = this.add.rectangle(400, 44, 250, 48, 0x111827, 0.78)
       .setStrokeStyle(2, 0xfacc15, 0.95)
@@ -2491,6 +2880,16 @@ export class UIScene extends Phaser.Scene {
     })
       .setScrollFactor(0)
       .setDepth(hudDepth + 1)
+      .setVisible(false);
+    this.targetHpBarBackground = this.add.rectangle(398, 58, 126, 8, 0x111827, 0.95)
+      .setOrigin(0, 0.5)
+      .setScrollFactor(0)
+      .setDepth(hudDepth + 1)
+      .setVisible(false);
+    this.targetHpBarFill = this.add.rectangle(398, 58, 1, 6, 0xef4444, 1)
+      .setOrigin(0, 0.5)
+      .setScrollFactor(0)
+      .setDepth(hudDepth + 2)
       .setVisible(false);
     this.clearTargetFrame();
   }
@@ -2579,23 +2978,34 @@ export class UIScene extends Phaser.Scene {
   }
 
   private setTargetFrame(enemyId: string, name: string, hp: number, maxHp: number): void {
+    const hpWidth = Math.round(126 * (hp / maxHp));
     this.targetFrame?.setVisible(true);
     this.targetNameText?.setText(name).setVisible(true);
     this.targetHpText?.setText(`HP ${hp}/${maxHp}`).setVisible(true);
+    this.targetHpBarBackground?.setVisible(true);
+    this.targetHpBarFill?.setDisplaySize(Math.max(0, hpWidth), 6).setVisible(true);
     this.game.canvas.dataset.targetFrame = "visible";
     this.game.canvas.dataset.targetEnemyId = enemyId;
     this.game.canvas.dataset.targetEnemyName = name;
     this.game.canvas.dataset.targetEnemyHp = `${hp}/${maxHp}`;
+    this.game.canvas.dataset.targetEnemyHpBarWidth = String(hpWidth);
+    this.game.canvas.dataset.targetEnemyStatusEffects = this.game.canvas.dataset.targetEnemyStatusEffects ?? "";
+    this.game.canvas.dataset.targetEnemyStatusIcons = this.game.canvas.dataset.targetEnemyStatusIcons ?? "";
   }
 
   private clearTargetFrame(): void {
     this.targetFrame?.setVisible(false);
     this.targetNameText?.setVisible(false);
     this.targetHpText?.setVisible(false);
+    this.targetHpBarBackground?.setVisible(false);
+    this.targetHpBarFill?.setVisible(false);
     this.game.canvas.dataset.targetFrame = "hidden";
     this.game.canvas.dataset.targetEnemyId = "";
     this.game.canvas.dataset.targetEnemyName = "";
     this.game.canvas.dataset.targetEnemyHp = "";
+    this.game.canvas.dataset.targetEnemyHpBarWidth = "";
+    this.game.canvas.dataset.targetEnemyStatusEffects = "";
+    this.game.canvas.dataset.targetEnemyStatusIcons = "";
   }
 
   private setBossFrame(name: string, hp: number, maxHp: number, phase: number): void {
@@ -2966,6 +3376,9 @@ export class UIScene extends Phaser.Scene {
     this.game.canvas.dataset.playerHp = `${state.character.stats.hp}/${state.character.stats.maxHp}`;
     this.game.canvas.dataset.playerSp = `${state.character.stats.sp}/${state.character.stats.maxSp}`;
     this.game.canvas.dataset.playerStatPoints = String(state.playerProfile.statPoints);
+    this.hpText?.setText(`HP ${state.character.stats.hp}/${state.character.stats.maxHp}`);
+    this.spText?.setText(`SP ${state.character.stats.sp}/${state.character.stats.maxSp}`);
+    this.syncVitalBars();
   }
 
   private syncHuntingBoardDataset(
