@@ -607,6 +607,10 @@ function normalizeSettings(rawSettings: unknown, fallback: GameState["settings"]
     musicMuted: typeof source.musicMuted === "boolean" ? source.musicMuted : fallback.musicMuted,
     sfxMuted: typeof source.sfxMuted === "boolean" ? source.sfxMuted : fallback.sfxMuted,
     textSpeed: numberValue(source.textSpeed, fallback.textSpeed),
+    damageNumbersEnabled: typeof source.damageNumbersEnabled === "boolean"
+      ? source.damageNumbersEnabled
+      : fallback.damageNumbersEnabled,
+    visualEffectsIntensity: source.visualEffectsIntensity === "reduced" ? "reduced" : fallback.visualEffectsIntensity,
   };
 }
 

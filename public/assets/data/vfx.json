@@ -1,0 +1,118 @@
+[
+  {
+    "id": "weapon-hit",
+    "kind": "burst",
+    "color": "#f8fafc",
+    "secondaryColor": "#facc15",
+    "durationMs": 360,
+    "radius": 24,
+    "rise": 8,
+    "alpha": 0.9,
+    "scale": 1,
+    "depth": 38
+  },
+  {
+    "id": "critical-hit",
+    "kind": "ring",
+    "color": "#fb7185",
+    "secondaryColor": "#fde68a",
+    "durationMs": 520,
+    "radius": 34,
+    "rise": 10,
+    "alpha": 1,
+    "scale": 1.25,
+    "depth": 39
+  },
+  {
+    "id": "miss",
+    "kind": "text",
+    "color": "#cbd5e1",
+    "durationMs": 560,
+    "radius": 18,
+    "rise": 34,
+    "alpha": 0.95,
+    "scale": 1,
+    "depth": 41
+  },
+  {
+    "id": "damage-number",
+    "kind": "text",
+    "color": "#f97316",
+    "durationMs": 620,
+    "radius": 18,
+    "rise": 42,
+    "alpha": 1,
+    "scale": 1,
+    "depth": 42
+  },
+  {
+    "id": "critical-number",
+    "kind": "text",
+    "color": "#fb7185",
+    "secondaryColor": "#fef3c7",
+    "durationMs": 720,
+    "radius": 20,
+    "rise": 48,
+    "alpha": 1,
+    "scale": 1.28,
+    "depth": 43
+  },
+  {
+    "id": "healing-number",
+    "kind": "text",
+    "color": "#4ade80",
+    "durationMs": 620,
+    "radius": 18,
+    "rise": 40,
+    "alpha": 1,
+    "scale": 1,
+    "depth": 42
+  },
+  {
+    "id": "status-tick",
+    "kind": "ring",
+    "color": "#a78bfa",
+    "durationMs": 420,
+    "radius": 26,
+    "rise": 10,
+    "alpha": 0.85,
+    "scale": 1,
+    "depth": 37
+  },
+  {
+    "id": "skill-cast",
+    "kind": "ring",
+    "color": "#38bdf8",
+    "secondaryColor": "#e0f2fe",
+    "durationMs": 480,
+    "radius": 32,
+    "rise": 8,
+    "alpha": 0.9,
+    "scale": 1.1,
+    "depth": 37
+  },
+  {
+    "id": "rare-loot-beam",
+    "kind": "beam",
+    "color": "#60a5fa",
+    "secondaryColor": "#dbeafe",
+    "durationMs": 1500,
+    "radius": 34,
+    "rise": 88,
+    "alpha": 0.72,
+    "scale": 1,
+    "depth": 15
+  },
+  {
+    "id": "legendary-loot-beam",
+    "kind": "beam",
+    "color": "#facc15",
+    "secondaryColor": "#fb7185",
+    "durationMs": 1900,
+    "radius": 44,
+    "rise": 112,
+    "alpha": 0.85,
+    "scale": 1.2,
+    "depth": 15
+  }
+]

@@ -205,6 +205,20 @@ const validFiles: Record<string, unknown[]> = {
       dispelRules: { dispellable: true, categories: ["boon"] },
     },
   ],
+  "vfx.json": [
+    {
+      id: "weapon-hit",
+      kind: "burst",
+      color: "#f8fafc",
+      secondaryColor: "#facc15",
+      durationMs: 360,
+      radius: 24,
+      rise: 8,
+      alpha: 0.9,
+      scale: 1,
+      depth: 38,
+    },
+  ],
   "xp-tables.json": [{ id: "standard", levels: { "1": 0, "2": 100 } }],
   "difficulties.json": [{ id: "normal", name: "Normal" }],
 };
@@ -394,6 +408,13 @@ describe("loadDataRegistry", () => {
       visualIcon: "icon-status-guarded",
       dispelRules: { dispellable: true, categories: ["boon"] },
     });
+    expect(registry.getVfx("weapon-hit")).toMatchObject({
+      kind: "burst",
+      color: "#f8fafc",
+      durationMs: 360,
+      radius: 24,
+    });
+    expect(registry.getVfxDefinitions().map((entry) => entry.id)).toEqual(["weapon-hit"]);
     expect(registry.getDifficulty("normal").enemyHpMultiplier).toBe(1);
   });
 

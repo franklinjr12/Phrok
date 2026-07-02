@@ -443,6 +443,19 @@ export interface StatusEffectDefinition {
   };
 }
 
+export interface VfxDefinition {
+  id: string;
+  kind: "ring" | "burst" | "beam" | "text";
+  color: string;
+  secondaryColor?: string;
+  durationMs: number;
+  radius: number;
+  rise: number;
+  alpha: number;
+  scale: number;
+  depth: number;
+}
+
 export interface XpTableDefinition {
   id: string;
   levels: Record<string, number>;
@@ -471,6 +484,7 @@ export interface DataFileMap {
   supports: SupportDefinition;
   quests: QuestDefinition;
   statusEffects: StatusEffectDefinition;
+  vfx: VfxDefinition;
   xpTables: XpTableDefinition;
   difficulties: DifficultyDefinition;
 }

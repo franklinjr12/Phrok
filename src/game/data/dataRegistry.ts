@@ -20,6 +20,7 @@ import type {
   SkillDefinition,
   StatusEffectDefinition,
   SupportDefinition,
+  VfxDefinition,
   XpTableDefinition,
 } from "../types/dataDefinitions";
 import {
@@ -175,6 +176,14 @@ export class DataRegistry {
     return this.getById("statusEffects", id);
   }
 
+  getVfx(id: string): VfxDefinition {
+    return this.getById("vfx", id);
+  }
+
+  getVfxDefinitions(): VfxDefinition[] {
+    return Array.from(this.collections.vfx.values());
+  }
+
   getXpTable(id: string): XpTableDefinition {
     return this.getById("xpTables", id);
   }
@@ -266,6 +275,7 @@ function createEmptyCollections(): DataCollections {
     supports: new Map(),
     quests: new Map(),
     statusEffects: new Map(),
+    vfx: new Map(),
     xpTables: new Map(),
     difficulties: new Map(),
   };
@@ -287,6 +297,7 @@ const dataFiles = [
   { key: "supports", fileName: "supports.json", validate: validateSupport },
   { key: "quests", fileName: "quests.json", validate: validateQuest },
   { key: "statusEffects", fileName: "status-effects.json", validate: validateStatusEffect },
+  { key: "vfx", fileName: "vfx.json", validate: validateVfx },
   { key: "xpTables", fileName: "xp-tables.json", validate: validateXpTable },
   { key: "difficulties", fileName: "difficulties.json", validate: validateDifficulty },
 ] satisfies DataFileDescriptor<DataCollectionKey>[];
@@ -1171,6 +1182,28 @@ function validateStatusEffect(source: Record<string, unknown>, fileName: string)
       categories: optionalStringArray(dispelRules, "categories"),
     },
   };
+}
+
+function validateVfx(source: Record<string, unknown>, fileName: string): VfxDefinition {
+  const id = readId(source, fileName);
+  const kind = optionalString(source, "kind", "burst");
+
+  return {
+    id,
+    kind: normalizeVfxKind(kind),
+    color: optionalString(source, "color", "#f8fafc"),
+    secondaryColor: optionalString(source, "secondaryColor", "") || undefined,
+    durationMs: Math.max(50, optionalNumber(source, "durationMs", 500)),
+    radius: Math.max(1, optionalNumber(source, "radius", 24)),
+    rise: optionalNumber(source, "rise", 24),
+    alpha: Math.min(1, Math.max(0.05, optionalNumber(source, "alpha", 0.9))),
+    scale: Math.max(0.1, optionalNumber(source, "scale", 1)),
+    depth: optionalNumber(source, "depth", 40),
+  };
+}
+
+function normalizeVfxKind(value: string): VfxDefinition["kind"] {
+  return value === "ring" || value === "beam" || value === "text" ? value : "burst";
 }
 
 function normalizeStatusType(value: string): StatusEffectDefinition["type"] {

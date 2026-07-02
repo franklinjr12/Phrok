@@ -246,6 +246,8 @@ export interface SettingsState {
   musicMuted: boolean;
   sfxMuted: boolean;
   textSpeed: number;
+  damageNumbersEnabled: boolean;
+  visualEffectsIntensity: "full" | "reduced";
 }
 
 export interface PositionState {

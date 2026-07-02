@@ -52,7 +52,7 @@ import {
   isChallengeDungeonAvailable,
   startClassTrial,
 } from "../systems/challengeDungeons";
-import { getEquipmentStats } from "../systems/equipment";
+import { getEquipmentStats, getItemRarity } from "../systems/equipment";
 import {
   decideEnemyAiIntent,
   getEffectiveEnemyRespawnMs,
@@ -61,6 +61,7 @@ import {
   type SpawnZoneDefinition,
 } from "../systems/enemySpawning";
 import { applyPassiveSkills, expireSkillBuffs, useHotbarSlot as useHotbarSlotAction, type SkillExecutionTarget } from "../systems/skills";
+import { VfxManager } from "../systems/vfxManager";
 import {
   applyStatusEffect,
   emitStatusEffectsChanged,
@@ -158,6 +159,9 @@ export class WorldScene extends Phaser.Scene {
   private unsubscribeStatsChanged?: () => void;
   private unsubscribeStatResetRequested?: () => void;
   private unsubscribeHotbarActionRequested?: () => void;
+  private unsubscribeConsumableUsed?: () => void;
+  private unsubscribeSupportChanged?: () => void;
+  private vfxManager?: VfxManager;
   private playerAttackTimerMs = playerAttackCooldownMs;
   private isCameraFollowingPlayer = false;
   private isTransitioning = false;
@@ -193,6 +197,12 @@ export class WorldScene extends Phaser.Scene {
     this.spawnZones = [];
     this.enemy = undefined;
     this.attackTarget = undefined;
+    state.settings.damageNumbersEnabled = state.settings.damageNumbersEnabled !== false;
+    state.settings.visualEffectsIntensity = state.settings.visualEffectsIntensity ?? "full";
+    this.vfxManager = new VfxManager(this, dataRegistry.getVfxDefinitions(), this.game.canvas, {
+      damageNumbersEnabled: state.settings.damageNumbersEnabled,
+      intensity: state.settings.visualEffectsIntensity,
+    });
     this.assistDebugGraphics = undefined;
     this.assistDebugVisible = false;
     this.pendingNpcInteraction = undefined;
@@ -282,6 +292,20 @@ export class WorldScene extends Phaser.Scene {
     this.unsubscribeHotbarActionRequested = eventBus.on("hotbarActionRequested", ({ slot }) => {
       this.useHotbarSlot(slot);
     });
+    this.unsubscribeConsumableUsed = eventBus.on("consumableUsed", (result) => {
+      if (!result.success || result.restoredHp <= 0 || !this.player) {
+        return;
+      }
+
+      this.vfxManager?.spawnCombatText("healing", result.restoredHp, this.player.sprite.x, this.player.sprite.y - 34);
+    });
+    this.unsubscribeSupportChanged = eventBus.on("supportChanged", ({ actionId }) => {
+      if (!actionId || !this.player) {
+        return;
+      }
+
+      this.vfxManager?.spawn("skill-cast", this.player.sprite.x, this.player.sprite.y + 8);
+    });
     audioManager.initialize(state, this.game.canvas);
     this.input.keyboard?.on("keydown-F9", this.toggleAssistDebugOverlay, this);
     this.input.keyboard?.on("keydown-V", this.handleChallengeDungeonStart, this);
@@ -292,12 +316,17 @@ export class WorldScene extends Phaser.Scene {
     this.input.keyboard?.on("keydown-PLUS", this.increaseSfxVolume, this);
     this.input.keyboard?.on("keydown-N", this.toggleMusicMute, this);
     this.input.keyboard?.on("keydown-J", this.toggleSfxMute, this);
+    this.input.keyboard?.on("keydown-Y", this.toggleDamageNumbers, this);
+    this.input.keyboard?.on("keydown-U", this.toggleVfxIntensity, this);
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
       this.unsubscribeDialogueClosed?.();
       this.unsubscribeEquipmentChanged?.();
       this.unsubscribeStatsChanged?.();
       this.unsubscribeStatResetRequested?.();
       this.unsubscribeHotbarActionRequested?.();
+      this.unsubscribeConsumableUsed?.();
+      this.unsubscribeSupportChanged?.();
+      this.vfxManager?.destroyAll();
       this.input.keyboard?.off("keydown-F9", this.toggleAssistDebugOverlay, this);
       this.input.keyboard?.off("keydown-V", this.handleChallengeDungeonStart, this);
       this.input.keyboard?.off("keydown-T", this.handleClassTrialAction, this);
@@ -307,6 +336,8 @@ export class WorldScene extends Phaser.Scene {
       this.input.keyboard?.off("keydown-PLUS", this.increaseSfxVolume, this);
       this.input.keyboard?.off("keydown-N", this.toggleMusicMute, this);
       this.input.keyboard?.off("keydown-J", this.toggleSfxMute, this);
+      this.input.keyboard?.off("keydown-Y", this.toggleDamageNumbers, this);
+      this.input.keyboard?.off("keydown-U", this.toggleVfxIntensity, this);
       this.input.off("pointerdown", this.handlePointerDown, this);
     });
 
@@ -784,6 +815,7 @@ export class WorldScene extends Phaser.Scene {
     });
 
     this.damageEnemy(enemy, result.finalDamage);
+    this.spawnHitVfx(enemy, result.finalDamage, result.hit, result.critical);
     this.syncCombatFormulaDataset(result.finalDamage, result.hit, result.critical);
     eventBus.emit("enemyHealthChanged", {
       enemyId: enemy.id,
@@ -837,6 +869,7 @@ export class WorldScene extends Phaser.Scene {
       : `${slot}:${result.skillId}:failed:${result.reason}`;
     if (result.success) {
       eventBus.emit("skillUsed", { skillId: result.skillId, actorId: this.state.character.id });
+      this.spawnSkillVfx(result.damage);
     }
     this.game.canvas.dataset.skillCooldowns = Object.entries(this.state.character.skills.cooldowns)
       .map(([skillId, readyAt]) => `${skillId}:${readyAt}`)
@@ -894,6 +927,37 @@ export class WorldScene extends Phaser.Scene {
 
   private toggleSfxMute(): void {
     audioManager.toggleSfxMute();
+  }
+
+  private toggleDamageNumbers(): void {
+    if (!this.state) {
+      return;
+    }
+
+    this.state.settings.damageNumbersEnabled = !this.state.settings.damageNumbersEnabled;
+    this.syncVfxSettings();
+  }
+
+  private toggleVfxIntensity(): void {
+    if (!this.state) {
+      return;
+    }
+
+    this.state.settings.visualEffectsIntensity = this.state.settings.visualEffectsIntensity === "reduced" ? "full" : "reduced";
+    this.syncVfxSettings();
+  }
+
+  private syncVfxSettings(): void {
+    if (!this.state) {
+      return;
+    }
+
+    this.vfxManager?.setOptions({
+      damageNumbersEnabled: this.state.settings.damageNumbersEnabled,
+      intensity: this.state.settings.visualEffectsIntensity,
+    });
+    this.game.canvas.dataset.damageNumbersEnabled = String(this.state.settings.damageNumbersEnabled);
+    this.game.canvas.dataset.vfxIntensity = this.state.settings.visualEffectsIntensity;
   }
 
   private createSkillTarget(): SkillExecutionTarget | undefined {
@@ -971,6 +1035,9 @@ export class WorldScene extends Phaser.Scene {
     this.game.canvas.dataset.lastSupportAction = result.success
       ? `${result.supportId}:${result.actionId}:success:hp:${result.restoredHp}:cleanse:${result.cleansedStatusIds.join(",")}:status:${result.appliedStatusEffectIds.join(",")}`
       : `${result.supportId}:${result.actionId}:failed`;
+    if (result.success && result.restoredHp > 0 && this.player) {
+      this.vfxManager?.spawnCombatText("healing", result.restoredHp, this.player.sprite.x, this.player.sprite.y - 34);
+    }
     this.game.canvas.dataset.playerHp = `${this.state.character.stats.hp}/${this.state.character.stats.maxHp}`;
     this.game.canvas.dataset.playerStatusEffects = getStatusSummary(
       this.state.character.statusEffects,
@@ -992,6 +1059,8 @@ export class WorldScene extends Phaser.Scene {
 
     if (result.damage > 0) {
       this.state.character.stats.hp = Math.max(0, this.state.character.stats.hp - result.damage);
+      this.vfxManager?.spawnCombatText("damage", result.damage, this.player?.sprite.x ?? 0, (this.player?.sprite.y ?? 0) - 34);
+      this.vfxManager?.spawn("status-tick", this.player?.sprite.x ?? 0, this.player?.sprite.y ?? 0);
       eventBus.emit("playerHealthChanged", {
         hp: this.state.character.stats.hp,
         maxHp: this.state.character.stats.maxHp,
@@ -1026,6 +1095,8 @@ export class WorldScene extends Phaser.Scene {
 
       if (result.damage > 0) {
         this.damageEnemy(enemy, result.damage, false);
+        this.vfxManager?.spawnCombatText("damage", result.damage, enemy.sprite.x, enemy.sprite.y - 38);
+        this.vfxManager?.spawn("status-tick", enemy.sprite.x, enemy.sprite.y);
         eventBus.emit("enemyHealthChanged", {
           enemyId: enemy.id,
           name: enemy.name,
@@ -1346,6 +1417,11 @@ export class WorldScene extends Phaser.Scene {
       .setOrigin(0.5)
       .setDepth(17);
 
+    if (drop.kind === "item") {
+      const rarity = getItemRarity(this.dataRegistry!.getItem(drop.itemId));
+      this.vfxManager?.spawnLootBeam(rarity, x, y);
+    }
+
     this.droppedLoot.push({ id, drop, marker, label });
     this.game.canvas.dataset.lastLootDrop = this.getLootDatasetValue(drop);
     this.game.canvas.dataset.pendingLootCount = String(this.droppedLoot.length);
@@ -1450,6 +1526,12 @@ export class WorldScene extends Phaser.Scene {
     });
 
     state.character.stats.hp = Math.max(0, state.character.stats.hp - result.finalDamage);
+    this.vfxManager?.spawnCombatText(
+      result.hit ? "damage" : "miss",
+      result.finalDamage,
+      this.player?.sprite.x ?? enemy.sprite.x,
+      (this.player?.sprite.y ?? enemy.sprite.y) - 34,
+    );
     eventBus.emit("playerHealthChanged", {
       hp: state.character.stats.hp,
       maxHp: state.character.stats.maxHp,
@@ -1940,6 +2022,44 @@ export class WorldScene extends Phaser.Scene {
 
   private getEnemyVisualMarkerDataset(enemy: EnemyEntity): string {
     return enemy.boss ? "boss-label" : enemy.elite ? "elite-label" : "none";
+  }
+
+  private spawnHitVfx(enemy: EnemyEntity, damage: number, hit: boolean, critical: boolean): void {
+    if (!hit) {
+      this.vfxManager?.spawnCombatText("miss", 0, enemy.sprite.x, enemy.sprite.y - 38);
+      return;
+    }
+
+    this.vfxManager?.spawn(critical ? "critical-hit" : "weapon-hit", enemy.sprite.x, enemy.sprite.y);
+    this.vfxManager?.spawnCombatText(critical ? "critical" : "damage", damage, enemy.sprite.x, enemy.sprite.y - 38);
+    this.game.canvas.dataset.lastHitReaction = `${enemy.id}:${critical ? "critical" : "hit"}:${damage}`;
+
+    if (enemy.isAlive) {
+      this.tweens.add({
+        targets: enemy.sprite,
+        scaleX: 1.08,
+        scaleY: 0.92,
+        yoyo: true,
+        duration: 70,
+        ease: "Sine.easeOut",
+      });
+    }
+  }
+
+  private spawnSkillVfx(damage: number): void {
+    const target = this.attackTarget;
+
+    if (this.player) {
+      this.vfxManager?.spawn("skill-cast", this.player.sprite.x, this.player.sprite.y + 8);
+      this.game.canvas.dataset.lastPlayerAnimation = `cast:${this.player.direction}`;
+    }
+
+    if (target?.isAlive || target?.hp === 0) {
+      this.vfxManager?.spawn("weapon-hit", target.sprite.x, target.sprite.y);
+      if (damage > 0) {
+        this.vfxManager?.spawnCombatText("damage", damage, target.sprite.x, target.sprite.y - 38);
+      }
+    }
   }
 
   private syncCombatFormulaDataset(damage: number, hit: boolean, critical: boolean): void {

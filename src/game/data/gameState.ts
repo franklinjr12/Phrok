@@ -100,6 +100,8 @@ export function createNewGameState(): GameState {
       musicMuted: false,
       sfxMuted: false,
       textSpeed: 1,
+      damageNumbersEnabled: true,
+      visualEffectsIntensity: "full",
     },
   };
 
