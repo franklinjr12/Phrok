@@ -6,7 +6,7 @@ test("world supports target selection and auto-attack combat", async ({ page }) 
 
   const canvas = await enterMeadows(page);
   await expect(canvas).toHaveAttribute("data-spawned-monster", "green-jelly");
-  await expect(canvas).toHaveAttribute("data-enemy-texture-key", "enemy-green-jelly-placeholder");
+  await expect(canvas).toHaveAttribute("data-enemy-texture-key", "enemy-green-jelly");
   await expect(canvas).toHaveAttribute("data-current-map-name", "Crownfield Meadows");
   await expect(canvas).toHaveAttribute("data-spawn-name", "TownGateSpawn");
   await expect(canvas).toHaveAttribute("data-last-autosave-slot", "1");
@@ -70,7 +70,7 @@ test("enemy uses the matching monster sprite when it is preloaded", async ({ pag
   await expect(canvas).toHaveAttribute("data-enemy-texture-key", "enemy-field-hopper");
 });
 
-test("enemy falls back to the placeholder when no monster sprite exists", async ({ page }) => {
+test("enemy falls back to core enemy art when no monster sprite exists", async ({ page }) => {
   await page.route("**/assets/data/monsters.json", async (route) => {
     const response = await route.fetch();
     const monsters = await response.json();
@@ -105,7 +105,7 @@ test("enemy falls back to the placeholder when no monster sprite exists", async 
   const canvas = await enterMeadows(page);
 
   await expect(canvas).toHaveAttribute("data-spawned-monster", "missing-sprite");
-  await expect(canvas).toHaveAttribute("data-enemy-texture-key", "enemy-green-jelly-placeholder");
+  await expect(canvas).toHaveAttribute("data-enemy-texture-key", "enemy-green-jelly");
 });
 
 test("hotbar skill key fails without target and executes against selected enemies", async ({ page }) => {

@@ -2,6 +2,7 @@ import Phaser from "phaser";
 import { RegistryKeys } from "../constants/registryKeys";
 import { SceneKeys } from "../constants/sceneKeys";
 import { createCharacterGameState } from "../data/gameState";
+import { getPlayerTextureKey } from "../entities/PlayerEntity";
 import { writeSaveSlot } from "../systems/autosave";
 import type { DataRegistry } from "../data/dataRegistry";
 import type { ClassDefinition } from "../types/dataDefinitions";
@@ -35,6 +36,7 @@ export class CharacterCreationScene extends Phaser.Scene {
   private characterName = "Adventurer";
   private isNameActive = false;
   private nameText?: Phaser.GameObjects.Text;
+  private appearanceSprite?: Phaser.GameObjects.Sprite;
   private statsText?: Phaser.GameObjects.Text;
   private previewText?: Phaser.GameObjects.Text;
   private confirmFrame?: Phaser.GameObjects.Rectangle;
@@ -83,26 +85,23 @@ export class CharacterCreationScene extends Phaser.Scene {
       this.game.canvas.dataset.nameInputActive = "true";
     });
 
-    this.drawAppearancePlaceholder(60, 190);
+    this.drawAppearancePreview(60, 190);
     this.drawClassButtons(250, 190);
     this.drawStatsPanel(60, 410);
     this.drawPreviewPanel(470, 116);
     this.drawConfirmButton(520, 520);
   }
 
-  private drawAppearancePlaceholder(x: number, y: number): void {
+  private drawAppearancePreview(x: number, y: number): void {
     this.add.text(x, y - 28, "Appearance", smallTextStyle);
     this.add.rectangle(x, y, 160, 180, panelFill, 1)
       .setOrigin(0, 0)
       .setStrokeStyle(2, panelStroke);
-    this.add.circle(x + 80, y + 54, 28, 0xf8fafc, 1)
-      .setStrokeStyle(2, 0x0f172a);
-    this.add.rectangle(x + 80, y + 124, 72, 82, 0x4fd1c5, 1)
-      .setStrokeStyle(2, 0x0f172a);
-    this.add.text(x + 80, y + 162, "Preview", {
-      ...smallTextStyle,
-      color: "#0f172a",
-    }).setOrigin(0.5);
+    this.add.rectangle(x + 80, y + 104, 92, 116, 0x0f172a, 0.55)
+      .setStrokeStyle(1, 0x475569);
+    this.appearanceSprite = this.add.sprite(x + 80, y + 104, getPlayerTextureKey(this.selectedClass?.id ?? "swordsman"))
+      .setScale(2.2)
+      .setDepth(2);
   }
 
   private drawClassButtons(x: number, y: number): void {
@@ -221,6 +220,7 @@ export class CharacterCreationScene extends Phaser.Scene {
     const statsSummary = `HP ${stats.hp}  SP ${stats.sp}\nATK ${stats.attack}  DEF ${stats.defense}`;
 
     this.nameText?.setText(this.characterName || "Adventurer");
+    this.appearanceSprite?.setTexture(getPlayerTextureKey(playerClass.id));
     this.statsText?.setText(statsSummary);
     this.previewText?.setText([
       playerClass.name,

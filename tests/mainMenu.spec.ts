@@ -8,21 +8,39 @@ test("main menu buttons respond to pointer input", async ({ page }) => {
   await expect(canvas).toHaveAttribute("data-scene", "main-menu");
 
   await canvas.hover({ position: { x: 400, y: 204 } });
-  await expect(canvas).toHaveAttribute("data-active-button", "Slot 1: New Game");
+  await expect(canvas).toHaveAttribute("data-active-button", "New Game");
 
   const bounds = await canvas.boundingBox();
   expect(bounds).not.toBeNull();
 
-  await page.mouse.move(bounds!.x + 400, bounds!.y + 432);
-  await expect(canvas).toHaveAttribute("data-active-button", "Options");
+  await page.mouse.move(bounds!.x + 400, bounds!.y + 354);
+  await expect(canvas).toHaveAttribute("data-active-button", "Settings");
 
   await page.mouse.down();
-  await expect(canvas).toHaveAttribute("data-pressed-button", "Options");
+  await expect(canvas).toHaveAttribute("data-pressed-button", "Settings");
 
   await page.mouse.up();
-  await expect(canvas).not.toHaveAttribute("data-pressed-button", "Options");
+  await expect(canvas).not.toHaveAttribute("data-pressed-button", "Settings");
 
   await expect(canvas).toBeVisible();
+});
+
+test("credits and quit actions are available from the final main menu", async ({ page }) => {
+  await startApp(page);
+
+  const canvas = page.locator("canvas");
+  await expect(canvas).toHaveAttribute("data-scene", "main-menu");
+  await expect(canvas).toHaveAttribute("data-menu-buttons", "New Game|Continue|Load Game|Settings|Credits|Quit");
+
+  await canvas.click({ position: { x: 400, y: 404 } });
+  await expect(canvas).toHaveAttribute("data-credits-screen", "visible");
+  await expect(canvas).toHaveAttribute("data-credits-entries", /Phaser 4\.1\.0.*MIT.*Original art/);
+
+  await canvas.click({ position: { x: 400, y: 500 } });
+  await expect(canvas).toHaveAttribute("data-credits-screen", "hidden");
+
+  await canvas.click({ position: { x: 400, y: 454 } });
+  await expect(canvas).toHaveAttribute("data-menu-quit-state", "requested");
 });
 
 test("settings open from main menu and carry into new save", async ({ page }) => {
@@ -30,7 +48,7 @@ test("settings open from main menu and carry into new save", async ({ page }) =>
 
   const canvas = page.locator("canvas");
   await expect(canvas).toHaveAttribute("data-scene", "main-menu");
-  await canvas.click({ position: { x: 400, y: 432 } });
+  await canvas.click({ position: { x: 400, y: 354 } });
   await expect(canvas).toHaveAttribute("data-settings-menu", "visible");
   await expect(canvas).toHaveAttribute("data-settings-buttons", /Music.*Difficulty.*Text/);
 
@@ -72,9 +90,10 @@ test("save slots support manual save and continue", async ({ page }) => {
   await page.reload();
   await expect(canvas).toHaveAttribute("data-scene", "main-menu");
   await expect(canvas).toHaveAttribute("data-save-slots", /1:used:Adventurer:Swordsman:Lv 1:Crownfield/);
-  await expect(canvas).toHaveAttribute("data-menu-buttons", /Slot 1: Adventurer - Swordsman Lv 1 - Crownfield/);
+  await expect(canvas).toHaveAttribute("data-save-slot-buttons", /Slot 1: Adventurer - Swordsman Lv 1 - Crownfield/);
+  await expect(canvas).toHaveAttribute("data-continue-state", "available");
 
-  await canvas.click({ position: { x: 400, y: 204 } });
+  await canvas.click({ position: { x: 400, y: 254 } });
   await expect(canvas).toHaveAttribute("data-scene", "world");
   await expect(canvas).toHaveAttribute("data-current-save-slot", "1");
   await expect(canvas).toHaveAttribute("data-current-map", "crownfield-town");

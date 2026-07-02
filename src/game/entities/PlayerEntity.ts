@@ -11,8 +11,15 @@ import {
 } from "./playerMovement";
 
 export const PlayerTextureKeys = {
-  Placeholder: "player-placeholder",
+  Archer: "player-archer",
+  Mage: "player-mage",
+  Swordsman: "player-swordsman",
+  Thief: "player-thief",
 } as const;
+
+export function getPlayerTextureKey(archetype: string): string {
+  return `player-${archetype}`;
+}
 
 export const PLAYER_SPEED = 220;
 
@@ -29,13 +36,13 @@ export class PlayerEntity {
 
   constructor(scene: Phaser.Scene, character: CharacterData, position: Vector2Like) {
     this.character = character;
-    this.sprite = scene.physics.add.sprite(position.x, position.y, PlayerTextureKeys.Placeholder);
+    this.sprite = scene.physics.add.sprite(position.x, position.y, this.getAvailableTextureKey(scene));
     this.sprite.setName("player");
     this.sprite.setDepth(20);
     this.sprite.setCollideWorldBounds(true);
     this.sprite.body?.setSize(24, 28);
     this.sprite.body?.setOffset(12, 20);
-    this.createPlaceholderAnimations(scene);
+    this.createClassAnimations(scene);
     this.applyAnimationState();
   }
 
@@ -82,15 +89,17 @@ export class PlayerEntity {
     this.applyAnimationState();
   }
 
-  private createPlaceholderAnimations(scene: Phaser.Scene): void {
+  private createClassAnimations(scene: Phaser.Scene): void {
+    const textureKey = this.getAvailableTextureKey(scene);
+
     for (const state of playerAnimationStates) {
       if (scene.anims.exists(state)) {
-        continue;
+        scene.anims.remove(state);
       }
 
       scene.anims.create({
         key: state,
-        frames: [{ key: PlayerTextureKeys.Placeholder }],
+        frames: [{ key: textureKey }],
         frameRate: 1,
         repeat: -1,
       });
@@ -104,5 +113,13 @@ export class PlayerEntity {
     this.sprite.setData("motionState", this.motionState);
     this.sprite.setData("animationState", expectedState);
     this.sprite.anims.play(expectedState, true);
+  }
+
+  private getAvailableTextureKey(scene: Phaser.Scene): string {
+    const textureKey = getPlayerTextureKey(this.character.archetype);
+
+    return scene.textures.exists(textureKey)
+      ? textureKey
+      : PlayerTextureKeys.Swordsman;
   }
 }

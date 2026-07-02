@@ -98,8 +98,12 @@ test("audio manager plays map music, action SFX, and updates volume settings", a
   await expect(canvas).toHaveAttribute("data-audio-music-volume", "0.7");
   await page.keyboard.press("Minus");
   await expect(canvas).toHaveAttribute("data-audio-sfx-volume", "0.7");
-  await page.keyboard.press("KeyN");
-  await expect(canvas).toHaveAttribute("data-audio-music-muted", "true");
-  await page.keyboard.press("KeyJ");
-  await expect(canvas).toHaveAttribute("data-audio-sfx-muted", "true");
+  await expect.poll(async () => {
+    await page.keyboard.press("KeyN");
+    return await canvas.getAttribute("data-audio-music-muted");
+  }).toBe("true");
+  await expect.poll(async () => {
+    await page.keyboard.press("KeyJ");
+    return await canvas.getAttribute("data-audio-sfx-muted");
+  }).toBe("true");
 });

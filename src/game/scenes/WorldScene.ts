@@ -527,6 +527,13 @@ export class WorldScene extends Phaser.Scene {
       return;
     }
 
+    const clickedPortal = this.portals.find((portal) => portal.bounds.contains(pointer.worldX, pointer.worldY));
+
+    if (clickedPortal) {
+      this.transitionThroughPortal(clickedPortal);
+      return;
+    }
+
     const destination = {
       x: pointer.worldX,
       y: pointer.worldY,
@@ -2105,6 +2112,14 @@ export class WorldScene extends Phaser.Scene {
     const portal = this.portals.find((entry) => entry.bounds.contains(this.player!.sprite.x, this.player!.sprite.y));
 
     if (!portal) {
+      return;
+    }
+
+    this.transitionThroughPortal(portal);
+  }
+
+  private transitionThroughPortal(portal: PortalObject): void {
+    if (!this.player || !this.state || this.isTransitioning) {
       return;
     }
 

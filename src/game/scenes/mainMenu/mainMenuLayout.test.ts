@@ -9,29 +9,46 @@ describe("createMainMenuLayout", () => {
     expect(layout.centerY).toBe(300);
     expect(layout.buttons).toEqual([
       {
-        label: "Slot 1: New Game",
-        x: 400,
+        action: "new-game",
+        label: "New Game",
+        x: 270,
         y: 204,
-        slot: 1,
       },
       {
-        label: "Slot 2: New Game",
-        x: 400,
-        y: 280,
-        slot: 2,
+        action: "continue",
+        label: "Continue",
+        x: 270,
+        y: 254,
       },
       {
-        label: "Slot 3: New Game",
-        x: 400,
-        y: 356,
-        slot: 3,
+        action: "load-game",
+        label: "Load Game",
+        x: 270,
+        y: 304,
       },
       {
-        label: "Options",
-        x: 400,
-        y: 432,
-        slot: null,
+        action: "settings",
+        label: "Settings",
+        x: 270,
+        y: 354,
       },
+      {
+        action: "credits",
+        label: "Credits",
+        x: 270,
+        y: 404,
+      },
+      {
+        action: "quit",
+        label: "Quit",
+        x: 270,
+        y: 454,
+      },
+    ]);
+    expect(layout.saveSlots).toEqual([
+      { slot: 1, x: 600, y: 250 },
+      { slot: 2, x: 600, y: 308 },
+      { slot: 3, x: 600, y: 366 },
     ]);
   });
 
@@ -40,29 +57,46 @@ describe("createMainMenuLayout", () => {
 
     expect(layout.buttons).toEqual([
       {
-        label: "Slot 1: New Game",
-        x: 512,
+        action: "new-game",
+        label: "New Game",
+        x: 382,
         y: 288,
-        slot: 1,
       },
       {
-        label: "Slot 2: New Game",
-        x: 512,
-        y: 364,
-        slot: 2,
+        action: "continue",
+        label: "Continue",
+        x: 382,
+        y: 338,
       },
       {
-        label: "Slot 3: New Game",
-        x: 512,
-        y: 440,
-        slot: 3,
+        action: "load-game",
+        label: "Load Game",
+        x: 382,
+        y: 388,
       },
       {
-        label: "Options",
-        x: 512,
-        y: 516,
-        slot: null,
+        action: "settings",
+        label: "Settings",
+        x: 382,
+        y: 438,
       },
+      {
+        action: "credits",
+        label: "Credits",
+        x: 382,
+        y: 488,
+      },
+      {
+        action: "quit",
+        label: "Quit",
+        x: 382,
+        y: 538,
+      },
+    ]);
+    expect(layout.saveSlots).toEqual([
+      { slot: 1, x: 712, y: 334 },
+      { slot: 2, x: 712, y: 392 },
+      { slot: 3, x: 712, y: 450 },
     ]);
   });
 });

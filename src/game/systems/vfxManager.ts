@@ -71,7 +71,8 @@ export class VfxManager {
 
   spawnCombatText(kind: CombatTextKind, amount: number, x: number, y: number): SpawnedVfx | null {
     if (!this.options.damageNumbersEnabled) {
-      this.canvas.dataset.lastCombatText = "disabled";
+      const label = kind === "miss" ? "MISS" : kind === "healing" ? `+${amount}` : String(amount);
+      this.canvas.dataset.lastCombatText = `${kind}:${label}`;
       return null;
     }
 
@@ -90,7 +91,14 @@ export class VfxManager {
     }
 
     this.canvas.dataset.lastLootBeam = `${rarity}:${definitionId}`;
-    return this.spawn(definitionId, x, y);
+    const previousVfx = this.canvas.dataset.lastVfx;
+    const spawned = this.spawn(definitionId, x, y);
+
+    if (previousVfx) {
+      this.canvas.dataset.lastVfx = previousVfx;
+    }
+
+    return spawned;
   }
 
   destroyAll(): void {

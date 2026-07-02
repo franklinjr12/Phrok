@@ -64,6 +64,7 @@ export function parseSpawnZones(
 ): SpawnZoneDefinition[] {
   return objects
     .filter((object) => object.type === "monsterSpawn")
+    .filter((object) => !/^Spawn\d/.test(object.name ?? ""))
     .map((object, index) => {
       const monsterId = getStringProperty(object, "monsterId", mapMonsterIds[0] ?? "");
 

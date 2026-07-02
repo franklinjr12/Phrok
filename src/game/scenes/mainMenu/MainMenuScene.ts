@@ -10,30 +10,50 @@ import {
 } from "../../systems/autosave";
 import type { SaveData } from "../../types/saveData";
 import type { GameState } from "../../types/gameState";
-import { createMainMenuLayout } from "./mainMenuLayout";
+import { createMainMenuLayout, type MainMenuAction } from "./mainMenuLayout";
 
 const buttonStyle: Phaser.Types.GameObjects.Text.TextStyle = {
   align: "center",
-  backgroundColor: "#263241",
+  backgroundColor: "#22313f",
   color: "#f4f7fb",
-  fixedWidth: 420,
+  fixedWidth: 300,
   fontFamily: "Arial, sans-serif",
-  fontSize: "24px",
+  fontSize: "20px",
   padding: {
-    x: 20,
-    y: 14
-  }
+    x: 16,
+    y: 10,
+  },
 };
 
 const buttonHoverStyle: Phaser.Types.GameObjects.Text.TextStyle = {
-  backgroundColor: "#3a526d",
-  color: "#ffffff"
+  backgroundColor: "#3b5872",
+  color: "#ffffff",
+};
+
+const slotButtonStyle: Phaser.Types.GameObjects.Text.TextStyle = {
+  ...buttonStyle,
+  backgroundColor: "#1f2a36",
+  fixedWidth: 330,
+  fontSize: "16px",
+};
+
+const titleStyle: Phaser.Types.GameObjects.Text.TextStyle = {
+  color: "#f8fafc",
+  fontFamily: "Arial, sans-serif",
+  fontSize: "58px",
+};
+
+const smallTextStyle: Phaser.Types.GameObjects.Text.TextStyle = {
+  color: "#cbd5e1",
+  fontFamily: "Arial, sans-serif",
+  fontSize: "14px",
 };
 
 export class MainMenuScene extends Phaser.Scene {
   private saveSlots: Array<SaveData | null> = [];
   private dataRegistry?: DataRegistry;
   private settingsObjects: Phaser.GameObjects.GameObject[] = [];
+  private creditsObjects: Phaser.GameObjects.GameObject[] = [];
 
   constructor() {
     super(SceneKeys.MainMenu);
@@ -48,23 +68,53 @@ export class MainMenuScene extends Phaser.Scene {
     const state = this.registry.get(RegistryKeys.GameState) as GameState;
     audioManager.initialize(state, canvas);
 
-    this.cameras.main.setBackgroundColor("#101318");
+    this.cameras.main.setBackgroundColor("#0d1418");
+    this.drawFinalMenuBackdrop(width, height);
 
     for (const button of layout.buttons) {
-      this.createMenuButton(button.x, button.y, this.getButtonLabel(button.slot, button.label), button.slot);
+      this.createMenuButton(button.x, button.y, button.label, button.action);
+    }
+
+    for (const saveSlot of layout.saveSlots) {
+      this.createSaveSlotButton(saveSlot.x, saveSlot.y, saveSlot.slot);
     }
 
     canvas.dataset.scene = "main-menu";
-    canvas.dataset.menuButtons = layout.buttons.map((button) => this.getButtonLabel(button.slot, button.label)).join("|");
+    canvas.dataset.menuButtons = layout.buttons.map((button) => button.label).join("|");
+    canvas.dataset.saveSlotButtons = this.saveSlots
+      .map((saveData, index) => this.getButtonLabel(index + 1, saveData))
+      .join("|");
     canvas.dataset.saveSlotCount = "3";
     canvas.dataset.saveSlots = this.saveSlots
       .map((saveData, index) => this.getSlotDatasetValue(index + 1, saveData))
       .join("|");
     canvas.dataset.settingsMenu = "hidden";
+    canvas.dataset.creditsScreen = "hidden";
+    canvas.dataset.loadMenu = "visible";
+    canvas.dataset.continueState = this.getContinueSaveData() ? "available" : "unavailable";
+    canvas.dataset.menuQuitState = "idle";
     this.syncSettingsDataset(state);
   }
 
-  private createMenuButton(x: number, y: number, label: string, slot: number | null): Phaser.GameObjects.Text {
+  private drawFinalMenuBackdrop(width: number, height: number): void {
+    this.add.rectangle(width / 2, height / 2, width, height, 0x101820, 1);
+    this.add.rectangle(width / 2, height / 2, width, height, 0x203040, 0.32);
+    this.add.rectangle(width / 2, height - 74, width, 148, 0x1e293b, 0.7);
+    this.add.rectangle(width / 2, height - 148, width, 4, 0xfacc15, 0.8);
+    this.add.text(width / 2, 70, "PROK", titleStyle).setOrigin(0.5);
+    this.add.text(width / 2, 122, "Release Candidate", {
+      ...smallTextStyle,
+      color: "#fef3c7",
+      fontSize: "16px",
+    }).setOrigin(0.5);
+    this.add.text(width / 2 + 210, 186, "Save Slots", {
+      ...smallTextStyle,
+      color: "#f8fafc",
+      fontSize: "16px",
+    }).setOrigin(0.5);
+  }
+
+  private createMenuButton(x: number, y: number, label: string, action: MainMenuAction): Phaser.GameObjects.Text {
     const button = this.add
       .text(x, y, label, buttonStyle)
       .setOrigin(0.5)
@@ -90,18 +140,115 @@ export class MainMenuScene extends Phaser.Scene {
       delete this.game.canvas.dataset.pressedButton;
       button.setAlpha(1);
 
-      if (this.settingsObjects.length > 0 && slot !== null) {
+      if (this.creditsObjects.length > 0) {
         return;
       }
 
-      if (slot !== null) {
-        this.selectSaveSlot(slot);
-      } else {
-        this.toggleSettingsMenu();
-      }
+      this.handleMenuAction(action);
     });
 
     return button;
+  }
+
+  private createSaveSlotButton(x: number, y: number, slot: number): Phaser.GameObjects.Text {
+    const button = this.add
+      .text(x, y, this.getButtonLabel(slot, this.saveSlots[slot - 1]), slotButtonStyle)
+      .setOrigin(0.5)
+      .setInteractive({ useHandCursor: true });
+
+    button.on("pointerover", () => {
+      this.game.canvas.dataset.activeButton = `Slot ${slot}`;
+      button.setStyle(buttonHoverStyle);
+    });
+
+    button.on("pointerout", () => {
+      delete this.game.canvas.dataset.activeButton;
+      button.setStyle(slotButtonStyle);
+    });
+
+    button.on("pointerdown", () => {
+      audioManager.playSfx("ui-click");
+      this.game.canvas.dataset.pressedButton = `Slot ${slot}`;
+      button.setAlpha(0.82);
+    });
+
+    button.on("pointerup", () => {
+      delete this.game.canvas.dataset.pressedButton;
+      button.setAlpha(1);
+
+      if (this.settingsObjects.length > 0 || this.creditsObjects.length > 0) {
+        return;
+      }
+
+      this.selectSaveSlot(slot);
+    });
+
+    return button;
+  }
+
+  private handleMenuAction(action: MainMenuAction): void {
+    this.game.canvas.dataset.lastMenuAction = action;
+
+    if (this.settingsObjects.length > 0 && action !== "settings") {
+      return;
+    }
+
+    if (action === "new-game") {
+      this.startNewGame();
+      return;
+    }
+
+    if (action === "continue") {
+      this.continueLatestSave();
+      return;
+    }
+
+    if (action === "load-game") {
+      this.game.canvas.dataset.loadMenu = "visible";
+      this.game.canvas.dataset.loadMenuStatus = this.saveSlots.some(Boolean) ? "choose-slot" : "no-saves";
+      return;
+    }
+
+    if (action === "settings") {
+      this.toggleSettingsMenu();
+      return;
+    }
+
+    if (action === "credits") {
+      this.showCreditsScreen();
+      return;
+    }
+
+    this.game.canvas.dataset.menuQuitState = "requested";
+    this.game.canvas.dataset.menuQuitMessage = "Browser build records quit request.";
+  }
+
+  private startNewGame(): void {
+    if (this.saveSlots[0]) {
+      this.game.canvas.dataset.selectedSaveSlot = "1";
+      this.loadSave(this.saveSlots[0]);
+      return;
+    }
+
+    const emptySlotIndex = this.saveSlots.findIndex((saveData) => !saveData);
+    const slot = emptySlotIndex >= 0 ? emptySlotIndex + 1 : 1;
+
+    this.game.canvas.dataset.newGameSlot = String(slot);
+    this.registry.set(RegistryKeys.PendingSaveSlot, slot);
+    this.scene.start(SceneKeys.CharacterCreation);
+  }
+
+  private continueLatestSave(): void {
+    const latestSave = this.getContinueSaveData();
+
+    if (!latestSave) {
+      this.game.canvas.dataset.continueState = "unavailable";
+      this.game.canvas.dataset.loadMenuStatus = "no-saves";
+      return;
+    }
+
+    this.game.canvas.dataset.continueState = "selected";
+    this.loadSave(latestSave);
   }
 
   private selectSaveSlot(slot: number): void {
@@ -109,13 +256,23 @@ export class MainMenuScene extends Phaser.Scene {
     this.game.canvas.dataset.selectedSaveSlot = String(slot);
 
     if (saveData) {
-      this.registry.set(RegistryKeys.GameState, saveDataToGameState(saveData));
-      this.scene.start(SceneKeys.World, { useSavedPosition: true });
+      this.loadSave(saveData);
       return;
     }
 
     this.registry.set(RegistryKeys.PendingSaveSlot, slot);
     this.scene.start(SceneKeys.CharacterCreation);
+  }
+
+  private loadSave(saveData: SaveData): void {
+    this.registry.set(RegistryKeys.GameState, saveDataToGameState(saveData));
+    this.scene.start(SceneKeys.World, { useSavedPosition: true });
+  }
+
+  private getContinueSaveData(): SaveData | null {
+    const saves = this.saveSlots.filter((saveData): saveData is SaveData => Boolean(saveData));
+
+    return saves.sort((left, right) => Date.parse(right.savedAt) - Date.parse(left.savedAt))[0] ?? null;
   }
 
   private toggleSettingsMenu(): void {
@@ -128,6 +285,71 @@ export class MainMenuScene extends Phaser.Scene {
     const state = this.registry.get(RegistryKeys.GameState) as GameState;
     this.game.canvas.dataset.settingsMenu = "visible";
     this.renderSettingsMenu(state);
+  }
+
+  private showCreditsScreen(): void {
+    this.clearCreditsObjects();
+    this.game.canvas.dataset.creditsScreen = "visible";
+    this.game.canvas.dataset.creditsEntries = [
+      "Design and engineering: Prok contributors",
+      "Engine: Phaser 4.1.0 (MIT)",
+      "Build tools: Vite, TypeScript, Vitest, Playwright",
+      "Original art: procedural Prok pixel art generated in-project",
+      "Audio: in-project placeholder synthesis, original and IP-safe",
+    ].join("|");
+
+    const overlay = this.add.rectangle(400, 300, 620, 460, 0x101820, 0.98)
+      .setStrokeStyle(2, 0xd6b45f, 0.9)
+      .setDepth(40)
+      .setInteractive();
+    this.creditsObjects.push(overlay);
+
+    this.addCreditsText(400, 100, "Credits", 32, "#f8fafc", 0.5);
+    this.addCreditsText(124, 152, "Contributors", 16, "#fef3c7", 0);
+    this.addCreditsText(124, 184, "Prok contributors - game design, code, data, maps, and testing.", 14, "#cbd5e1", 0);
+    this.addCreditsText(124, 238, "Tools and Licenses", 16, "#fef3c7", 0);
+    this.addCreditsText(124, 270, "Phaser 4.1.0 - MIT License\nVite, TypeScript, Vitest, Playwright - MIT License", 14, "#cbd5e1", 0);
+    this.addCreditsText(124, 342, "Assets", 16, "#fef3c7", 0);
+    this.addCreditsText(124, 374, "Original in-project pixel art and procedural audio placeholders. No third-party music or SFX assets are bundled.", 14, "#cbd5e1", 0);
+
+    const closeButton = this.add.text(400, 500, "Close", buttonStyle)
+      .setOrigin(0.5)
+      .setDepth(41)
+      .setInteractive({ useHandCursor: true });
+    closeButton.on("pointerup", () => {
+      this.clearCreditsObjects();
+      this.game.canvas.dataset.creditsScreen = "hidden";
+    });
+    this.creditsObjects.push(closeButton);
+  }
+
+  private addCreditsText(
+    x: number,
+    y: number,
+    text: string,
+    fontSize: number,
+    color: string,
+    originX: number,
+  ): void {
+    const object = this.add.text(x, y, text, {
+      color,
+      fixedWidth: originX === 0 ? 552 : undefined,
+      fontFamily: "Arial, sans-serif",
+      fontSize: `${fontSize}px`,
+      lineSpacing: 8,
+      wordWrap: originX === 0 ? { width: 552 } : undefined,
+    })
+      .setOrigin(originX, 0.5)
+      .setDepth(41);
+    this.creditsObjects.push(object);
+  }
+
+  private clearCreditsObjects(): void {
+    for (const object of this.creditsObjects) {
+      object.destroy();
+    }
+
+    this.creditsObjects = [];
   }
 
   private renderSettingsMenu(state: GameState): void {
@@ -219,13 +441,7 @@ export class MainMenuScene extends Phaser.Scene {
     this.game.canvas.dataset.settingsButtons = "Music|SFX|UI|Damage|Shake|Flash|Potion|Difficulty|Text|Close";
   }
 
-  private getButtonLabel(slot: number | null, fallback: string): string {
-    if (slot === null) {
-      return fallback;
-    }
-
-    const saveData = this.saveSlots[slot - 1];
-
+  private getButtonLabel(slot: number, saveData: SaveData | null): string {
     if (!saveData || !this.dataRegistry) {
       return `Slot ${slot}: New Game`;
     }

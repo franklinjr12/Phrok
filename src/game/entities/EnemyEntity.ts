@@ -3,7 +3,7 @@ import type { MonsterDefinition } from "../types/dataDefinitions";
 import type { ActiveStatusEffect } from "../types/gameState";
 
 export const EnemyTextureKeys = {
-  GreenJellyPlaceholder: "enemy-green-jelly-placeholder",
+  GreenJellyFallback: "enemy-green-jelly",
 } as const;
 
 export function getEnemyTextureKey(monsterId: string): string {
@@ -256,6 +256,6 @@ export class EnemyEntity {
 
     return scene.textures.exists(textureKey)
       ? textureKey
-      : EnemyTextureKeys.GreenJellyPlaceholder;
+      : EnemyTextureKeys.GreenJellyFallback;
   }
 }

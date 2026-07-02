@@ -42,6 +42,23 @@ describe("enemy spawning", () => {
     }, () => 0.5)).toEqual({ x: 60, y: 45 });
   });
 
+  it("ignores generic Tiled scratch spawns in release maps", () => {
+    const zones = parseSpawnZones([
+      {
+        name: "JellyGrove",
+        type: "monsterSpawn",
+        properties: [{ name: "monsterId", value: "green-jelly" }],
+      },
+      {
+        name: "Spawn11 Copy",
+        type: "monsterSpawn",
+        properties: [{ name: "monsterId", value: "green-jelly" }],
+      },
+    ], []);
+
+    expect(zones.map((zone) => zone.name)).toEqual(["JellyGrove"]);
+  });
+
   it("slows elite and boss respawns compared with normal monsters", () => {
     expect(getEffectiveEnemyRespawnMs(4000, { elite: false, boss: false })).toBe(4000);
     expect(getEffectiveEnemyRespawnMs(4000, { elite: true, boss: false })).toBe(10000);
