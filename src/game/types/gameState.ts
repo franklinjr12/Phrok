@@ -248,6 +248,11 @@ export interface SettingsState {
   textSpeed: number;
   damageNumbersEnabled: boolean;
   visualEffectsIntensity: "full" | "reduced";
+  uiScale: number;
+  screenShakeEnabled: boolean;
+  flashIntensity: number;
+  autoPotionEnabled: boolean;
+  difficulty: "Story" | "Normal" | "Veteran";
 }
 
 export interface PositionState {

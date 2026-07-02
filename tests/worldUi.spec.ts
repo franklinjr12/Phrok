@@ -240,3 +240,35 @@ test("crafting screen lists recipes, shows missing materials, and blocks unavail
   await page.waitForTimeout(150);
   expect(Number(await canvas.getAttribute("data-player-x"))).toBeCloseTo(startX, 1);
 });
+
+test("settings panel applies accessibility scale and gameplay presets immediately", async ({ page }) => {
+  await startApp(page);
+
+  const canvas = await confirmDefaultCharacter(page);
+
+  await page.keyboard.press("KeyQ");
+  await expect(canvas).toHaveAttribute("data-ui-panel", "settings");
+  await expect(canvas).toHaveAttribute("data-settings-panel", "visible");
+  await expect(canvas).toHaveAttribute("data-settings-buttons", /UI.*Damage.*Difficulty.*Text/);
+  await expect(canvas).toHaveAttribute("data-rarity-readable-mode", "color+label");
+  await expect(canvas).toHaveAttribute("data-element-readable-mode", "label+icon");
+  await expect(canvas).toHaveAttribute("data-warning-readable-mode", "shape+text");
+  await expect(canvas).toHaveAttribute("data-ui-contrast", "acceptable");
+
+  await canvas.click({ position: { x: 148, y: 267 } });
+  await expect(canvas).toHaveAttribute("data-settings-ui-scale", "1.25");
+  await canvas.click({ position: { x: 280, y: 267 } });
+  await expect(canvas).toHaveAttribute("data-settings-damage-numbers", "false");
+  await canvas.click({ position: { x: 318, y: 385 } });
+  await expect(canvas).toHaveAttribute("data-settings-difficulty", "Veteran");
+  await canvas.click({ position: { x: 160, y: 385 } });
+  await expect(canvas).toHaveAttribute("data-settings-auto-potion", "false");
+  await expect(canvas).toHaveAttribute("data-settings-summary", /ui:125.*damage:false.*autoPotion:false.*difficulty:Veteran/);
+
+  await page.keyboard.press("KeyS");
+  await expect(canvas).toHaveAttribute("data-last-manual-save-status", "saved");
+  const savedSlot = await page.evaluate(() => localStorage.getItem("prok-save-slot-1"));
+  expect(savedSlot).toContain("\"uiScale\":1.25");
+  expect(savedSlot).toContain("\"difficulty\":\"Veteran\"");
+  expect(savedSlot).toContain("\"autoPotionEnabled\":false");
+});

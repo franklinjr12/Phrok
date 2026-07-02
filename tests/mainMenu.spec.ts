@@ -25,6 +25,33 @@ test("main menu buttons respond to pointer input", async ({ page }) => {
   await expect(canvas).toBeVisible();
 });
 
+test("settings open from main menu and carry into new save", async ({ page }) => {
+  await startApp(page);
+
+  const canvas = page.locator("canvas");
+  await expect(canvas).toHaveAttribute("data-scene", "main-menu");
+  await canvas.click({ position: { x: 400, y: 432 } });
+  await expect(canvas).toHaveAttribute("data-settings-menu", "visible");
+  await expect(canvas).toHaveAttribute("data-settings-buttons", /Music.*Difficulty.*Text/);
+
+  await canvas.click({ position: { x: 536, y: 207 } });
+  await expect(canvas).toHaveAttribute("data-settings-ui-scale", "1.25");
+  await canvas.click({ position: { x: 394, y: 311 } });
+  await expect(canvas).toHaveAttribute("data-settings-difficulty", "Veteran");
+  await expect(canvas).toHaveAttribute("data-settings-summary", /ui:125.*difficulty:Veteran/);
+
+  await canvas.click({ position: { x: 536, y: 461 } });
+  await expect(canvas).toHaveAttribute("data-settings-menu", "hidden");
+
+  await canvas.click({ position: { x: 400, y: 204 } });
+  await expect(canvas).toHaveAttribute("data-scene", "character-creation");
+  await canvas.click({ position: { x: 630, y: 545 } });
+  await expect(canvas).toHaveAttribute("data-scene", "world");
+  await expect(canvas).toHaveAttribute("data-settings-difficulty", "Veteran");
+  await expect(canvas).toHaveAttribute("data-settings-ui-scale", "1.25");
+  await expect(canvas).toHaveAttribute("data-enemy-damage", "");
+});
+
 test("save slots support manual save and continue", async ({ page }) => {
   await startApp(page);
 

@@ -77,6 +77,7 @@ import {
   updateSupportCompanion,
 } from "../systems/supports";
 import { calculateDerivedStats, getSpentStatPoints, resetAllocatedStats } from "../systems/stats";
+import { difficultyPresets, getSettingsSummary } from "../systems/settings";
 import type { DataRegistry } from "../data/dataRegistry";
 import type { DialogueSceneData } from "./DialogueScene";
 import type { MapDefinition, MonsterDefinition, RegionDefinition } from "../types/dataDefinitions";
@@ -161,6 +162,7 @@ export class WorldScene extends Phaser.Scene {
   private unsubscribeHotbarActionRequested?: () => void;
   private unsubscribeConsumableUsed?: () => void;
   private unsubscribeSupportChanged?: () => void;
+  private unsubscribeSettingsChanged?: () => void;
   private vfxManager?: VfxManager;
   private playerAttackTimerMs = playerAttackCooldownMs;
   private isCameraFollowingPlayer = false;
@@ -306,6 +308,19 @@ export class WorldScene extends Phaser.Scene {
 
       this.vfxManager?.spawn("skill-cast", this.player.sprite.x, this.player.sprite.y + 8);
     });
+    this.unsubscribeSettingsChanged = eventBus.on("settingsChanged", ({ settings }) => {
+      this.vfxManager?.setOptions({
+        damageNumbersEnabled: settings.damageNumbersEnabled,
+        intensity: settings.visualEffectsIntensity,
+      });
+      this.game.canvas.dataset.settingsSummary = getSettingsSummary(settings);
+      this.game.canvas.dataset.settingsDifficulty = settings.difficulty;
+      this.game.canvas.dataset.settingsUiScale = String(settings.uiScale);
+      this.game.canvas.dataset.damageNumbersEnabled = String(settings.damageNumbersEnabled);
+      this.game.canvas.dataset.vfxIntensity = settings.visualEffectsIntensity;
+      this.game.canvas.dataset.screenShakeEnabled = String(settings.screenShakeEnabled);
+      this.game.canvas.dataset.flashIntensity = settings.flashIntensity.toFixed(2);
+    });
     audioManager.initialize(state, this.game.canvas);
     this.input.keyboard?.on("keydown-F9", this.toggleAssistDebugOverlay, this);
     this.input.keyboard?.on("keydown-V", this.handleChallengeDungeonStart, this);
@@ -326,6 +341,7 @@ export class WorldScene extends Phaser.Scene {
       this.unsubscribeHotbarActionRequested?.();
       this.unsubscribeConsumableUsed?.();
       this.unsubscribeSupportChanged?.();
+      this.unsubscribeSettingsChanged?.();
       this.vfxManager?.destroyAll();
       this.input.keyboard?.off("keydown-F9", this.toggleAssistDebugOverlay, this);
       this.input.keyboard?.off("keydown-V", this.handleChallengeDungeonStart, this);
@@ -406,6 +422,11 @@ export class WorldScene extends Phaser.Scene {
     this.game.canvas.dataset.enemyVisualMarker = primaryEnemy ? this.getEnemyVisualMarkerDataset(primaryEnemy) : "none";
     this.game.canvas.dataset.enemyRespawnMs = primaryEnemy ? String(primaryEnemy.respawnMs) : "";
     this.game.canvas.dataset.enemyDamage = primaryEnemy ? String(primaryEnemy.stats.attack) : "";
+    this.game.canvas.dataset.settingsSummary = getSettingsSummary(state.settings);
+    this.game.canvas.dataset.settingsDifficulty = state.settings.difficulty;
+    this.game.canvas.dataset.settingsUiScale = String(state.settings.uiScale);
+    this.game.canvas.dataset.screenShakeEnabled = String(state.settings.screenShakeEnabled);
+    this.game.canvas.dataset.flashIntensity = state.settings.flashIntensity.toFixed(2);
     this.game.canvas.dataset.enemyAggroRange = primaryEnemy ? String(primaryEnemy.aggroRange) : "";
     this.game.canvas.dataset.enemyLeashDistance = primaryEnemy ? String(primaryEnemy.leashDistance) : "";
     this.game.canvas.dataset.enemyAssistRadius = primaryEnemy ? String(primaryEnemy.assistRadius) : "";
@@ -1524,11 +1545,15 @@ export class WorldScene extends Phaser.Scene {
       weaponAttack: 0,
       debug: import.meta.env.DEV,
     });
+    const difficulty = difficultyPresets[state.settings.difficulty];
+    const finalDamage = result.hit
+      ? Math.max(1, Math.floor(result.finalDamage * difficulty.playerMitigationMultiplier))
+      : 0;
 
-    state.character.stats.hp = Math.max(0, state.character.stats.hp - result.finalDamage);
+    state.character.stats.hp = Math.max(0, state.character.stats.hp - finalDamage);
     this.vfxManager?.spawnCombatText(
       result.hit ? "damage" : "miss",
-      result.finalDamage,
+      finalDamage,
       this.player?.sprite.x ?? enemy.sprite.x,
       (this.player?.sprite.y ?? enemy.sprite.y) - 34,
     );
@@ -2283,15 +2308,21 @@ export class WorldScene extends Phaser.Scene {
 
   private getChallengeScaledMonster(monster: MonsterDefinition): MonsterDefinition {
     const activeRun = this.state?.challengeDungeons.activeRun;
+    const difficulty = this.state ? difficultyPresets[this.state.settings.difficulty] : difficultyPresets.Normal;
+    const baseMonster = {
+      ...monster,
+      hp: Math.ceil(monster.hp * difficulty.enemyHpMultiplier),
+      attack: Math.ceil(monster.attack * difficulty.enemyDamageMultiplier),
+    };
 
     if (!activeRun) {
-      return monster;
+      return baseMonster;
     }
 
     return {
-      ...monster,
-      hp: Math.ceil(monster.hp * activeRun.enemyHpMultiplier),
-      attack: Math.ceil(monster.attack * activeRun.enemyDamageMultiplier),
+      ...baseMonster,
+      hp: Math.ceil(baseMonster.hp * activeRun.enemyHpMultiplier),
+      attack: Math.ceil(baseMonster.attack * activeRun.enemyDamageMultiplier),
     };
   }
 

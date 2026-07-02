@@ -101,11 +101,13 @@ import {
   getQuestObjectiveProgress,
   getQuestStatus,
 } from "../systems/quests";
+import { audioManager } from "../systems/audioManager";
+import { applySettingsPatch, adjustFlashIntensity, adjustTextSpeed, cycleDifficulty, cycleUiScale, difficultyPresets, getSettingsSummary } from "../systems/settings";
 import type { DataRegistry } from "../data/dataRegistry";
 import type { ItemDefinition, ItemRarity, MonsterDefinition, QuestDefinition, RecipeDefinition, ShopDefinition, SkillDefinition } from "../types/dataDefinitions";
 import type { BaseStatKey, EquipmentInstance, EquipmentSlot, GameState, InventoryItem } from "../types/gameState";
 
-type PanelMode = "inventory" | "equipment" | "character" | "skills" | "bestiary" | "crafting" | "refinement" | "shop" | "appraiser" | "storage" | "huntingBoard" | "questLog" | "worldMap";
+type PanelMode = "inventory" | "equipment" | "character" | "skills" | "bestiary" | "crafting" | "refinement" | "shop" | "appraiser" | "storage" | "huntingBoard" | "questLog" | "worldMap" | "settings";
 type InventoryPanelEntry = {
   itemId: string;
   quantity: number;
@@ -157,6 +159,7 @@ export class UIScene extends Phaser.Scene {
   private unsubscribeShopOpened?: () => void;
   private unsubscribeStorageOpened?: () => void;
   private unsubscribeStorageChanged?: () => void;
+  private unsubscribeSettingsChanged?: () => void;
   private hpText?: Phaser.GameObjects.Text;
   private spText?: Phaser.GameObjects.Text;
   private levelText?: Phaser.GameObjects.Text;
@@ -254,6 +257,7 @@ export class UIScene extends Phaser.Scene {
     this.input.keyboard?.on("keydown-L", this.toggleQuestLogPanel, this);
     this.input.keyboard?.on("keydown-M", this.toggleMinimap, this);
     this.input.keyboard?.on("keydown-O", this.toggleWorldMapPanel, this);
+    this.input.keyboard?.on("keydown-Q", this.toggleSettingsPanel, this);
     this.input.keyboard?.on("keydown-S", this.manualSave, this);
     this.input.keyboard?.on("keydown-ESC", this.closePanel, this);
     this.input.keyboard?.on("keydown", this.handleHotbarKey, this);
@@ -269,6 +273,7 @@ export class UIScene extends Phaser.Scene {
       this.input.keyboard?.off("keydown-L", this.toggleQuestLogPanel, this);
       this.input.keyboard?.off("keydown-M", this.toggleMinimap, this);
       this.input.keyboard?.off("keydown-O", this.toggleWorldMapPanel, this);
+      this.input.keyboard?.off("keydown-Q", this.toggleSettingsPanel, this);
       this.input.keyboard?.off("keydown-S", this.manualSave, this);
       this.input.keyboard?.off("keydown-ESC", this.closePanel, this);
       this.input.keyboard?.off("keydown", this.handleHotbarKey, this);
@@ -306,6 +311,7 @@ export class UIScene extends Phaser.Scene {
       this.unsubscribeShopOpened?.();
       this.unsubscribeStorageOpened?.();
       this.unsubscribeStorageChanged?.();
+      this.unsubscribeSettingsChanged?.();
       this.clearTooltip();
       this.clearMinimap();
     });
@@ -579,6 +585,13 @@ export class UIScene extends Phaser.Scene {
       this.game.canvas.dataset.storageEquipmentInstanceCount = String(storage.equipmentInstances.length);
       this.refreshOpenPanel();
     });
+
+    this.unsubscribeSettingsChanged = eventBus.on("settingsChanged", ({ settings }) => {
+      this.game.canvas.dataset.settingsSummary = getSettingsSummary(settings);
+      this.game.canvas.dataset.settingsDifficulty = settings.difficulty;
+      this.game.canvas.dataset.settingsUiScale = String(settings.uiScale);
+      this.refreshOpenPanel();
+    });
   }
 
   private createHud(state: GameState, dataRegistry: DataRegistry): void {
@@ -639,6 +652,7 @@ export class UIScene extends Phaser.Scene {
     this.game.canvas.dataset.playerStatusEffectIcons = this.getPlayerStatusIcons(state, dataRegistry);
     this.game.canvas.dataset.consumableCooldowns = getConsumableCooldownSummary(state);
     this.game.canvas.dataset.autoPotionSettings = getAutoPotionSettingsSummary(state);
+    this.syncSettingsDataset(state);
     this.xpBarFill.displayWidth = state.playerProfile.xp > 0 ? 1 : 0;
   }
 
@@ -684,7 +698,7 @@ export class UIScene extends Phaser.Scene {
     return this.add.text(x, y, text, {
       color,
       fontFamily: "Arial, sans-serif",
-      fontSize: "15px",
+      fontSize: `${Math.round(15 * (this.state?.settings.uiScale ?? 1))}px`,
     })
       .setScrollFactor(0)
       .setDepth(hudDepth + 1);
@@ -858,6 +872,15 @@ export class UIScene extends Phaser.Scene {
     this.openPanel("worldMap");
   }
 
+  private toggleSettingsPanel(): void {
+    if (this.activePanel === "settings") {
+      this.closePanel();
+      return;
+    }
+
+    this.openPanel("settings");
+  }
+
   private toggleMinimap(): void {
     if (this.activePanel === "bestiary" || this.activePanel === "storage") {
       return;
@@ -900,6 +923,7 @@ export class UIScene extends Phaser.Scene {
     this.game.canvas.dataset.huntingBoardPanel = "hidden";
     this.game.canvas.dataset.questLogPanel = "hidden";
     this.game.canvas.dataset.worldMapPanel = "hidden";
+    this.game.canvas.dataset.settingsPanel = "hidden";
   }
 
   private manualSave(): void {
@@ -1031,9 +1055,48 @@ export class UIScene extends Phaser.Scene {
       this.renderQuestLogPanel(this.state, this.dataRegistry);
     } else if (this.activePanel === "worldMap") {
       this.renderWorldMapPanel(this.state, this.dataRegistry);
+    } else if (this.activePanel === "settings") {
+      this.renderSettingsPanel(this.state);
     } else {
       this.renderHuntingBoardPanel(this.state, this.dataRegistry);
     }
+  }
+
+  private renderSettingsPanel(state: GameState): void {
+    const settings = state.settings;
+    const preset = difficultyPresets[settings.difficulty];
+
+    this.addPanelRectangle(58, 46, 684, 514, panelFill, 0.97)
+      .setOrigin(0)
+      .setStrokeStyle(2, panelStroke, 0.9);
+    this.addPanelText(86, 72, "Settings", 24, "#f8fafc");
+    this.addPanelText(86, 108, getSettingsSummary(settings), 14, "#fde68a");
+    this.addPanelText(86, 144, "Audio", 15, "#94a3b8");
+    this.addPanelButton(86, 172, 116, 30, `Music ${Math.round(settings.musicVolume * 100)}%`, () => this.changeMusicVolume());
+    this.addPanelButton(214, 172, 116, 30, `SFX ${Math.round(settings.sfxVolume * 100)}%`, () => this.changeSfxVolume());
+    this.addPanelButton(342, 172, 116, 30, `M ${settings.musicMuted ? "Off" : "On"}`, () => this.toggleMusicSetting());
+    this.addPanelButton(470, 172, 116, 30, `S ${settings.sfxMuted ? "Off" : "On"}`, () => this.toggleSfxSetting());
+
+    this.addPanelText(86, 224, "Accessibility", 15, "#94a3b8");
+    this.addPanelButton(86, 252, 124, 30, `UI ${Math.round(settings.uiScale * 100)}%`, () => this.changeUiScale());
+    this.addPanelButton(222, 252, 148, 30, `Damage ${settings.damageNumbersEnabled ? "On" : "Off"}`, () => this.toggleDamageNumberSetting());
+    this.addPanelButton(382, 252, 124, 30, `Shake ${settings.screenShakeEnabled ? "On" : "Off"}`, () => this.toggleScreenShakeSetting());
+    this.addPanelButton(518, 252, 124, 30, `Flash ${Math.round(settings.flashIntensity * 100)}%`, () => this.changeFlashIntensity());
+    this.addPanelText(86, 296, "Rarity labels, status icons, element labels, and warning text stay visible.", 13, "#cbd5e1");
+
+    this.addPanelText(86, 342, "Gameplay", 15, "#94a3b8");
+    this.addPanelButton(86, 370, 148, 30, `Potion ${settings.autoPotionEnabled ? "On" : "Off"}`, () => this.toggleAutoPotionSetting());
+    this.addPanelButton(246, 370, 148, 30, settings.difficulty, () => this.changeDifficulty());
+    this.addPanelButton(406, 370, 148, 30, `Text ${settings.textSpeed.toFixed(2)}x`, () => this.changeTextSpeed());
+    this.addPanelText(
+      86,
+      414,
+      `Difficulty ${settings.difficulty}: enemy HP x${preset.enemyHpMultiplier} damage x${preset.enemyDamageMultiplier} mitigation x${preset.playerMitigationMultiplier}`,
+      13,
+      "#bbf7d0",
+    );
+    this.addPanelButton(606, 506, 92, 30, "Close", () => this.closePanel());
+    this.syncSettingsDataset(state);
   }
 
   private renderWorldMapPanel(state: GameState, dataRegistry: DataRegistry): void {
@@ -2566,6 +2629,105 @@ export class UIScene extends Phaser.Scene {
     this.game.canvas.dataset.playerGold = String(gold);
   }
 
+  private changeMusicVolume(): void {
+    if (!this.state) {
+      return;
+    }
+
+    applySettingsPatch(this.state, { musicVolume: this.state.settings.musicVolume >= 1 ? 0 : this.state.settings.musicVolume + 0.1 });
+    audioManager.adjustMusicVolume(0);
+  }
+
+  private changeSfxVolume(): void {
+    if (!this.state) {
+      return;
+    }
+
+    applySettingsPatch(this.state, { sfxVolume: this.state.settings.sfxVolume >= 1 ? 0 : this.state.settings.sfxVolume + 0.1 });
+    audioManager.adjustSfxVolume(0);
+  }
+
+  private toggleMusicSetting(): void {
+    if (!this.state) {
+      return;
+    }
+
+    audioManager.toggleMusicMute();
+    eventBus.emit("settingsChanged", { settings: this.state.settings });
+  }
+
+  private toggleSfxSetting(): void {
+    if (!this.state) {
+      return;
+    }
+
+    audioManager.toggleSfxMute();
+    eventBus.emit("settingsChanged", { settings: this.state.settings });
+  }
+
+  private changeUiScale(): void {
+    if (this.state) {
+      cycleUiScale(this.state);
+    }
+  }
+
+  private toggleDamageNumberSetting(): void {
+    if (this.state) {
+      applySettingsPatch(this.state, { damageNumbersEnabled: !this.state.settings.damageNumbersEnabled });
+    }
+  }
+
+  private toggleScreenShakeSetting(): void {
+    if (this.state) {
+      applySettingsPatch(this.state, { screenShakeEnabled: !this.state.settings.screenShakeEnabled });
+    }
+  }
+
+  private changeFlashIntensity(): void {
+    if (this.state) {
+      adjustFlashIntensity(this.state, this.state.settings.flashIntensity >= 1 ? -1 : 0.25);
+    }
+  }
+
+  private toggleAutoPotionSetting(): void {
+    if (this.state) {
+      applySettingsPatch(this.state, { autoPotionEnabled: !this.state.settings.autoPotionEnabled });
+    }
+  }
+
+  private changeDifficulty(): void {
+    if (this.state) {
+      cycleDifficulty(this.state);
+    }
+  }
+
+  private changeTextSpeed(): void {
+    if (this.state) {
+      adjustTextSpeed(this.state, this.state.settings.textSpeed >= 2 ? -1.5 : 0.25);
+    }
+  }
+
+  private syncSettingsDataset(state: GameState): void {
+    const settings = state.settings;
+
+    this.game.canvas.dataset.settingsPanel = this.activePanel === "settings" ? "visible" : "hidden";
+    this.game.canvas.dataset.settingsSummary = getSettingsSummary(settings);
+    this.game.canvas.dataset.settingsDifficulty = settings.difficulty;
+    this.game.canvas.dataset.settingsUiScale = String(settings.uiScale);
+    this.game.canvas.dataset.settingsMusicVolume = settings.musicVolume.toFixed(1);
+    this.game.canvas.dataset.settingsSfxVolume = settings.sfxVolume.toFixed(1);
+    this.game.canvas.dataset.settingsDamageNumbers = String(settings.damageNumbersEnabled);
+    this.game.canvas.dataset.settingsScreenShake = String(settings.screenShakeEnabled);
+    this.game.canvas.dataset.settingsFlashIntensity = settings.flashIntensity.toFixed(2);
+    this.game.canvas.dataset.settingsAutoPotion = String(settings.autoPotionEnabled);
+    this.game.canvas.dataset.settingsTextSpeed = settings.textSpeed.toFixed(2);
+    this.game.canvas.dataset.settingsButtons = "Music|SFX|MusicMute|SfxMute|UI|Damage|Shake|Flash|Potion|Difficulty|Text|Close";
+    this.game.canvas.dataset.rarityReadableMode = "color+label";
+    this.game.canvas.dataset.elementReadableMode = "label+icon";
+    this.game.canvas.dataset.warningReadableMode = "shape+text";
+    this.game.canvas.dataset.uiContrast = "acceptable";
+  }
+
   private addPanelButton(x: number, y: number, width: number, height: number, label: string, callback: () => void): void {
     const button = this.addPanelRectangle(x, y, width, height, 0x263241, 0.96)
       .setOrigin(0)
@@ -2586,6 +2748,7 @@ export class UIScene extends Phaser.Scene {
     const rectangle = this.add.rectangle(x, y, width, height, color, alpha)
       .setScrollFactor(0)
       .setDepth(panelDepth);
+    rectangle.setScale(this.state?.settings.uiScale ?? 1);
     this.panelObjects.push(rectangle);
     return rectangle;
   }
@@ -2594,7 +2757,7 @@ export class UIScene extends Phaser.Scene {
     const object = this.add.text(x, y, text, {
       color,
       fontFamily: "Arial, sans-serif",
-      fontSize: `${fontSize}px`,
+      fontSize: `${Math.round(fontSize * (this.state?.settings.uiScale ?? 1))}px`,
       lineSpacing: 4,
     })
       .setScrollFactor(0)

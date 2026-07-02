@@ -270,8 +270,13 @@ export class CharacterCreationScene extends Phaser.Scene {
       return;
     }
 
+    const previousState = this.registry.get(RegistryKeys.GameState) as ReturnType<typeof createCharacterGameState> | undefined;
     const state = createCharacterGameState(this.characterName, this.selectedClass);
     const pendingSaveSlot = this.registry.get(RegistryKeys.PendingSaveSlot) as number | undefined;
+
+    if (previousState?.settings) {
+      state.settings = { ...previousState.settings };
+    }
 
     if (pendingSaveSlot) {
       state.currentSaveSlot = pendingSaveSlot;

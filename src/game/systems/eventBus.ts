@@ -1,4 +1,4 @@
-import type { ActiveStatusEffect, BaseStatKey, DerivedStats, HotbarSlotState, HuntingBoardState, InventoryState, QuestState, StorageState } from "../types/gameState";
+import type { ActiveStatusEffect, BaseStatKey, DerivedStats, HotbarSlotState, HuntingBoardState, InventoryState, QuestState, SettingsState, StorageState } from "../types/gameState";
 import type { ConsumableUseResult } from "./consumables";
 
 export interface GameEventMap {
@@ -55,6 +55,7 @@ export interface GameEventMap {
   storageOpened: { npcId: string };
   storageChanged: { storage: StorageState };
   supportChanged: { supportId: string | null; level: number; affinity: number; actionId: string | null };
+  settingsChanged: { settings: SettingsState };
 }
 
 type GameEventName = keyof GameEventMap;

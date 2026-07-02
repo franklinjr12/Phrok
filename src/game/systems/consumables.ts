@@ -142,6 +142,10 @@ export function updateAutoPotion(
   getStatusEffect: (id: string) => StatusEffectDefinition,
   now = Date.now(),
 ): ConsumableUseResult | null {
+  if (state.settings.autoPotionEnabled === false) {
+    return null;
+  }
+
   const hpPercent = percent(state.character.stats.hp, state.character.stats.maxHp);
   const spPercent = percent(state.character.stats.sp, state.character.stats.maxSp);
   const settings = state.character.consumables.autoPotion;

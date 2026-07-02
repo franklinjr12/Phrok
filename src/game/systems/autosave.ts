@@ -4,6 +4,7 @@ import { createNewGameState } from "../data/gameState";
 import { baseStatKeys, createEmptyBaseStats } from "./stats";
 import { createInitialConsumableState } from "./consumables";
 import { createInitialHotbar, createInitialSkillState, hotbarSlotCount } from "./skills";
+import { normalizeSettings as normalizeSettingsState } from "./settings";
 
 export const autosaveStorageKey = "prok-autosave";
 export const autosaveSlot = 0;
@@ -598,21 +599,7 @@ function normalizeRefinementLevels(rawLevels: unknown, fallback: GameState["inve
   return levels;
 }
 
-function normalizeSettings(rawSettings: unknown, fallback: GameState["settings"]): GameState["settings"] {
-  const source = isRecord(rawSettings) ? rawSettings : {};
-
-  return {
-    musicVolume: numberValue(source.musicVolume, fallback.musicVolume),
-    sfxVolume: numberValue(source.sfxVolume, fallback.sfxVolume),
-    musicMuted: typeof source.musicMuted === "boolean" ? source.musicMuted : fallback.musicMuted,
-    sfxMuted: typeof source.sfxMuted === "boolean" ? source.sfxMuted : fallback.sfxMuted,
-    textSpeed: numberValue(source.textSpeed, fallback.textSpeed),
-    damageNumbersEnabled: typeof source.damageNumbersEnabled === "boolean"
-      ? source.damageNumbersEnabled
-      : fallback.damageNumbersEnabled,
-    visualEffectsIntensity: source.visualEffectsIntensity === "reduced" ? "reduced" : fallback.visualEffectsIntensity,
-  };
-}
+const normalizeSettings = normalizeSettingsState;
 
 function normalizeBooleanRecord(rawRecord: unknown, fallback: Record<string, boolean>): Record<string, boolean> {
   const source = isRecord(rawRecord) ? rawRecord : fallback;

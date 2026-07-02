@@ -8,6 +8,7 @@ import { createInitialEndgameTowerState } from "../systems/endgameTower";
 import { createInitialChallengeDungeonState } from "../systems/challengeDungeons";
 import { createInitialQuestState } from "../systems/quests";
 import { createInitialHotbar, createInitialSkillState } from "../systems/skills";
+import { createDefaultSettings } from "../systems/settings";
 import { calculateDerivedStats, createClassBaseStats, createEmptyBaseStats, syncCharacterVitalsToDerivedStats } from "../systems/stats";
 
 export function createNewGameState(): GameState {
@@ -94,15 +95,7 @@ export function createNewGameState(): GameState {
     endgameTower: createInitialEndgameTowerState(),
     challengeDungeons: createInitialChallengeDungeonState(),
     worldFlags: {},
-    settings: {
-      musicVolume: 0.8,
-      sfxVolume: 0.8,
-      musicMuted: false,
-      sfxMuted: false,
-      textSpeed: 1,
-      damageNumbersEnabled: true,
-      visualEffectsIntensity: "full",
-    },
+    settings: createDefaultSettings(),
   };
 
   return state;
