@@ -7,6 +7,7 @@ import { EnemyTextureKeys, getEnemyTextureKey } from "../entities/EnemyEntity";
 import { getNpcTextureKey, NpcTextureKeys } from "../entities/NpcEntity";
 import { getPlayerTextureKey } from "../entities/PlayerEntity";
 import { getSupportTextureKey } from "../entities/supportTextures";
+import type { MapDefinition } from "../types/dataDefinitions";
 import townServiceNpcUrl from "../../../assets/sprites/town-service-npc.png?url";
 
 const spriteAssetUrls = import.meta.glob("../../../assets/sprites/**/*.png", {
@@ -14,15 +15,6 @@ const spriteAssetUrls = import.meta.glob("../../../assets/sprites/**/*.png", {
   import: "default",
   query: "?url",
 }) as Record<string, string>;
-const mapAssets = [
-  { key: "map-crownfield-town", path: "assets/maps/crownfield-town.json" },
-  { key: "map-crownfield-meadows", path: "assets/maps/crownfield-meadows.json" },
-  { key: "map-mossvale-hub", path: "assets/maps/mossvale-hub.json" },
-  { key: "map-amber-dunes-hub", path: "assets/maps/amber-dunes-hub.json" },
-  { key: "map-blueharbor-hub", path: "assets/maps/blueharbor-hub.json" },
-  { key: "map-ironroot-hub", path: "assets/maps/ironroot-hub.json" },
-  { key: "map-moonveil-hub", path: "assets/maps/moonveil-hub.json" },
-] as const;
 const prototypeTilesKey = "prototype-tiles";
 
 export class PreloadScene extends Phaser.Scene {
@@ -31,10 +23,6 @@ export class PreloadScene extends Phaser.Scene {
   }
 
   preload(): void {
-    for (const mapAsset of mapAssets) {
-      this.load.tilemapTiledJSON(mapAsset.key, mapAsset.path);
-    }
-
     this.load.image(NpcTextureKeys.TownService, townServiceNpcUrl);
     this.loadEnemySprites();
   }
@@ -47,6 +35,7 @@ export class PreloadScene extends Phaser.Scene {
     try {
       const dataRegistry = await loadDataRegistry();
 
+      await this.loadMapAssets(dataRegistry.getMaps());
       this.registry.set(RegistryKeys.DataRegistry, dataRegistry);
       this.registry.set(RegistryKeys.GameState, createNewGameState());
     } catch (error) {
@@ -59,6 +48,27 @@ export class PreloadScene extends Phaser.Scene {
     this.scene.start(new URLSearchParams(window.location.search).get("spriteGallery") === "1"
       ? SceneKeys.SpriteGallery
       : SceneKeys.MainMenu);
+  }
+
+  private async loadMapAssets(maps: MapDefinition[]): Promise<void> {
+    const unloadedMaps = maps.filter((map) => !this.cache.tilemap.exists(map.tilemapKey));
+
+    if (unloadedMaps.length === 0) {
+      return;
+    }
+
+    await new Promise<void>((resolve, reject) => {
+      this.load.once(Phaser.Loader.Events.COMPLETE, () => resolve());
+      this.load.once(Phaser.Loader.Events.FILE_LOAD_ERROR, (file: Phaser.Loader.File) => {
+        reject(new Error(`Failed to load map asset ${file.key}.`));
+      });
+
+      for (const map of unloadedMaps) {
+        this.load.tilemapTiledJSON(map.tilemapKey, `assets/maps/${map.id}.json`);
+      }
+
+      this.load.start();
+    });
   }
 
   private createPlayerClassTextures(): void {

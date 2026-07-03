@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { confirmDefaultCharacter, enterMeadows, startApp } from "./helpers";
+import { confirmDefaultCharacter, enterMeadows, startApp, type CanvasLocator } from "./helpers";
 
 test("world supports mouse click player movement without WASD movement", async ({ page }) => {
   await startApp(page);
@@ -73,6 +73,46 @@ test("world portals connect town and field", async ({ page }) => {
   await expect(canvas).toHaveAttribute("data-last-autosave-map", "crownfield-town");
 });
 
+test("world portals connect generated field and regional maps", async ({ page }) => {
+  await startApp(page);
+
+  const canvas = await enterMeadows(page);
+
+  await clickUntilMapChanges(canvas, "crownfield-old-road", { x: 760, y: 304 });
+  await expect(canvas).toHaveAttribute("data-current-map-name", "Old Road");
+  await expect(canvas).toHaveAttribute("data-spawn-name", "MeadowReturn");
+  await expect(canvas).toHaveAttribute("data-tilemap-key", "map-crownfield-old-road");
+
+  await page.evaluate(() => {
+    const save = JSON.parse(localStorage.getItem("prok-save-slot-1") ?? "{}") as {
+      currentMapId?: string;
+      position?: { x: number; y: number };
+      gameState?: {
+        currentMapId?: string;
+        position?: { x: number; y: number };
+      };
+    };
+
+    save.currentMapId = "mossvale-hub";
+    save.position = { x: 400, y: 304 };
+    save.gameState = {
+      ...save.gameState,
+      currentMapId: "mossvale-hub",
+      position: { x: 400, y: 304 },
+    };
+    localStorage.setItem("prok-save-slot-1", JSON.stringify(save));
+  });
+  await page.reload();
+  await expect(canvas).toHaveAttribute("data-scene", "main-menu", { timeout: 10000 });
+  await canvas.click({ position: { x: 270, y: 254 } });
+  await expect(canvas).toHaveAttribute("data-current-map", "mossvale-hub");
+
+  await clickUntilMapChanges(canvas, "mossvale-edge", { x: 760, y: 304 });
+  await expect(canvas).toHaveAttribute("data-current-map-name", "Mossvale Edge");
+  await expect(canvas).toHaveAttribute("data-spawn-name", "GroveGateSpawn");
+  await expect(canvas).toHaveAttribute("data-tilemap-key", "map-mossvale-edge");
+});
+
 test("audio manager plays map music, action SFX, and updates volume settings", async ({ page }) => {
   await startApp(page);
 
@@ -107,3 +147,24 @@ test("audio manager plays map music, action SFX, and updates volume settings", a
     return await canvas.getAttribute("data-audio-sfx-muted");
   }).toBe("true");
 });
+
+async function clickUntilMapChanges(
+  canvas: CanvasLocator,
+  mapId: string,
+  position: { x: number; y: number },
+) {
+  const deadline = Date.now() + 9000;
+
+  while (Date.now() < deadline) {
+    await canvas.click({ position });
+
+    try {
+      await expect.poll(async () => await canvas.getAttribute("data-current-map"), { timeout: 700 }).toBe(mapId);
+      return;
+    } catch {
+      // Click can land before the world input listener settles under parallel load.
+    }
+  }
+
+  await expect.poll(async () => await canvas.getAttribute("data-current-map"), { timeout: 3000 }).toBe(mapId);
+}

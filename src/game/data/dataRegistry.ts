@@ -136,6 +136,10 @@ export class DataRegistry {
     return this.getById("npcs", id);
   }
 
+  getNpcs(): NpcDefinition[] {
+    return Array.from(this.collections.npcs.values());
+  }
+
   getShop(id: string): ShopDefinition {
     return this.getById("shops", id);
   }

@@ -1474,6 +1474,19 @@
       "objects": [
         {
           "height": 32,
+          "id": 1,
+          "name": "PlayerSpawn",
+          "point": true,
+          "properties": [],
+          "rotation": 0,
+          "type": "spawn",
+          "visible": true,
+          "width": 32,
+          "x": 400,
+          "y": 304
+        },
+        {
+          "height": 32,
           "id": 2,
           "name": "TownGateSpawn",
           "point": true,
@@ -1486,27 +1499,17 @@
           "y": 304
         },
         {
-          "height": 96,
+          "height": 32,
           "id": 3,
-          "name": "MeadowsWestGate",
-          "properties": [
-            {
-              "name": "targetMapId",
-              "type": "string",
-              "value": "crownfield-town"
-            },
-            {
-              "name": "targetSpawnName",
-              "type": "string",
-              "value": "FieldRoadReturn"
-            }
-          ],
+          "name": "OldRoadReturn",
+          "point": true,
+          "properties": [],
           "rotation": 0,
-          "type": "portal",
+          "type": "spawn",
           "visible": true,
-          "width": 64,
-          "x": 0,
-          "y": 256
+          "width": 32,
+          "x": 704,
+          "y": 304
         },
         {
           "height": 160,
@@ -1563,8 +1566,54 @@
           "y": 340
         },
         {
-          "height": 32,
+          "height": 96,
           "id": 8,
+          "name": "TownRoadReturn",
+          "properties": [
+            {
+              "name": "targetMapId",
+              "type": "string",
+              "value": "crownfield-town"
+            },
+            {
+              "name": "targetSpawnName",
+              "type": "string",
+              "value": "FieldRoadReturn"
+            }
+          ],
+          "rotation": 0,
+          "type": "portal",
+          "visible": true,
+          "width": 64,
+          "x": 0,
+          "y": 256
+        },
+        {
+          "height": 96,
+          "id": 9,
+          "name": "OldRoadWest",
+          "properties": [
+            {
+              "name": "targetMapId",
+              "type": "string",
+              "value": "crownfield-old-road"
+            },
+            {
+              "name": "targetSpawnName",
+              "type": "string",
+              "value": "MeadowReturn"
+            }
+          ],
+          "rotation": 0,
+          "type": "portal",
+          "visible": true,
+          "width": 64,
+          "x": 736,
+          "y": 256
+        },
+        {
+          "height": 32,
+          "id": 10,
           "name": "Meadow Keeper",
           "point": true,
           "properties": [
@@ -1580,141 +1629,6 @@
           "width": 32,
           "x": 240,
           "y": 240
-        },
-        {
-          "height": 96,
-          "id": 10,
-          "name": "MeadowsWestGate Copy",
-          "properties": [
-            {
-              "name": "targetMapId",
-              "type": "string",
-              "value": "old-road-west"
-            },
-            {
-              "name": "targetSpawnName",
-              "type": "string",
-              "value": "FieldRoadAdvance"
-            }
-          ],
-          "rotation": 0,
-          "type": "portal",
-          "visible": true,
-          "width": 64,
-          "x": 384,
-          "y": 0
-        },
-        {
-          "height": 64,
-          "id": 11,
-          "name": "Spawn11",
-          "properties": [
-            {
-              "name": "monsterId",
-              "type": "string",
-              "value": "green-jelly"
-            },
-            {
-              "name": "maxCount",
-              "type": "int",
-              "value": 1
-            },
-            {
-              "name": "respawnMs",
-              "type": "int",
-              "value": 15000
-            }
-          ],
-          "rotation": 0,
-          "type": "monsterSpawn",
-          "visible": true,
-          "width": 64,
-          "x": 64,
-          "y": 64
-        },
-        {
-          "height": 64,
-          "id": 14,
-          "name": "Spawn11 Copy",
-          "properties": [
-            {
-              "name": "monsterId",
-              "type": "string",
-              "value": "green-jelly"
-            },
-            {
-              "name": "maxCount",
-              "type": "int",
-              "value": 1
-            },
-            {
-              "name": "respawnMs",
-              "type": "int",
-              "value": 15000
-            }
-          ],
-          "rotation": 0,
-          "type": "monsterSpawn",
-          "visible": true,
-          "width": 64,
-          "x": 224,
-          "y": 448
-        },
-        {
-          "height": 64,
-          "id": 15,
-          "name": "Spawn11 Copy Copy",
-          "properties": [
-            {
-              "name": "monsterId",
-              "type": "string",
-              "value": "green-jelly"
-            },
-            {
-              "name": "maxCount",
-              "type": "int",
-              "value": 1
-            },
-            {
-              "name": "respawnMs",
-              "type": "int",
-              "value": 15000
-            }
-          ],
-          "rotation": 0,
-          "type": "monsterSpawn",
-          "visible": true,
-          "width": 64,
-          "x": 640,
-          "y": 64
-        },
-        {
-          "height": 64,
-          "id": 16,
-          "name": "Spawn11 Copy Copy Copy",
-          "properties": [
-            {
-              "name": "monsterId",
-              "type": "string",
-              "value": "green-jelly"
-            },
-            {
-              "name": "maxCount",
-              "type": "int",
-              "value": 1
-            },
-            {
-              "name": "respawnMs",
-              "type": "int",
-              "value": 15000
-            }
-          ],
-          "rotation": 0,
-          "type": "monsterSpawn",
-          "visible": true,
-          "width": 64,
-          "x": 352,
-          "y": 256
         }
       ],
       "opacity": 1,
@@ -1725,7 +1639,7 @@
     }
   ],
   "nextlayerid": 5,
-  "nextobjectid": 17,
+  "nextobjectid": 11,
   "orientation": "orthogonal",
   "renderorder": "right-down",
   "tiledversion": "1.11.2",

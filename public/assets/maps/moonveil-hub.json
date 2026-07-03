@@ -1488,97 +1488,53 @@
         {
           "height": 32,
           "id": 2,
-          "name": "Nyra Fenlight",
+          "name": "MarshReturn",
           "point": true,
-          "properties": [
-            {
-              "name": "npcId",
-              "type": "string",
-              "value": "moonveil-lantern-keeper"
-            }
-          ],
+          "properties": [],
           "rotation": 0,
-          "type": "npc",
+          "type": "spawn",
           "visible": true,
           "width": 32,
-          "x": 256,
-          "y": 224
+          "x": 704,
+          "y": 304
         },
         {
           "height": 32,
           "id": 3,
-          "name": "Orris Blackreed",
+          "name": "StarfallReturn",
           "point": true,
-          "properties": [
-            {
-              "name": "npcId",
-              "type": "string",
-              "value": "moonveil-contract-scribe"
-            }
-          ],
+          "properties": [],
           "rotation": 0,
-          "type": "npc",
+          "type": "spawn",
           "visible": true,
           "width": 32,
-          "x": 544,
-          "y": 224
+          "x": 704,
+          "y": 304
         },
         {
           "height": 32,
           "id": 4,
-          "name": "Selka Mireglass",
+          "name": "BogsanctumReturn",
           "point": true,
-          "properties": [
-            {
-              "name": "npcId",
-              "type": "string",
-              "value": "moonveil-relic-mender"
-            }
-          ],
+          "properties": [],
           "rotation": 0,
-          "type": "npc",
+          "type": "spawn",
           "visible": true,
           "width": 32,
-          "x": 256,
-          "y": 432
+          "x": 704,
+          "y": 304
         },
         {
-          "height": 32,
+          "height": 384,
           "id": 5,
-          "name": "Vey Moonwake",
-          "point": true,
-          "properties": [
-            {
-              "name": "npcId",
-              "type": "string",
-              "value": "moonveil-ferry-witch"
-            }
-          ],
+          "name": "TownSafeZone",
+          "properties": [],
           "rotation": 0,
-          "type": "npc",
+          "type": "safeZone",
           "visible": true,
-          "width": 32,
-          "x": 544,
-          "y": 432
-        },
-        {
-          "height": 32,
-          "id": 9,
-          "name": "Eris Reedlock",
-          "point": true,
-          "properties": [
-            {
-              "name": "npcId",
-              "type": "string",
-              "value": "moonveil-storage-keeper"
-            }
-          ],
-          "rotation": 0,
-          "type": "npc",
-          "visible": true,
-          "width": 32,
-          "x": 400,
-          "y": 432
+          "width": 608,
+          "x": 96,
+          "y": 96
         },
         {
           "height": 96,
@@ -1604,14 +1560,14 @@
           "y": 256
         },
         {
-          "height": 64,
+          "height": 96,
           "id": 7,
-          "name": "MoonveilPoisonWalk",
+          "name": "MoonveilMarshWalk",
           "properties": [
             {
               "name": "targetMapId",
               "type": "string",
-              "value": "moonveil-poison-fen"
+              "value": "moonveil-marsh-field"
             },
             {
               "name": "targetSpawnName",
@@ -1622,12 +1578,12 @@
           "rotation": 0,
           "type": "portal",
           "visible": true,
-          "width": 96,
-          "x": 368,
-          "y": 0
+          "width": 64,
+          "x": 736,
+          "y": 256
         },
         {
-          "height": 96,
+          "height": 64,
           "id": 8,
           "name": "MoonveilBogsanctumWay",
           "properties": [
@@ -1645,9 +1601,104 @@
           "rotation": 0,
           "type": "portal",
           "visible": true,
-          "width": 64,
-          "x": 736,
-          "y": 256
+          "width": 96,
+          "x": 352,
+          "y": 0
+        },
+        {
+          "height": 32,
+          "id": 9,
+          "name": "Nyra Fenlight",
+          "point": true,
+          "properties": [
+            {
+              "name": "npcId",
+              "type": "string",
+              "value": "moonveil-lantern-keeper"
+            }
+          ],
+          "rotation": 0,
+          "type": "npc",
+          "visible": true,
+          "width": 32,
+          "x": 256,
+          "y": 224
+        },
+        {
+          "height": 32,
+          "id": 10,
+          "name": "Orris Blackreed",
+          "point": true,
+          "properties": [
+            {
+              "name": "npcId",
+              "type": "string",
+              "value": "moonveil-contract-scribe"
+            }
+          ],
+          "rotation": 0,
+          "type": "npc",
+          "visible": true,
+          "width": 32,
+          "x": 544,
+          "y": 224
+        },
+        {
+          "height": 32,
+          "id": 11,
+          "name": "Selka Mireglass",
+          "point": true,
+          "properties": [
+            {
+              "name": "npcId",
+              "type": "string",
+              "value": "moonveil-relic-mender"
+            }
+          ],
+          "rotation": 0,
+          "type": "npc",
+          "visible": true,
+          "width": 32,
+          "x": 256,
+          "y": 432
+        },
+        {
+          "height": 32,
+          "id": 12,
+          "name": "Eris Reedlock",
+          "point": true,
+          "properties": [
+            {
+              "name": "npcId",
+              "type": "string",
+              "value": "moonveil-storage-keeper"
+            }
+          ],
+          "rotation": 0,
+          "type": "npc",
+          "visible": true,
+          "width": 32,
+          "x": 400,
+          "y": 432
+        },
+        {
+          "height": 32,
+          "id": 13,
+          "name": "Vey Moonwake",
+          "point": true,
+          "properties": [
+            {
+              "name": "npcId",
+              "type": "string",
+              "value": "moonveil-ferry-witch"
+            }
+          ],
+          "rotation": 0,
+          "type": "npc",
+          "visible": true,
+          "width": 32,
+          "x": 544,
+          "y": 432
         }
       ],
       "opacity": 1,
@@ -1658,7 +1709,7 @@
     }
   ],
   "nextlayerid": 5,
-  "nextobjectid": 10,
+  "nextobjectid": 14,
   "orientation": "orthogonal",
   "renderorder": "right-down",
   "tiledversion": "1.11.2",
