@@ -4,11 +4,12 @@ import { SceneKeys } from "../constants/sceneKeys";
 import { loadDataRegistry } from "../data/dataRegistry";
 import { createNewGameState } from "../data/gameState";
 import { EnemyTextureKeys, getEnemyTextureKey } from "../entities/EnemyEntity";
-import { NpcTextureKeys } from "../entities/NpcEntity";
+import { getNpcTextureKey, NpcTextureKeys } from "../entities/NpcEntity";
 import { getPlayerTextureKey } from "../entities/PlayerEntity";
+import { getSupportTextureKey } from "../entities/supportTextures";
 import townServiceNpcUrl from "../../../assets/sprites/town-service-npc.png?url";
 
-const spriteAssetUrls = import.meta.glob("../../../assets/sprites/*.png", {
+const spriteAssetUrls = import.meta.glob("../../../assets/sprites/**/*.png", {
   eager: true,
   import: "default",
   query: "?url",
@@ -55,7 +56,9 @@ export class PreloadScene extends Phaser.Scene {
     }
 
     this.game.canvas.dataset.scene = "preload";
-    this.scene.start(SceneKeys.MainMenu);
+    this.scene.start(new URLSearchParams(window.location.search).get("spriteGallery") === "1"
+      ? SceneKeys.SpriteGallery
+      : SceneKeys.MainMenu);
   }
 
   private createPlayerClassTextures(): void {
@@ -157,13 +160,33 @@ export class PreloadScene extends Phaser.Scene {
 
   private loadEnemySprites(): void {
     for (const [path, url] of Object.entries(spriteAssetUrls)) {
-      const fileName = path.split("/").pop() ?? "";
-      const monsterId = fileName.replace(/\.png$/i, "");
-      const textureKey = getEnemyTextureKey(monsterId);
+      const normalizedPath = path.replace(/\\/g, "/");
+      const spriteId = normalizedPath.split("/").pop()?.replace(/\.png$/i, "") ?? "";
+      const textureKey = this.getSpriteTextureKey(normalizedPath, spriteId);
 
       if (!this.textures.exists(textureKey)) {
         this.load.image(textureKey, url);
       }
     }
+  }
+
+  private getSpriteTextureKey(path: string, spriteId: string): string {
+    if (path.includes("/players/")) {
+      return getPlayerTextureKey(spriteId);
+    }
+
+    if (path.includes("/npcs/")) {
+      return getNpcTextureKey(spriteId);
+    }
+
+    if (path.includes("/supports/")) {
+      return getSupportTextureKey(spriteId);
+    }
+
+    if (["archer", "mage", "swordsman", "thief"].includes(spriteId)) {
+      return getPlayerTextureKey(spriteId);
+    }
+
+    return getEnemyTextureKey(spriteId);
   }
 }

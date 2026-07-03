@@ -6,6 +6,10 @@ export const NpcTextureKeys = {
   TownService: "npc-town-service",
 } as const;
 
+export function getNpcTextureKey(npcId: string): string {
+  return `npc-${npcId}`;
+}
+
 export class NpcEntity {
   readonly sprite: Phaser.GameObjects.Sprite;
   readonly nameLabel: Phaser.GameObjects.Text;
@@ -17,7 +21,11 @@ export class NpcEntity {
     position: Vector2Like,
   ) {
     this.interactionRadius = definition.interactionRadius;
-    this.sprite = scene.add.sprite(position.x, position.y, NpcTextureKeys.TownService)
+    const textureKey = scene.textures.exists(getNpcTextureKey(definition.id))
+      ? getNpcTextureKey(definition.id)
+      : NpcTextureKeys.TownService;
+
+    this.sprite = scene.add.sprite(position.x, position.y, textureKey)
       .setName(definition.id)
       .setDepth(18)
       .setInteractive({ useHandCursor: true });

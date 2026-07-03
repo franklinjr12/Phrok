@@ -2,6 +2,7 @@ export const SceneKeys = {
   Boot: "BootScene",
   Preload: "PreloadScene",
   MainMenu: "MainMenuScene",
+  SpriteGallery: "SpriteGalleryScene",
   CharacterCreation: "CharacterCreationScene",
   World: "WorldScene",
   UI: "UIScene",

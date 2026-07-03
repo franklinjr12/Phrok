@@ -5,6 +5,7 @@ import { DialogueScene } from "../scenes/DialogueScene";
 import { GameOverScene } from "../scenes/GameOverScene";
 import { MainMenuScene } from "../scenes/mainMenu/MainMenuScene";
 import { PreloadScene } from "../scenes/PreloadScene";
+import { SpriteGalleryScene } from "../scenes/SpriteGalleryScene";
 import { UIScene } from "../scenes/UIScene";
 import { WorldScene } from "../scenes/WorldScene";
 
@@ -26,6 +27,7 @@ export function createGameConfig(parent: HTMLElement): Phaser.Types.Core.GameCon
       BootScene,
       PreloadScene,
       MainMenuScene,
+      SpriteGalleryScene,
       CharacterCreationScene,
       WorldScene,
       UIScene,
