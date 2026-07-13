@@ -64,13 +64,26 @@ test("world portals connect town and field", async ({ page }) => {
   await expect(canvas).toHaveAttribute("data-safe-zone", "field-entrance");
   await expect(canvas).toHaveAttribute("data-last-transition", "TownEastGate:crownfield-meadows:TownGateSpawn");
 
-  await canvas.click({ position: { x: 20, y: 304 } });
-  await expect.poll(async () => await canvas.getAttribute("data-current-map"), { timeout: 6000 }).toBe("crownfield-town");
+  await clickUntilMapChanges(canvas, "crownfield-town", { x: 20, y: 304 });
   await expect(canvas).toHaveAttribute("data-current-map-name", "Crownfield");
   await expect(canvas).toHaveAttribute("data-spawn-point", "704,304");
   await expect(canvas).toHaveAttribute("data-spawn-name", "FieldRoadReturn");
   await expect(canvas).toHaveAttribute("data-spawned-monster", "");
   await expect(canvas).toHaveAttribute("data-last-autosave-map", "crownfield-town");
+});
+
+test("portal clicks require nearby interaction before transitioning", async ({ page }) => {
+  await startApp(page);
+
+  const canvas = await confirmDefaultCharacter(page);
+  await expect(canvas).toHaveAttribute("data-current-map", "crownfield-town");
+
+  await canvas.click({ position: { x: 760, y: 304 } });
+  await expect(canvas).toHaveAttribute("data-current-map", "crownfield-town");
+  await expect(canvas).toHaveAttribute("data-pending-portal-interaction", "TownEastGate");
+  await expect(canvas).toHaveAttribute("data-last-movement-click-valid", "true");
+
+  await expect.poll(async () => await canvas.getAttribute("data-current-map"), { timeout: 6000 }).toBe("crownfield-meadows");
 });
 
 test("world portals connect generated field and regional maps", async ({ page }) => {

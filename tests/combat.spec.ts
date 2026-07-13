@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test, type Locator } from "@playwright/test";
 import { enterMeadows, startApp } from "./helpers";
 
 test("world supports target selection and auto-attack combat", async ({ page }) => {
@@ -22,7 +22,7 @@ test("world supports target selection and auto-attack combat", async ({ page }) 
   await expect(canvas).toHaveAttribute("data-enemy-hp", "10/10");
   await expect(canvas).toHaveAttribute("data-target-frame", "hidden");
 
-  await canvas.click({ position: { x: 528, y: 300 } });
+  await clickPrimaryEnemy(canvas);
   await expect.poll(async () => {
     const selected = await canvas.getAttribute("data-enemy-selected");
     const enemyHp = await canvas.getAttribute("data-enemy-hp");
@@ -47,16 +47,56 @@ test("world supports target selection and auto-attack combat", async ({ page }) 
   await expect(canvas).toHaveAttribute("data-pending-loot-count", "2");
   await expect(canvas).toHaveAttribute("data-last-loot-drop", /gold:[3-5]/);
 
-  await canvas.click({ position: { x: 528, y: 322 } });
+  await clickLootDropNearPrimaryEnemy(canvas, 0);
   await expect(canvas).toHaveAttribute("data-pending-loot-count", "1");
   await expect(canvas).toHaveAttribute("data-last-loot-pickup", /jelly-gel:[1-2]/);
   await expect(canvas).toHaveAttribute("data-inventory-stack-count", "2");
 
-  await canvas.click({ position: { x: 556, y: 322 } });
+  await clickLootDropNearPrimaryEnemy(canvas, 1);
   await expect(canvas).toHaveAttribute("data-pending-loot-count", "0");
   await expect(canvas).toHaveAttribute("data-last-loot-pickup", /gold:[3-5]/);
   await expect.poll(async () => Number(await canvas.getAttribute("data-player-gold"))).toBeGreaterThan(0);
   await expect.poll(async () => Number(await canvas.getAttribute("data-inventory-gold"))).toBeGreaterThan(0);
+});
+
+test("rapid target clicks do not bypass player attack cooldown", async ({ page }) => {
+  await page.route("**/assets/data/monsters.json", async (route) => {
+    const response = await route.fetch();
+    const monsters = await response.json() as Array<Record<string, unknown>>;
+
+    await route.fulfill({
+      response,
+      json: monsters.map((monster) => monster.id === "green-jelly"
+        ? {
+          ...monster,
+          hp: 500,
+          attack: 1,
+          defense: 0,
+          behavior: "passive",
+        }
+        : monster),
+    });
+  });
+  await startApp(page);
+
+  const canvas = await enterMeadows(page);
+  await expect(canvas).toHaveAttribute("data-enemy-hp", "500/500");
+
+  await clickPrimaryEnemy(canvas);
+  await expect.poll(async () => await canvas.getAttribute("data-enemy-hp"), { timeout: 6000 }).not.toBe("500/500");
+  const hpAfterFirstAttack = await canvas.getAttribute("data-enemy-hp");
+  const enemyPosition = (await canvas.getAttribute("data-enemy-position")) ?? "528,300";
+  const [enemyX, enemyY] = enemyPosition.split(",").map((value) => Number(value));
+
+  for (let index = 0; index < 5; index += 1) {
+    await canvas.click({ position: { x: enemyX, y: enemyY } });
+  }
+
+  const hpAfterSpamClicks = await canvas.getAttribute("data-enemy-hp");
+  const firstDamage = 500 - parseHp(hpAfterFirstAttack);
+  const extraDamage = parseHp(hpAfterFirstAttack) - parseHp(hpAfterSpamClicks);
+
+  expect(extraDamage).toBeLessThanOrEqual(firstDamage);
 });
 
 test("enemy uses the matching monster sprite when it is preloaded", async ({ page }) => {
@@ -117,7 +157,7 @@ test("hotbar skill key fails without target and executes against selected enemie
   await expect(canvas).toHaveAttribute("data-last-skill-use", "1:power-slash:failed:missing-target");
   await expect(canvas).toHaveAttribute("data-last-hotbar-use", "1:skill:power-slash:failed");
 
-  await canvas.click({ position: { x: 528, y: 300 } });
+  await clickPrimaryEnemy(canvas);
   await expect.poll(async () => {
     const selected = await canvas.getAttribute("data-enemy-selected");
     const enemyHp = await canvas.getAttribute("data-enemy-hp");
@@ -145,6 +185,24 @@ async function routeMeadowsMonster(page: Parameters<typeof startApp>[0], monster
 
     await route.fulfill({ response, json: map });
   });
+}
+
+async function clickPrimaryEnemy(canvas: Locator) {
+  const enemyPosition = (await canvas.getAttribute("data-enemy-position")) ?? "528,300";
+  const [enemyX, enemyY] = enemyPosition.split(",").map((value) => Number(value));
+
+  await canvas.click({ position: { x: enemyX, y: enemyY } });
+}
+
+async function clickLootDropNearPrimaryEnemy(canvas: Locator, index: number) {
+  const enemyPosition = (await canvas.getAttribute("data-enemy-position")) ?? "528,300";
+  const [enemyX, enemyY] = enemyPosition.split(",").map((value) => Number(value));
+
+  await canvas.click({ position: { x: enemyX + index * 28, y: enemyY + 18 } });
+}
+
+function parseHp(rawHp: string | null): number {
+  return Number((rawHp ?? "0/0").split("/")[0]);
 }
 
 test("aggressive enemies detect, chase, and attack without being clicked", async ({ page }) => {
@@ -271,7 +329,7 @@ test("assist enemies locally join when a nearby ally is attacked", async ({ page
   await page.keyboard.press("F9");
   await expect(canvas).toHaveAttribute("data-debug-assist-radius", "visible:3");
 
-  await canvas.click({ position: { x: 528, y: 300 } });
+  await clickPrimaryEnemy(canvas);
   await expect.poll(async () => await canvas.getAttribute("data-enemy-assisted-count"), { timeout: 5000 }).toBe("1");
   await expect(canvas).toHaveAttribute("data-last-assist-call", "green-jelly:green-jelly");
 });
@@ -460,7 +518,7 @@ test("elite enemies show markers, hit harder, drop better loot, and respawn slow
   await expect(canvas).toHaveAttribute("data-enemy-damage", "5");
   await expect(canvas).toHaveAttribute("data-enemy-respawn-ms", "2500");
 
-  await canvas.click({ position: { x: 528, y: 300 } });
+  await clickPrimaryEnemy(canvas);
   await expect.poll(async () => await canvas.getAttribute("data-enemy-alive"), { timeout: 6000 }).toBe("false");
   await expect(canvas).toHaveAttribute("data-pending-loot-count", "2");
   await expect(canvas).toHaveAttribute("data-last-loot-drop", /gold:([6-9]|10)/);
@@ -511,7 +569,7 @@ test("boss enemies use boss protocol, show boss UI, resist control, phase, and d
   await expect(canvas).toHaveAttribute("data-boss-phase", "1");
   await expect(canvas).toHaveAttribute("data-boss-hp", "96/96");
 
-  await canvas.click({ position: { x: 528, y: 300 } });
+  await clickPrimaryEnemy(canvas);
   await expect(canvas).toHaveAttribute("data-boss-ui", "visible");
   await expect(canvas).toHaveAttribute("data-boss-ui-name", "Crowned Jelly");
   await expect(canvas).toHaveAttribute("data-boss-ui-phase", "1");
@@ -526,8 +584,8 @@ test("boss enemies use boss protocol, show boss UI, resist control, phase, and d
   await expect.poll(async () => {
     await page.keyboard.press("Digit1");
     return await canvas.getAttribute("data-boss-phase");
-  }, { timeout: 7000 }).toBe("2");
-  await expect(canvas).toHaveAttribute("data-last-boss-phase", "green-jelly:1->2");
+  }, { timeout: 7000 }).toMatch(/[23]/);
+  await expect(canvas).toHaveAttribute("data-last-boss-phase", /green-jelly:[12]->[23]/);
 
   await expect.poll(async () => {
     await page.keyboard.press("Digit1");

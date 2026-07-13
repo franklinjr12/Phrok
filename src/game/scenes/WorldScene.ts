@@ -4,6 +4,7 @@ import { SceneKeys } from "../constants/sceneKeys";
 import { EnemyEntity } from "../entities/EnemyEntity";
 import { NpcEntity } from "../entities/NpcEntity";
 import { PlayerEntity } from "../entities/PlayerEntity";
+import type { Vector2Like } from "../entities/playerMovement";
 import {
   findPath,
   isWorldPointWalkable,
@@ -97,6 +98,7 @@ const tiledLayerNames = {
 } as const;
 const playerAttackRange = 62;
 const playerAttackCooldownMs = 850;
+const portalInteractionRadius = 72;
 const enemyAttackCooldownMs = 1250;
 const enemyCastWindupMs = 700;
 const playerAttackKnockbackDistance = 18;
@@ -158,6 +160,7 @@ export class WorldScene extends Phaser.Scene {
   private portals: PortalObject[] = [];
   private npcs: NpcEntity[] = [];
   private pendingNpcInteraction?: NpcEntity;
+  private pendingPortalInteraction?: PortalObject;
   private unsubscribeDialogueClosed?: () => void;
   private unsubscribeEquipmentChanged?: () => void;
   private unsubscribeStatsChanged?: () => void;
@@ -171,6 +174,7 @@ export class WorldScene extends Phaser.Scene {
   private isCameraFollowingPlayer = false;
   private isTransitioning = false;
   private isDialogueOpen = false;
+  private lastVolumeHotkeyAt: Record<string, number> = {};
   private spawnName = "PlayerSpawn";
   private lastAutosaveMap = "";
   private lastAutosaveSlot = "";
@@ -211,6 +215,7 @@ export class WorldScene extends Phaser.Scene {
     this.assistDebugGraphics = undefined;
     this.assistDebugVisible = false;
     this.pendingNpcInteraction = undefined;
+    this.pendingPortalInteraction = undefined;
     this.isDialogueOpen = false;
     const map = dataRegistry.getMap(state.currentMapId);
     const region = dataRegistry.getRegion(map.regionId);
@@ -413,6 +418,7 @@ export class WorldScene extends Phaser.Scene {
     this.game.canvas.dataset.dialogueState = "closed";
     this.game.canvas.dataset.dialogueBlockingMovement = "false";
     this.game.canvas.dataset.pendingNpcInteraction = "";
+    this.game.canvas.dataset.pendingPortalInteraction = "";
     this.game.canvas.dataset.portalCount = String(this.portals.length);
     this.game.canvas.dataset.safeZone = primaryEnemy ? "field-entrance" : "town";
     this.game.canvas.dataset.gatheringSpotCount = String(this.countObjectsByType(tilemap, "gathering"));
@@ -487,6 +493,7 @@ export class WorldScene extends Phaser.Scene {
       this.updatePlayerStatusEffects();
     }
     this.player?.update(delta);
+    this.updatePlayerAttackCooldown(delta);
     this.updateNpcInteraction();
     this.updateEnemyAi(delta);
     this.updateCombat(delta);
@@ -515,6 +522,8 @@ export class WorldScene extends Phaser.Scene {
     const clickedNpc = this.npcs.find((npc) => npc.containsPoint(pointer.worldX, pointer.worldY));
 
     if (clickedNpc) {
+      this.pendingPortalInteraction = undefined;
+      this.game.canvas.dataset.pendingPortalInteraction = "";
       this.interactWithNpc(clickedNpc);
       return;
     }
@@ -525,6 +534,8 @@ export class WorldScene extends Phaser.Scene {
 
     if (clickedEnemy) {
       this.pendingNpcInteraction = undefined;
+      this.pendingPortalInteraction = undefined;
+      this.game.canvas.dataset.pendingPortalInteraction = "";
       this.selectEnemy(clickedEnemy);
       this.moveIntoAttackRange(clickedEnemy);
       return;
@@ -533,7 +544,7 @@ export class WorldScene extends Phaser.Scene {
     const clickedPortal = this.portals.find((portal) => portal.bounds.contains(pointer.worldX, pointer.worldY));
 
     if (clickedPortal) {
-      this.transitionThroughPortal(clickedPortal);
+      this.interactWithPortal(clickedPortal);
       return;
     }
 
@@ -561,7 +572,9 @@ export class WorldScene extends Phaser.Scene {
 
     this.player.setPath(path);
     this.pendingNpcInteraction = undefined;
+    this.pendingPortalInteraction = undefined;
     this.game.canvas.dataset.pendingNpcInteraction = "";
+    this.game.canvas.dataset.pendingPortalInteraction = "";
     this.clearTarget();
     this.showClickMarker(destination.x, destination.y);
     this.game.canvas.dataset.lastMovementClickValid = "true";
@@ -594,11 +607,14 @@ export class WorldScene extends Phaser.Scene {
     });
   }
 
+  private updatePlayerAttackCooldown(deltaMs: number): void {
+    this.playerAttackTimerMs = Math.min(playerAttackCooldownMs, this.playerAttackTimerMs + deltaMs);
+  }
+
   private selectEnemy(enemy: EnemyEntity): void {
     this.attackTarget = enemy;
     enemy.setSelected(true, this.player?.character.id ?? null);
     enemy.behaviorMode = "chasing";
-    this.playerAttackTimerMs = playerAttackCooldownMs;
     this.game.canvas.dataset.enemySelected = "true";
     this.game.canvas.dataset.autoAttack = "moving-to-range";
     eventBus.emit("enemyTargetChanged", {
@@ -615,7 +631,6 @@ export class WorldScene extends Phaser.Scene {
   private clearTarget(): void {
     this.attackTarget?.setSelected(false, null);
     this.attackTarget = undefined;
-    this.playerAttackTimerMs = playerAttackCooldownMs;
     this.game.canvas.dataset.enemySelected = "false";
     this.game.canvas.dataset.autoAttack = "idle";
     eventBus.emit("enemyTargetChanged", {
@@ -629,6 +644,8 @@ export class WorldScene extends Phaser.Scene {
 
   private interactWithNpc(npc: NpcEntity): void {
     this.clearTarget();
+    this.pendingPortalInteraction = undefined;
+    this.game.canvas.dataset.pendingPortalInteraction = "";
     this.pendingNpcInteraction = npc;
     this.game.canvas.dataset.pendingNpcInteraction = npc.id;
     this.game.canvas.dataset.lastClickedNpc = npc.id;
@@ -684,6 +701,83 @@ export class WorldScene extends Phaser.Scene {
     this.showClickMarker(npc.position.x, npc.position.y);
     this.game.canvas.dataset.lastMovementClickValid = "true";
     this.game.canvas.dataset.lastPathLength = String(path.length);
+  }
+
+  private interactWithPortal(portal: PortalObject): void {
+    this.clearTarget();
+    this.pendingNpcInteraction = undefined;
+    this.pendingPortalInteraction = portal;
+    this.game.canvas.dataset.pendingNpcInteraction = "";
+    this.game.canvas.dataset.pendingPortalInteraction = portal.name;
+
+    if (this.isPlayerInsidePortal(portal) || this.isPlayerInPortalInteractionRange(portal)) {
+      this.transitionThroughPortal(portal);
+      return;
+    }
+
+    this.moveIntoPortalRange(portal);
+  }
+
+  private isPlayerInsidePortal(portal: PortalObject): boolean {
+    return Boolean(this.player && portal.bounds.contains(this.player.sprite.x, this.player.sprite.y));
+  }
+
+  private isPlayerInPortalInteractionRange(portal: PortalObject): boolean {
+    if (!this.player) {
+      return false;
+    }
+
+    return Phaser.Math.Distance.Between(
+      this.player.sprite.x,
+      this.player.sprite.y,
+      portal.bounds.centerX,
+      portal.bounds.centerY,
+    ) <= portalInteractionRadius;
+  }
+
+  private moveIntoPortalRange(portal: PortalObject): void {
+    if (!this.player || !this.collisionMap) {
+      return;
+    }
+
+    const route = this.findPortalApproachRoute(portal);
+
+    if (!route) {
+      this.game.canvas.dataset.lastMovementClickValid = "false";
+      return;
+    }
+
+    this.player.setPath(route.path);
+    this.showClickMarker(route.destination.x, route.destination.y);
+    this.game.canvas.dataset.lastMovementClickValid = "true";
+    this.game.canvas.dataset.lastPathLength = String(route.path.length);
+  }
+
+  private findPortalApproachRoute(portal: PortalObject): { destination: Phaser.Math.Vector2; path: Vector2Like[] } | null {
+    if (!this.player || !this.collisionMap) {
+      return null;
+    }
+
+    const bounds = portal.bounds;
+    const candidates = [
+      new Phaser.Math.Vector2(bounds.centerX, bounds.centerY),
+      new Phaser.Math.Vector2(bounds.left - 32, bounds.centerY),
+      new Phaser.Math.Vector2(bounds.right + 32, bounds.centerY),
+      new Phaser.Math.Vector2(bounds.centerX, bounds.top - 32),
+      new Phaser.Math.Vector2(bounds.centerX, bounds.bottom + 32),
+      new Phaser.Math.Vector2(bounds.left - 32, bounds.top - 32),
+      new Phaser.Math.Vector2(bounds.left - 32, bounds.bottom + 32),
+      new Phaser.Math.Vector2(bounds.right + 32, bounds.top - 32),
+      new Phaser.Math.Vector2(bounds.right + 32, bounds.bottom + 32),
+    ].filter((point) => this.isWalkable(point.x, point.y));
+
+    return candidates
+      .map((destination) => ({
+        destination,
+        path: findPath(this.collisionMap!, this.player!.position, destination),
+      }))
+      .filter((route) => route.path.length > 0)
+      .sort((a, b) => a.path.length - b.path.length)[0] ?? null;
   }
 
   private openNpcDialogue(npc: NpcEntity): void {
@@ -800,7 +894,6 @@ export class WorldScene extends Phaser.Scene {
       enemy.behaviorMode = enemyCanAttack ? "attacking" : "idle";
     }
     this.game.canvas.dataset.autoAttack = "attacking";
-    this.playerAttackTimerMs += deltaMs;
 
     if (runtime) {
       runtime.attackTimerMs += deltaMs;
@@ -937,19 +1030,35 @@ export class WorldScene extends Phaser.Scene {
   }
 
   private decreaseMusicVolume(): void {
-    audioManager.adjustMusicVolume(-0.1);
+    if (this.consumeVolumeHotkey("music-down")) {
+      audioManager.adjustMusicVolume(-0.1);
+    }
   }
 
   private increaseMusicVolume(): void {
-    audioManager.adjustMusicVolume(0.1);
+    if (this.consumeVolumeHotkey("music-up")) {
+      audioManager.adjustMusicVolume(0.1);
+    }
   }
 
   private decreaseSfxVolume(): void {
-    audioManager.adjustSfxVolume(-0.1);
+    if (this.consumeVolumeHotkey("sfx-down")) {
+      audioManager.adjustSfxVolume(-0.1);
+    }
   }
 
   private increaseSfxVolume(): void {
-    audioManager.adjustSfxVolume(0.1);
+    if (this.consumeVolumeHotkey("sfx-up")) {
+      audioManager.adjustSfxVolume(0.1);
+    }
+  }
+
+  private consumeVolumeHotkey(key: string): boolean {
+    const now = this.time.now;
+    const last = this.lastVolumeHotkeyAt[key] ?? -Infinity;
+    this.lastVolumeHotkeyAt[key] = now;
+
+    return now - last > 120;
   }
 
   private toggleMusicMute(): void {
@@ -2117,7 +2226,10 @@ export class WorldScene extends Phaser.Scene {
       return;
     }
 
-    const portal = this.portals.find((entry) => entry.bounds.contains(this.player!.sprite.x, this.player!.sprite.y));
+    const portal = this.portals.find((entry) => (
+      entry.bounds.contains(this.player!.sprite.x, this.player!.sprite.y)
+      || (this.pendingPortalInteraction === entry && this.isPlayerInPortalInteractionRange(entry))
+    ));
 
     if (!portal) {
       return;
