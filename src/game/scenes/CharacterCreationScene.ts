@@ -66,50 +66,67 @@ export class CharacterCreationScene extends Phaser.Scene {
   }
 
   private drawLayout(): void {
-    const { width } = this.scale;
+    const { width, height } = this.scale;
+    const compact = width < 620;
 
     this.add.text(width / 2, 48, "Create Character", {
       ...textStyle,
-      fontSize: "30px",
+      fontSize: compact ? "26px" : "30px",
     }).setOrigin(0.5);
 
-    this.add.text(60, 92, "Name", smallTextStyle);
-    const nameFrame = this.add.rectangle(60, 116, 310, 52, panelFill, 1)
+    const margin = compact ? 20 : 60;
+    const contentWidth = compact ? width - margin * 2 : 690;
+    const nameWidth = compact ? contentWidth : 310;
+    const nameY = compact ? 112 : 116;
+
+    this.add.text(margin, nameY - 24, "Name", smallTextStyle);
+    const nameFrame = this.add.rectangle(margin, nameY, nameWidth, 52, panelFill, 1)
       .setOrigin(0, 0)
       .setStrokeStyle(2, panelStroke)
       .setInteractive({ useHandCursor: true });
-    this.nameText = this.add.text(78, 132, this.characterName, textStyle);
+    this.nameText = this.add.text(margin + 18, nameY + 16, this.characterName, textStyle);
     nameFrame.on("pointerup", () => {
       this.isNameActive = true;
       nameFrame.setStrokeStyle(2, activeStroke);
       this.game.canvas.dataset.nameInputActive = "true";
     });
 
-    this.drawAppearancePreview(60, 190);
-    this.drawClassButtons(250, 190);
-    this.drawStatsPanel(60, 410);
-    this.drawPreviewPanel(470, 116);
-    this.drawConfirmButton(520, 520);
+    if (compact) {
+      const appearanceY = 194;
+      const classX = Math.min(width - 198, margin + 190);
+      this.drawAppearancePreview(margin, appearanceY, 160, 180, 1.45);
+      this.drawClassButtons(classX, appearanceY, Math.max(166, width - classX - margin), 50);
+      this.drawStatsPanel(margin, 424, contentWidth);
+      this.drawPreviewPanel(margin, 536, contentWidth, Math.max(180, Math.min(236, height - 616)));
+      this.drawConfirmButton(margin, Math.min(height - 76, 786), contentWidth);
+      return;
+    }
+
+    this.drawAppearancePreview(60, 198, 160, 180, 1.55);
+    this.drawClassButtons(250, 190, 178, 58);
+    this.drawStatsPanel(60, 430, 368);
+    this.drawPreviewPanel(470, 116, 280, 360);
+    this.drawConfirmButton(520, 520, 220);
   }
 
-  private drawAppearancePreview(x: number, y: number): void {
+  private drawAppearancePreview(x: number, y: number, width = 160, height = 180, spriteScale = 1.55): void {
     this.add.text(x, y - 28, "Appearance", smallTextStyle);
-    this.add.rectangle(x, y, 160, 180, panelFill, 1)
+    this.add.rectangle(x, y, width, height, panelFill, 1)
       .setOrigin(0, 0)
       .setStrokeStyle(2, panelStroke);
-    this.add.rectangle(x + 80, y + 104, 92, 116, 0x0f172a, 0.55)
+    this.add.rectangle(x + width / 2, y + height / 2 + 10, Math.min(92, width - 44), Math.min(116, height - 50), 0x0f172a, 0.55)
       .setStrokeStyle(1, 0x475569);
-    this.appearanceSprite = this.add.sprite(x + 80, y + 104, getPlayerTextureKey(this.selectedClass?.id ?? "swordsman"))
-      .setScale(2.2)
+    this.appearanceSprite = this.add.sprite(x + width / 2, y + height / 2 + 8, getPlayerTextureKey(this.selectedClass?.id ?? "swordsman"))
+      .setScale(spriteScale)
       .setDepth(2);
   }
 
-  private drawClassButtons(x: number, y: number): void {
+  private drawClassButtons(x: number, y: number, width = 178, spacing = 58): void {
     this.add.text(x, y - 28, "Class", smallTextStyle);
 
     this.classes.forEach((playerClass, index) => {
-      const buttonY = y + index * 58;
-      const frame = this.add.rectangle(x, buttonY, 178, 44, panelFill, 1)
+      const buttonY = y + index * spacing;
+      const frame = this.add.rectangle(x, buttonY, width, 44, panelFill, 1)
         .setOrigin(0, 0)
         .setStrokeStyle(2, panelStroke)
         .setInteractive({ useHandCursor: true });
@@ -122,9 +139,9 @@ export class CharacterCreationScene extends Phaser.Scene {
     });
   }
 
-  private drawStatsPanel(x: number, y: number): void {
+  private drawStatsPanel(x: number, y: number, width = 368): void {
     this.add.text(x, y - 28, "Starting Stat Preset", smallTextStyle);
-    this.add.rectangle(x, y, 368, 90, panelFill, 1)
+    this.add.rectangle(x, y, width, 90, panelFill, 1)
       .setOrigin(0, 0)
       .setStrokeStyle(2, panelStroke);
     this.statsText = this.add.text(x + 18, y + 16, "", {
@@ -133,25 +150,25 @@ export class CharacterCreationScene extends Phaser.Scene {
     });
   }
 
-  private drawPreviewPanel(x: number, y: number): void {
+  private drawPreviewPanel(x: number, y: number, width = 280, height = 360): void {
     this.add.text(x, y - 24, "Class Preview", smallTextStyle);
-    this.add.rectangle(x, y, 280, 360, panelFill, 1)
+    this.add.rectangle(x, y, width, height, panelFill, 1)
       .setOrigin(0, 0)
       .setStrokeStyle(2, panelStroke);
     this.previewText = this.add.text(x + 18, y + 18, "", {
       ...smallTextStyle,
-      fixedWidth: 244,
+      fixedWidth: width - 36,
       lineSpacing: 7,
-      wordWrap: { width: 244 },
+      wordWrap: { width: width - 36 },
     });
   }
 
-  private drawConfirmButton(x: number, y: number): void {
-    this.confirmFrame = this.add.rectangle(x, y, 220, 54, 0x2f5d50, 1)
+  private drawConfirmButton(x: number, y: number, width = 220): void {
+    this.confirmFrame = this.add.rectangle(x, y, width, 54, 0x2f5d50, 1)
       .setOrigin(0, 0)
       .setStrokeStyle(2, 0x86efac)
       .setInteractive({ useHandCursor: true });
-    const label = this.add.text(x + 110, y + 17, "Confirm", {
+    const label = this.add.text(x + width / 2, y + 17, "Confirm", {
       ...textStyle,
       fontSize: "20px",
     }).setOrigin(0.5, 0);
@@ -222,18 +239,30 @@ export class CharacterCreationScene extends Phaser.Scene {
     this.nameText?.setText(this.characterName || "Adventurer");
     this.appearanceSprite?.setTexture(getPlayerTextureKey(playerClass.id));
     this.statsText?.setText(statsSummary);
-    this.previewText?.setText([
-      playerClass.name,
-      playerClass.roleSummary,
-      "",
-      `Recommended: ${playerClass.recommendedStats.join(", ")}`,
-      `Weapon: ${startingWeapon.name}`,
-      `First Skill: ${startingSkill?.name ?? "None"}`,
-      `Difficulty: ${playerClass.difficultyRating}`,
-      `Specializes Into: ${playerClass.advancedClassOptions.join(", ")}`,
-      "",
-      playerClass.description,
-    ].join("\n"));
+    const compact = this.scale.width < 620;
+    this.previewText?.setText(compact
+      ? [
+        playerClass.name,
+        playerClass.roleSummary,
+        "",
+        `Recommended: ${playerClass.recommendedStats.join(", ")}`,
+        `Weapon: ${startingWeapon.name}`,
+        `First Skill: ${startingSkill?.name ?? "None"}`,
+        `Difficulty: ${playerClass.difficultyRating}`,
+        `Specializes: ${playerClass.advancedClassOptions.join(", ")}`,
+      ].join("\n")
+      : [
+        playerClass.name,
+        playerClass.roleSummary,
+        "",
+        `Recommended: ${playerClass.recommendedStats.join(", ")}`,
+        `Weapon: ${startingWeapon.name}`,
+        `First Skill: ${startingSkill?.name ?? "None"}`,
+        `Difficulty: ${playerClass.difficultyRating}`,
+        `Specializes Into: ${playerClass.advancedClassOptions.join(", ")}`,
+        "",
+        playerClass.description,
+      ].join("\n"));
 
     for (const button of this.classButtons) {
       const isSelected = button.classId === playerClass.id;

@@ -102,7 +102,7 @@ import {
   getQuestStatus,
 } from "../systems/quests";
 import { audioManager } from "../systems/audioManager";
-import { applySettingsPatch, adjustFlashIntensity, adjustTextSpeed, cycleDifficulty, cycleUiScale, difficultyPresets, getSettingsSummary } from "../systems/settings";
+import { applySettingsPatch, adjustFlashIntensity, adjustTextSpeed, cycleDifficulty, cycleUiScale, difficultyPresets, getReadableSettingsSummary, getSettingsSummary } from "../systems/settings";
 import type { DataRegistry } from "../data/dataRegistry";
 import type { ItemDefinition, ItemRarity, MonsterDefinition, QuestDefinition, RecipeDefinition, ShopDefinition, SkillDefinition } from "../types/dataDefinitions";
 import type { BaseStatKey, EquipmentInstance, EquipmentSlot, GameState, InventoryItem } from "../types/gameState";
@@ -1031,6 +1031,8 @@ export class UIScene extends Phaser.Scene {
       return;
     }
 
+    this.addPanelBackdrop();
+
     if (this.activePanel === "inventory") {
       this.renderInventoryPanel(this.state, this.dataRegistry);
     } else if (this.activePanel === "equipment") {
@@ -1070,7 +1072,7 @@ export class UIScene extends Phaser.Scene {
       .setOrigin(0)
       .setStrokeStyle(2, panelStroke, 0.9);
     this.addPanelText(86, 72, "Settings", 24, "#f8fafc");
-    this.addPanelText(86, 108, getSettingsSummary(settings), 14, "#fde68a");
+    this.addPanelText(86, 108, getReadableSettingsSummary(settings), 14, "#fde68a", 560);
     this.addPanelText(86, 144, "Audio", 15, "#94a3b8");
     this.addPanelButton(86, 172, 116, 30, `Music ${Math.round(settings.musicVolume * 100)}%`, () => this.changeMusicVolume());
     this.addPanelButton(214, 172, 116, 30, `SFX ${Math.round(settings.sfxVolume * 100)}%`, () => this.changeSfxVolume());
@@ -1094,6 +1096,7 @@ export class UIScene extends Phaser.Scene {
       `Difficulty ${settings.difficulty}: enemy HP x${preset.enemyHpMultiplier} damage x${preset.enemyDamageMultiplier} mitigation x${preset.playerMitigationMultiplier}`,
       13,
       "#bbf7d0",
+      560,
     );
     this.addPanelButton(606, 506, 92, 30, "Close", () => this.closePanel());
     this.syncSettingsDataset(state);
@@ -1191,13 +1194,13 @@ export class UIScene extends Phaser.Scene {
         .join(", ");
       this.addPanelText(502, 168, this.truncateText(selectedQuest.name, 22), 16, "#f8fafc");
       this.addPanelText(502, 198, `Status ${selectedStatus}`, 13, this.getQuestStatusColor(selectedStatus));
-      this.addPanelText(502, 224, this.wrapText(selectedQuest.description, 25), 12, "#cbd5e1");
-      this.addPanelText(502, 292, this.wrapText(selectedQuest.objectives.map((objective) => {
+      this.addPanelText(502, 224, this.clampWrappedText(selectedQuest.description, 25, 4), 12, "#cbd5e1");
+      this.addPanelText(502, 304, this.clampWrappedText(selectedQuest.objectives.map((objective) => {
         const progress = selectedProgress?.objectiveProgress[objective.id] ?? 0;
         return `${objective.description} ${progress}/${objective.targetCount}`;
-      }).join(" | "), 24), 12, "#f8fafc");
-      this.addPanelText(502, 358, this.wrapText(`Hints ${markers || selectedQuest.mapMarkers.map((marker) => marker.mapId).join(", ") || "None"}`, 24), 12, "#93c5fd");
-      this.addPanelText(502, 392, this.wrapText(`Rewards XP ${selectedQuest.rewards.xp} Gold ${selectedQuest.rewards.gold} ${rewardItems}`, 24), 12, "#fde68a");
+      }).join(" | "), 24, 3), 12, "#f8fafc");
+      this.addPanelText(502, 366, this.clampWrappedText(`Hints ${markers || selectedQuest.mapMarkers.map((marker) => marker.mapId).join(", ") || "None"}`, 24, 2), 12, "#93c5fd");
+      this.addPanelText(502, 404, this.clampWrappedText(`Rewards XP ${selectedQuest.rewards.xp} Gold ${selectedQuest.rewards.gold} ${rewardItems}`, 24, 2), 12, "#fde68a");
     } else {
       this.addPanelText(502, 184, "No quests", 15, "#94a3b8");
     }
@@ -1613,8 +1616,8 @@ export class UIScene extends Phaser.Scene {
     this.addPanelText(532, 246, this.state && isItemRefinable(item) ? getRefinedItemName(this.state.inventory, item) : this.state ? getVisibleItemName(this.state.inventory, item) : item.name, 17, "#f8fafc");
     this.addPanelText(532, 276, entry.source === "equipment" ? "Quantity 1" : `Quantity ${entry.quantity}`, 14, "#cbd5e1");
     this.addPanelText(532, 300, getItemRarity(item), 14, this.getRarityColor(item));
-    this.addPanelText(532, 332, this.wrapText(this.state ? getVisibleItemDescription(this.state.inventory, item) : item.description, 20), 13, "#cbd5e1");
-    this.addPanelText(532, 386, `Sell ${getItemSellValue(item)}`, 13, "#fde68a");
+    this.addPanelText(532, 332, this.clampWrappedText(this.state ? getVisibleItemDescription(this.state.inventory, item) : item.description, 20, 3), 13, "#cbd5e1");
+    this.addPanelText(532, 392, `Sell ${getItemSellValue(item)}`, 13, "#fde68a");
   }
 
   private renderInventoryButtons(item: ItemDefinition | null): void {
@@ -2737,6 +2740,15 @@ export class UIScene extends Phaser.Scene {
     this.addPanelText(x + 14, y + 9, label, 13, "#f8fafc");
   }
 
+  private addPanelBackdrop(): void {
+    const { width, height } = this.scale;
+    const backdrop = this.add.rectangle(width / 2, height / 2, width, height, 0x020617, 0.62)
+      .setScrollFactor(0)
+      .setDepth(panelDepth - 1)
+      .setInteractive();
+    this.panelObjects.push(backdrop);
+  }
+
   private addPanelRectangle(
     x: number,
     y: number,
@@ -2753,12 +2765,13 @@ export class UIScene extends Phaser.Scene {
     return rectangle;
   }
 
-  private addPanelText(x: number, y: number, text: string, fontSize: number, color: string): Phaser.GameObjects.Text {
+  private addPanelText(x: number, y: number, text: string, fontSize: number, color: string, wrapWidth?: number): Phaser.GameObjects.Text {
     const object = this.add.text(x, y, text, {
       color,
       fontFamily: "Arial, sans-serif",
       fontSize: `${Math.round(fontSize * (this.state?.settings.uiScale ?? 1))}px`,
       lineSpacing: 4,
+      wordWrap: wrapWidth ? { width: wrapWidth } : undefined,
     })
       .setScrollFactor(0)
       .setDepth(panelDepth + 1);
@@ -4125,5 +4138,17 @@ export class UIScene extends Phaser.Scene {
     }
 
     return lines.join("\n");
+  }
+
+  private clampWrappedText(text: string, lineLength: number, maxLines: number): string {
+    const lines = this.wrapText(text, lineLength).split("\n");
+
+    if (lines.length <= maxLines) {
+      return lines.join("\n");
+    }
+
+    const visible = lines.slice(0, maxLines);
+    visible[maxLines - 1] = this.truncateText(visible[maxLines - 1] ?? "", Math.max(4, lineLength - 2));
+    return visible.join("\n");
   }
 }

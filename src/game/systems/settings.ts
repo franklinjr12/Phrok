@@ -121,6 +121,20 @@ export function getSettingsSummary(settings: SettingsState): string {
   ].join("|");
 }
 
+export function getReadableSettingsSummary(settings: SettingsState): string {
+  return [
+    `Music ${Math.round(settings.musicVolume * 100)}%${settings.musicMuted ? " muted" : ""}`,
+    `SFX ${Math.round(settings.sfxVolume * 100)}%${settings.sfxMuted ? " muted" : ""}`,
+    `UI ${Math.round(settings.uiScale * 100)}%`,
+    `Damage ${settings.damageNumbersEnabled ? "on" : "off"}`,
+    `Shake ${settings.screenShakeEnabled ? "on" : "off"}`,
+    `Flash ${Math.round(settings.flashIntensity * 100)}%`,
+    `Auto-potion ${settings.autoPotionEnabled ? "on" : "off"}`,
+    `Difficulty ${settings.difficulty}`,
+    `Text ${settings.textSpeed.toFixed(2)}x`,
+  ].join("  |  ");
+}
+
 function clampStep(value: number, min: number, max: number, step: number): number {
   const stepped = Math.round(value / step) * step;
   return Math.max(min, Math.min(max, Number(stepped.toFixed(2))));

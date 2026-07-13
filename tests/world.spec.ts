@@ -113,6 +113,25 @@ test("world portals connect generated field and regional maps", async ({ page })
   await expect(canvas).toHaveAttribute("data-tilemap-key", "map-mossvale-edge");
 });
 
+test("field monsters spawn scattered without visual overlap", async ({ page }) => {
+  await useDeterministicRandom(page);
+  await startApp(page);
+
+  const canvas = await enterMeadows(page);
+
+  await clickUntilMapChanges(canvas, "crownfield-old-road", { x: 760, y: 304 });
+  await expect.poll(async () => Number(await canvas.getAttribute("data-enemy-alive-count"))).toBeGreaterThan(1);
+
+  const positions = parsePositions(await canvas.getAttribute("data-enemy-positions"));
+  expect(positions.length).toBeGreaterThan(1);
+
+  for (let index = 0; index < positions.length; index += 1) {
+    for (let otherIndex = index + 1; otherIndex < positions.length; otherIndex += 1) {
+      expect(distance(positions[index], positions[otherIndex])).toBeGreaterThanOrEqual(32);
+    }
+  }
+});
+
 test("audio manager plays map music, action SFX, and updates volume settings", async ({ page }) => {
   await startApp(page);
 
@@ -167,4 +186,30 @@ async function clickUntilMapChanges(
   }
 
   await expect.poll(async () => await canvas.getAttribute("data-current-map"), { timeout: 3000 }).toBe(mapId);
+}
+
+async function useDeterministicRandom(page: Parameters<typeof startApp>[0]) {
+  await page.addInitScript(() => {
+    let seed = 12345;
+    Math.random = () => {
+      seed = (seed * 16807) % 2147483647;
+      return (seed - 1) / 2147483646;
+    };
+  });
+}
+
+function parsePositions(rawPositions: string | null): { x: number; y: number }[] {
+  return (rawPositions ?? "")
+    .split("|")
+    .filter((position) => position.length > 0)
+    .map((position) => {
+      const [x, y] = position.split(",").map((value) => Number(value));
+      return { x, y };
+    });
+}
+
+function distance(a: { x: number; y: number }, b: { x: number; y: number }): number {
+  const dx = a.x - b.x;
+  const dy = a.y - b.y;
+  return Math.sqrt(dx * dx + dy * dy);
 }

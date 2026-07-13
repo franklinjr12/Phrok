@@ -99,4 +99,19 @@ describe("createMainMenuLayout", () => {
       { slot: 3, x: 712, y: 450 },
     ]);
   });
+
+  it("uses a single safe column on narrow screens", () => {
+    const layout = createMainMenuLayout(390, 844);
+
+    expect(layout.compact).toBe(true);
+    expect(layout.buttons.map((button) => button.x)).toEqual([195, 195, 195, 195, 195, 195]);
+    expect(layout.buttons.map((button) => button.y)).toEqual([304, 354, 404, 454, 504, 554]);
+    expect(layout.saveTitleX).toBe(195);
+    expect(layout.saveTitleY).toBe(586);
+    expect(layout.saveSlots).toEqual([
+      { slot: 1, x: 195, y: 634 },
+      { slot: 2, x: 195, y: 688 },
+      { slot: 3, x: 195, y: 742 },
+    ]);
+  });
 });

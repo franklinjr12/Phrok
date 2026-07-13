@@ -58,6 +58,7 @@ import {
   getEffectiveEnemyRespawnMs,
   parseSpawnZones,
   pickSpawnPoint,
+  type SpawnPointLike,
   type SpawnZoneDefinition,
 } from "../systems/enemySpawning";
 import { applyPassiveSkills, expireSkillBuffs, useHotbarSlot as useHotbarSlotAction, type SkillExecutionTarget } from "../systems/skills";
@@ -100,6 +101,8 @@ const enemyAttackCooldownMs = 1250;
 const enemyCastWindupMs = 700;
 const playerAttackKnockbackDistance = 18;
 const bossRewardGold = 25;
+const monsterSpawnMinimumDistance = 44;
+const monsterSpawnPlacementAttempts = 32;
 
 type PrototypeTilemapLayer = Phaser.Tilemaps.TilemapLayer | Phaser.Tilemaps.TilemapGPULayer;
 type WorldSceneData = {
@@ -1906,8 +1909,13 @@ export class WorldScene extends Phaser.Scene {
 
   private syncEnemyDataset(): void {
     this.refreshPrimaryEnemy();
+    const aliveEnemies = this.enemies.filter((enemy) => enemy.isAlive);
     this.game.canvas.dataset.enemyEntityCount = String(this.enemies.length);
-    this.game.canvas.dataset.enemyAliveCount = String(this.enemies.filter((enemy) => enemy.isAlive).length);
+    this.game.canvas.dataset.enemyAliveCount = String(aliveEnemies.length);
+    this.game.canvas.dataset.enemyPositions = aliveEnemies
+      .map((enemy) => `${enemy.sprite.x.toFixed(1)},${enemy.sprite.y.toFixed(1)}`)
+      .join("|");
+    this.game.canvas.dataset.enemySpawnMinimumDistance = String(monsterSpawnMinimumDistance);
 
     if (!this.enemy) {
       this.game.canvas.dataset.enemyHp = "";
@@ -2508,22 +2516,17 @@ export class WorldScene extends Phaser.Scene {
   }
 
   private getWalkableSpawnPoint(zone: SpawnZoneRuntime): Phaser.Math.Vector2 {
-    if (this.isWalkable(zone.bounds.x, zone.bounds.y)) {
-      return new Phaser.Math.Vector2(zone.bounds.x, zone.bounds.y);
-    }
+    const occupiedPoints = this.enemies
+      .filter((enemy) => enemy.isAlive)
+      .map((enemy) => enemy.position);
+    const spawnPoint = pickSpawnPoint(zone, {
+      occupiedPoints,
+      minimumDistance: monsterSpawnMinimumDistance,
+      maxAttempts: monsterSpawnPlacementAttempts,
+      isAllowed: (point: SpawnPointLike) => this.isWalkable(point.x, point.y),
+    });
 
-    for (let attempt = 0; attempt < 8; attempt += 1) {
-      const point = pickSpawnPoint(zone);
-
-      if (this.isWalkable(point.x, point.y)) {
-        return new Phaser.Math.Vector2(point.x, point.y);
-      }
-    }
-
-    return new Phaser.Math.Vector2(
-      zone.bounds.x + zone.bounds.width / 2,
-      zone.bounds.y + zone.bounds.height / 2,
-    );
+    return new Phaser.Math.Vector2(spawnPoint.x, spawnPoint.y);
   }
 
   private refreshPrimaryEnemy(): void {

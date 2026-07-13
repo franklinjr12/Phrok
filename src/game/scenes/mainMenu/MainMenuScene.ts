@@ -3,7 +3,7 @@ import { RegistryKeys } from "../../constants/registryKeys";
 import { SceneKeys } from "../../constants/sceneKeys";
 import type { DataRegistry } from "../../data/dataRegistry";
 import { audioManager } from "../../systems/audioManager";
-import { applySettingsPatch, cycleDifficulty, cycleUiScale, getSettingsSummary } from "../../systems/settings";
+import { applySettingsPatch, cycleDifficulty, cycleUiScale, getReadableSettingsSummary, getSettingsSummary } from "../../systems/settings";
 import {
   readSaveSlots,
   saveDataToGameState,
@@ -69,7 +69,7 @@ export class MainMenuScene extends Phaser.Scene {
     audioManager.initialize(state, canvas);
 
     this.cameras.main.setBackgroundColor("#0d1418");
-    this.drawFinalMenuBackdrop(width, height);
+    this.drawFinalMenuBackdrop(width, height, layout);
 
     for (const button of layout.buttons) {
       this.createMenuButton(button.x, button.y, button.label, button.action);
@@ -96,18 +96,21 @@ export class MainMenuScene extends Phaser.Scene {
     this.syncSettingsDataset(state);
   }
 
-  private drawFinalMenuBackdrop(width: number, height: number): void {
+  private drawFinalMenuBackdrop(width: number, height: number, layout: ReturnType<typeof createMainMenuLayout>): void {
     this.add.rectangle(width / 2, height / 2, width, height, 0x101820, 1);
     this.add.rectangle(width / 2, height / 2, width, height, 0x203040, 0.32);
     this.add.rectangle(width / 2, height - 74, width, 148, 0x1e293b, 0.7);
     this.add.rectangle(width / 2, height - 148, width, 4, 0xfacc15, 0.8);
-    this.add.text(width / 2, 70, "PROK", titleStyle).setOrigin(0.5);
-    this.add.text(width / 2, 122, "Release Candidate", {
+    this.add.text(width / 2, layout.compact ? 72 : 70, "PROK", {
+      ...titleStyle,
+      fontSize: layout.compact ? "52px" : titleStyle.fontSize,
+    }).setOrigin(0.5);
+    this.add.text(width / 2, layout.compact ? 124 : 122, "Release Candidate", {
       ...smallTextStyle,
       color: "#fef3c7",
       fontSize: "16px",
     }).setOrigin(0.5);
-    this.add.text(width / 2 + 210, 186, "Save Slots", {
+    this.add.text(layout.saveTitleX, layout.saveTitleY, "Save Slots", {
       ...smallTextStyle,
       color: "#f8fafc",
       fontSize: "16px",
@@ -298,21 +301,27 @@ export class MainMenuScene extends Phaser.Scene {
       "Audio: in-project placeholder synthesis, original and IP-safe",
     ].join("|");
 
-    const overlay = this.add.rectangle(400, 300, 620, 460, 0x101820, 0.98)
+    const { width, height } = this.scale;
+    const panelWidth = Math.min(620, width - 32);
+    const panelHeight = Math.min(460, height - 56);
+    const left = width / 2 - panelWidth / 2;
+    const top = height / 2 - panelHeight / 2;
+
+    const overlay = this.add.rectangle(width / 2, height / 2, panelWidth, panelHeight, 0x101820, 0.98)
       .setStrokeStyle(2, 0xd6b45f, 0.9)
       .setDepth(40)
       .setInteractive();
     this.creditsObjects.push(overlay);
 
-    this.addCreditsText(400, 100, "Credits", 32, "#f8fafc", 0.5);
-    this.addCreditsText(124, 152, "Contributors", 16, "#fef3c7", 0);
-    this.addCreditsText(124, 184, "Prok contributors - game design, code, data, maps, and testing.", 14, "#cbd5e1", 0);
-    this.addCreditsText(124, 238, "Tools and Licenses", 16, "#fef3c7", 0);
-    this.addCreditsText(124, 270, "Phaser 4.1.0 - MIT License\nVite, TypeScript, Vitest, Playwright - MIT License", 14, "#cbd5e1", 0);
-    this.addCreditsText(124, 342, "Assets", 16, "#fef3c7", 0);
-    this.addCreditsText(124, 374, "Original in-project pixel art and procedural audio placeholders. No third-party music or SFX assets are bundled.", 14, "#cbd5e1", 0);
+    this.addCreditsText(width / 2, top + 48, "Credits", 32, "#f8fafc", 0.5, panelWidth - 68);
+    this.addCreditsText(left + 34, top + 100, "Contributors", 16, "#fef3c7", 0, panelWidth - 68);
+    this.addCreditsText(left + 34, top + 132, "Prok contributors - game design, code, data, maps, and testing.", 14, "#cbd5e1", 0, panelWidth - 68);
+    this.addCreditsText(left + 34, top + 186, "Tools and Licenses", 16, "#fef3c7", 0, panelWidth - 68);
+    this.addCreditsText(left + 34, top + 218, "Phaser 4.1.0 - MIT License\nVite, TypeScript, Vitest, Playwright - MIT License", 14, "#cbd5e1", 0, panelWidth - 68);
+    this.addCreditsText(left + 34, top + 290, "Assets", 16, "#fef3c7", 0, panelWidth - 68);
+    this.addCreditsText(left + 34, top + 322, "Original in-project pixel art and procedural audio placeholders. No third-party music or SFX assets are bundled.", 14, "#cbd5e1", 0, panelWidth - 68);
 
-    const closeButton = this.add.text(400, 500, "Close", buttonStyle)
+    const closeButton = this.add.text(width / 2, top + panelHeight - 44, "Close", buttonStyle)
       .setOrigin(0.5)
       .setDepth(41)
       .setInteractive({ useHandCursor: true });
@@ -330,14 +339,15 @@ export class MainMenuScene extends Phaser.Scene {
     fontSize: number,
     color: string,
     originX: number,
+    wrapWidth = 552,
   ): void {
     const object = this.add.text(x, y, text, {
       color,
-      fixedWidth: originX === 0 ? 552 : undefined,
+      fixedWidth: originX === 0 ? wrapWidth : undefined,
       fontFamily: "Arial, sans-serif",
       fontSize: `${fontSize}px`,
       lineSpacing: 8,
-      wordWrap: originX === 0 ? { width: 552 } : undefined,
+      wordWrap: originX === 0 ? { width: wrapWidth } : undefined,
     })
       .setOrigin(originX, 0.5)
       .setDepth(41);
@@ -354,11 +364,69 @@ export class MainMenuScene extends Phaser.Scene {
 
   private renderSettingsMenu(state: GameState): void {
     this.clearSettingsObjects();
-    this.addSettingsRectangle(158, 82, 484, 430, 0x101820, 0.97)
+    const { width, height } = this.scale;
+    const compact = width < 620;
+    const panelWidth = compact ? Math.min(width - 28, 420) : 484;
+    const panelHeight = compact ? Math.min(height - 54, 556) : 430;
+    const left = compact ? (width - panelWidth) / 2 : 158;
+    const top = compact ? 28 : 82;
+    const buttonWidth = compact ? panelWidth - 60 : 130;
+    this.addSettingsRectangle(left, top, panelWidth, panelHeight, 0x101820, 0.97)
       .setOrigin(0)
       .setStrokeStyle(2, 0xd6b45f, 0.9);
-    this.addSettingsText(188, 108, "Settings", 28, "#f8fafc");
-    this.addSettingsText(188, 150, getSettingsSummary(state.settings), 13, "#cbd5e1");
+    this.addSettingsText(left + 30, top + 26, "Settings", 28, "#f8fafc");
+    this.addSettingsText(left + 30, top + 68, getReadableSettingsSummary(state.settings), 13, "#cbd5e1", panelWidth - 60);
+
+    if (compact) {
+      const labels = [
+        [`Music ${Math.round(state.settings.musicVolume * 100)}%`, () => {
+          applySettingsPatch(state, { musicVolume: state.settings.musicVolume >= 1 ? 0 : state.settings.musicVolume + 0.1 });
+          audioManager.adjustMusicVolume(0);
+          this.renderSettingsMenu(state);
+        }],
+        [`SFX ${Math.round(state.settings.sfxVolume * 100)}%`, () => {
+          applySettingsPatch(state, { sfxVolume: state.settings.sfxVolume >= 1 ? 0 : state.settings.sfxVolume + 0.1 });
+          audioManager.adjustSfxVolume(0);
+          this.renderSettingsMenu(state);
+        }],
+        [`UI ${Math.round(state.settings.uiScale * 100)}%`, () => {
+          cycleUiScale(state);
+          this.renderSettingsMenu(state);
+        }],
+        [`Damage ${state.settings.damageNumbersEnabled ? "On" : "Off"}`, () => {
+          applySettingsPatch(state, { damageNumbersEnabled: !state.settings.damageNumbersEnabled });
+          this.renderSettingsMenu(state);
+        }],
+        [`Shake ${state.settings.screenShakeEnabled ? "On" : "Off"}`, () => {
+          applySettingsPatch(state, { screenShakeEnabled: !state.settings.screenShakeEnabled });
+          this.renderSettingsMenu(state);
+        }],
+        [`Flash ${Math.round(state.settings.flashIntensity * 100)}%`, () => {
+          applySettingsPatch(state, { flashIntensity: state.settings.flashIntensity >= 1 ? 0 : state.settings.flashIntensity + 0.25 });
+          this.renderSettingsMenu(state);
+        }],
+        [`Potion ${state.settings.autoPotionEnabled ? "On" : "Off"}`, () => {
+          applySettingsPatch(state, { autoPotionEnabled: !state.settings.autoPotionEnabled });
+          this.renderSettingsMenu(state);
+        }],
+        [state.settings.difficulty, () => {
+          cycleDifficulty(state);
+          this.renderSettingsMenu(state);
+        }],
+        [`Text ${state.settings.textSpeed.toFixed(2)}x`, () => {
+          applySettingsPatch(state, { textSpeed: state.settings.textSpeed >= 2 ? 0.5 : state.settings.textSpeed + 0.25 });
+          this.renderSettingsMenu(state);
+        }],
+      ] as Array<[string, () => void]>;
+
+      labels.forEach(([label, callback], index) => {
+        this.addSettingsButton(left + 30, top + 132 + index * 42, buttonWidth, 34, label, callback);
+      });
+      this.addSettingsButton(left + panelWidth - 160, top + panelHeight - 68, 130, 34, "Close", () => this.toggleSettingsMenu());
+      this.syncSettingsDataset(state);
+      return;
+    }
+
     this.addSettingsButton(188, 190, 130, 34, `Music ${Math.round(state.settings.musicVolume * 100)}%`, () => {
       applySettingsPatch(state, { musicVolume: state.settings.musicVolume >= 1 ? 0 : state.settings.musicVolume + 0.1 });
       audioManager.adjustMusicVolume(0);
@@ -416,11 +484,13 @@ export class MainMenuScene extends Phaser.Scene {
     return rectangle;
   }
 
-  private addSettingsText(x: number, y: number, text: string, fontSize: number, color: string): Phaser.GameObjects.Text {
+  private addSettingsText(x: number, y: number, text: string, fontSize: number, color: string, wrapWidth?: number): Phaser.GameObjects.Text {
     const object = this.add.text(x, y, text, {
       color,
       fontFamily: "Arial, sans-serif",
       fontSize: `${fontSize}px`,
+      lineSpacing: 4,
+      wordWrap: wrapWidth ? { width: wrapWidth } : undefined,
     }).setDepth(31);
     this.settingsObjects.push(object);
     return object;

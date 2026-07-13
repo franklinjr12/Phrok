@@ -42,6 +42,44 @@ describe("enemy spawning", () => {
     }, () => 0.5)).toEqual({ x: 60, y: 45 });
   });
 
+  it("tries another random point when a spawn would overlap an occupied point", () => {
+    const randomValues = [0.5, 0.5, 0.9, 0.5];
+    const point = pickSpawnPoint({
+      id: "zone",
+      name: "Zone",
+      monsterId: "green-jelly",
+      maxCount: 2,
+      respawnMs: 1000,
+      bounds: { x: 0, y: 0, width: 100, height: 100 },
+    }, {
+      random: () => randomValues.shift() ?? 0,
+      occupiedPoints: [{ x: 50, y: 50 }],
+      minimumDistance: 32,
+      maxAttempts: 2,
+    });
+
+    expect(point).toEqual({ x: 90, y: 50 });
+  });
+
+  it("falls back to the best allowed point when a crowded zone cannot satisfy spacing", () => {
+    const randomValues = [0.51, 0.5, 0.6, 0.5];
+    const point = pickSpawnPoint({
+      id: "zone",
+      name: "Zone",
+      monsterId: "green-jelly",
+      maxCount: 2,
+      respawnMs: 1000,
+      bounds: { x: 0, y: 0, width: 100, height: 100 },
+    }, {
+      random: () => randomValues.shift() ?? 0,
+      occupiedPoints: [{ x: 50, y: 50 }],
+      minimumDistance: 32,
+      maxAttempts: 2,
+    });
+
+    expect(point).toEqual({ x: 60, y: 50 });
+  });
+
   it("ignores generic Tiled scratch spawns in release maps", () => {
     const zones = parseSpawnZones([
       {

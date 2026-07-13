@@ -31,6 +31,19 @@ export interface SpawnZoneDefinition {
   };
 }
 
+export interface SpawnPointLike {
+  x: number;
+  y: number;
+}
+
+export interface PickSpawnPointOptions {
+  random?: () => number;
+  occupiedPoints?: SpawnPointLike[];
+  minimumDistance?: number;
+  maxAttempts?: number;
+  isAllowed?: (point: SpawnPointLike) => boolean;
+}
+
 export interface EnemyRespawnDefinition {
   elite: boolean;
   boss: boolean;
@@ -87,11 +100,42 @@ export function parseSpawnZones(
 
 export function pickSpawnPoint(
   zone: SpawnZoneDefinition,
-  random: () => number = Math.random,
-): { x: number; y: number } {
-  return {
-    x: zone.bounds.x + random() * zone.bounds.width,
-    y: zone.bounds.y + random() * zone.bounds.height,
+  optionsOrRandom: PickSpawnPointOptions | (() => number) = {},
+): SpawnPointLike {
+  const options = typeof optionsOrRandom === "function" ? { random: optionsOrRandom } : optionsOrRandom;
+  const random = options.random ?? Math.random;
+  const occupiedPoints = options.occupiedPoints ?? [];
+  const minimumDistance = Math.max(0, options.minimumDistance ?? 0);
+  const maxAttempts = Math.max(1, options.maxAttempts ?? 16);
+  const isAllowed = options.isAllowed ?? (() => true);
+  let bestPoint: SpawnPointLike | null = null;
+  let bestDistance = -1;
+
+  for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+    const point = {
+      x: zone.bounds.x + random() * zone.bounds.width,
+      y: zone.bounds.y + random() * zone.bounds.height,
+    };
+
+    if (!isAllowed(point)) {
+      continue;
+    }
+
+    const nearestDistance = getNearestDistance(point, occupiedPoints);
+
+    if (nearestDistance >= minimumDistance) {
+      return point;
+    }
+
+    if (nearestDistance > bestDistance) {
+      bestPoint = point;
+      bestDistance = nearestDistance;
+    }
+  }
+
+  return bestPoint ?? {
+    x: zone.bounds.x + zone.bounds.width / 2,
+    y: zone.bounds.y + zone.bounds.height / 2,
   };
 }
 
@@ -157,4 +201,12 @@ function distance(a: { x: number; y: number }, b: { x: number; y: number }): num
   const dx = a.x - b.x;
   const dy = a.y - b.y;
   return Math.sqrt(dx * dx + dy * dy);
+}
+
+function getNearestDistance(point: SpawnPointLike, occupiedPoints: SpawnPointLike[]): number {
+  if (occupiedPoints.length === 0) {
+    return Number.POSITIVE_INFINITY;
+  }
+
+  return Math.min(...occupiedPoints.map((occupiedPoint) => distance(point, occupiedPoint)));
 }
