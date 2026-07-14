@@ -35,7 +35,7 @@ export interface SaveData {
   crafting: CraftingState;
   huntingBoard: GameState["huntingBoard"];
   quests: QuestState;
-  worldFlags: Record<string, boolean>;
+  worldFlags: GameState["worldFlags"];
   settings: SettingsState;
   gameState: GameState;
 }

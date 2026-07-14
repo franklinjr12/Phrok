@@ -277,6 +277,6 @@ export interface GameState {
   bossEncounters: BossEncounterState;
   endgameTower: EndgameTowerState;
   challengeDungeons: ChallengeDungeonState;
-  worldFlags: Record<string, boolean>;
+  worldFlags: Record<string, boolean | string>;
   settings: SettingsState;
 }

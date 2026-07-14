@@ -158,7 +158,7 @@ function normalizeSaveData(rawSave: unknown): SaveData {
     bossEncounters: normalizeBossEncounterState(rawGameState.bossEncounters, fallbackState.bossEncounters),
     endgameTower: normalizeEndgameTowerState(rawGameState.endgameTower, fallbackState.endgameTower),
     challengeDungeons: normalizeChallengeDungeonState(rawGameState.challengeDungeons, fallbackState.challengeDungeons),
-    worldFlags: normalizeBooleanRecord(rawSave.worldFlags, fallbackState.worldFlags),
+    worldFlags: normalizeWorldFlags(rawSave.worldFlags, fallbackState.worldFlags),
     settings: normalizeSettings(isRecord(rawSave.settings) ? rawSave.settings : rawGameState.settings, fallbackState.settings),
   };
 
@@ -601,11 +601,13 @@ function normalizeRefinementLevels(rawLevels: unknown, fallback: GameState["inve
 
 const normalizeSettings = normalizeSettingsState;
 
-function normalizeBooleanRecord(rawRecord: unknown, fallback: Record<string, boolean>): Record<string, boolean> {
+function normalizeWorldFlags(rawRecord: unknown, fallback: GameState["worldFlags"]): GameState["worldFlags"] {
   const source = isRecord(rawRecord) ? rawRecord : fallback;
 
   return Object.fromEntries(
-    Object.entries(source).filter((entry): entry is [string, boolean] => typeof entry[1] === "boolean"),
+    Object.entries(source).filter((entry): entry is [string, boolean | string] => (
+      typeof entry[1] === "boolean" || typeof entry[1] === "string"
+    )),
   );
 }
 

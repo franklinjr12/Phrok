@@ -316,6 +316,67 @@ test("aggressive enemies detect, chase, and attack without being clicked", async
   expect(deltaX * (playerPosition.x - enemyPosition.x) + deltaY * (playerPosition.y - enemyPosition.y)).toBeGreaterThan(0);
 });
 
+test("player death opens respawn popup and returns to the last safe hub", async ({ page }) => {
+  await page.route("**/assets/data/monsters.json", async (route) => {
+    const response = await route.fetch();
+    const monsters = await response.json() as Array<Record<string, unknown>>;
+
+    await route.fulfill({
+      response,
+      json: monsters.map((monster) => monster.id === "green-jelly"
+        ? {
+          ...monster,
+          behavior: "aggressive",
+          attack: 120,
+          aggroRange: 260,
+          attackRange: 80,
+          leashDistance: 360,
+          leashTimeoutMs: 7000,
+        }
+        : monster),
+    });
+  });
+  await page.route("**/assets/maps/crownfield-meadows.json", async (route) => {
+    const response = await route.fetch();
+    const map = await response.json() as {
+      layers: Array<{
+        name?: string;
+        objects?: Array<Record<string, unknown>>;
+      }>;
+    };
+    const objectLayer = map.layers.find((layer) => layer.name === "Objects");
+    const jellyGrove = objectLayer?.objects?.find((object) => object.name === "JellyGrove");
+
+    if (jellyGrove) {
+      jellyGrove.x = 240;
+      jellyGrove.y = 304;
+      jellyGrove.width = 32;
+      jellyGrove.height = 32;
+      jellyGrove.properties = [
+        { name: "monsterId", type: "string", value: "green-jelly" },
+        { name: "maxCount", type: "int", value: 1 },
+      ];
+    }
+
+    await route.fulfill({ response, json: map });
+  });
+  await startApp(page);
+
+  const canvas = await enterMeadows(page);
+
+  await expect.poll(async () => await canvas.getAttribute("data-player-hp"), { timeout: 7000 }).toMatch(/^0\/\d+$/);
+  await expect(canvas).toHaveAttribute("data-player-combat-state", "dead");
+  await expect(canvas).toHaveAttribute("data-game-over", "visible");
+  await expect(canvas).toHaveAttribute("data-respawn-target-map", "crownfield-town");
+
+  await canvas.click({ position: { x: 400, y: 346 } });
+
+  await expect.poll(async () => await canvas.getAttribute("data-current-map"), { timeout: 7000 }).toBe("crownfield-town");
+  await expect(canvas).toHaveAttribute("data-game-over", "hidden");
+  await expect(canvas).toHaveAttribute("data-player-combat-state", "alive");
+  await expect(canvas).toHaveAttribute("data-player-hp", "73/73");
+});
+
 test("assist enemies locally join when a nearby ally is attacked", async ({ page }) => {
   await page.route("**/assets/data/monsters.json", async (route) => {
     const response = await route.fetch();

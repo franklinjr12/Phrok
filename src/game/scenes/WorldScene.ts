@@ -108,6 +108,7 @@ const meleeLungeBackMs = 80;
 const bossRewardGold = 25;
 const monsterSpawnMinimumDistance = 44;
 const monsterSpawnPlacementAttempts = 32;
+const fallbackRespawnTownId = "crownfield-town";
 
 type PrototypeTilemapLayer = Phaser.Tilemaps.TilemapLayer | Phaser.Tilemaps.TilemapGPULayer;
 type WorldSceneData = {
@@ -226,6 +227,7 @@ export class WorldScene extends Phaser.Scene {
     this.isDialogueOpen = false;
     const map = dataRegistry.getMap(state.currentMapId);
     const region = dataRegistry.getRegion(map.regionId);
+    this.recordVisitedSafeHub(map);
     const tilemapKey = map.tilemapKey || mapKeysById[state.currentMapId] || mapKeysById["crownfield-town"];
 
     const tilemap = this.make.tilemap({ key: tilemapKey });
@@ -390,6 +392,10 @@ export class WorldScene extends Phaser.Scene {
     this.game.canvas.dataset.targetFrame = "hidden";
     this.game.canvas.dataset.autoAttack = "idle";
     this.game.canvas.dataset.playerCombatState = "alive";
+    this.game.canvas.dataset.gameOver = "hidden";
+    this.game.canvas.dataset.respawnTargetMap = this.getRespawnTownId();
+    this.game.canvas.dataset.respawnTargetName = this.getRespawnTownName();
+    this.game.canvas.dataset.lastDeathSource = "";
     this.game.canvas.dataset.lastCombatFormula = "";
     this.game.canvas.dataset.lastSkillUse = "";
     this.game.canvas.dataset.skillCooldowns = "";
@@ -1215,6 +1221,9 @@ export class WorldScene extends Phaser.Scene {
         hp: this.state.character.stats.hp,
         maxHp: this.state.character.stats.maxHp,
       });
+      if (this.state.character.stats.hp === 0) {
+        this.handlePlayerDeath("status-effect");
+      }
     }
 
     if (result.damage > 0 || result.expiredIds.length > 0 || result.tickedIds.length > 0) {
@@ -1695,14 +1704,77 @@ export class WorldScene extends Phaser.Scene {
     });
 
     if (state.character.stats.hp === 0) {
-      this.game.canvas.dataset.playerCombatState = "dead";
-      this.game.canvas.dataset.autoAttack = "stopped";
-      this.player?.clearDestination();
-      this.attackTarget = undefined;
-      const resetBossId = resetActiveBossEncounter(state);
-      this.game.canvas.dataset.lastBossReset = resetBossId ?? "";
-      this.syncBossEncounterDataset();
+      this.handlePlayerDeath(enemy.id);
     }
+  }
+
+  private handlePlayerDeath(source: string): void {
+    if (!this.state || this.game.canvas.dataset.playerCombatState === "dead") {
+      return;
+    }
+
+    this.game.canvas.dataset.playerCombatState = "dead";
+    this.game.canvas.dataset.autoAttack = "stopped";
+    this.game.canvas.dataset.enemySelected = "false";
+    this.game.canvas.dataset.gameplayInputBlocked = "true";
+    this.game.canvas.dataset.lastDeathSource = source;
+    this.game.canvas.dataset.respawnTargetMap = this.getRespawnTownId();
+    this.game.canvas.dataset.respawnTargetName = this.getRespawnTownName();
+    this.player?.clearDestination();
+    this.attackTarget = undefined;
+
+    for (const runtime of this.enemyRuntimes) {
+      runtime.damagedByPlayer = false;
+      runtime.assistedByAlly = false;
+      runtime.castWindupMs = null;
+      runtime.enemy.setCastProgress(null);
+      runtime.enemy.behaviorMode = runtime.enemy.isAlive ? "idle" : "dead";
+    }
+
+    const resetBossId = resetActiveBossEncounter(this.state);
+    this.state.challengeDungeons.activeRun = null;
+    this.state.challengeDungeons.activeClassTrialId = null;
+    this.game.canvas.dataset.lastBossReset = resetBossId ?? "";
+    this.game.canvas.dataset.challengeDungeonActive = "";
+    this.game.canvas.dataset.challengeDungeonModifier = "";
+    this.game.canvas.dataset.challengeDungeonDifficulty = "";
+    this.game.canvas.dataset.challengeDungeonRewards = "";
+    this.syncBossEncounterDataset();
+    this.scene.launch(SceneKeys.GameOver, {
+      deathSource: source,
+      respawnMapId: this.getRespawnTownId(),
+      respawnMapName: this.getRespawnTownName(),
+    });
+    this.scene.bringToTop(SceneKeys.GameOver);
+  }
+
+  private recordVisitedSafeHub(map: MapDefinition): void {
+    if (!this.state || !this.isSafeHub(map)) {
+      return;
+    }
+
+    this.state.worldFlags.lastVisitedTownId = map.id;
+    this.state.worldFlags.lastVisitedTownName = map.name;
+  }
+
+  private isSafeHub(map: MapDefinition): boolean {
+    return map.monsterIds.length === 0 && map.spawnGroups.length === 0;
+  }
+
+  private getRespawnTownId(): string {
+    const mapId = this.state?.worldFlags.lastVisitedTownId;
+
+    return typeof mapId === "string" && mapId.length > 0 ? mapId : fallbackRespawnTownId;
+  }
+
+  private getRespawnTownName(): string {
+    const mapName = this.state?.worldFlags.lastVisitedTownName;
+
+    if (typeof mapName === "string" && mapName.length > 0) {
+      return mapName;
+    }
+
+    return this.dataRegistry?.getMap(fallbackRespawnTownId).name ?? "Crownfield";
   }
 
   private moveIntoAttackRange(enemy: EnemyEntity): void {
