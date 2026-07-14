@@ -202,6 +202,8 @@ export class UIScene extends Phaser.Scene {
   private selectedInventoryIndex = 0;
   private selectedShopIndex = 0;
   private selectedMarketInventoryIndex = 0;
+  private lastMarketInventoryClickIndex = -1;
+  private lastMarketInventoryClickTime = 0;
   private selectedStorageInventoryIndex = 0;
   private selectedStorageIndex = 0;
   private selectedCraftingIndex = 0;
@@ -1733,8 +1735,17 @@ export class UIScene extends Phaser.Scene {
         .setStrokeStyle(1, index === this.selectedMarketInventoryIndex ? 0xfacc15 : 0x334155, 0.9)
         .setInteractive({ useHandCursor: true });
       row.on("pointerdown", () => {
+        const isDoubleClick = this.lastMarketInventoryClickIndex === index
+          && this.time.now - this.lastMarketInventoryClickTime <= 700;
         this.selectedMarketInventoryIndex = index;
-        this.renderPanel();
+        this.lastMarketInventoryClickIndex = index;
+        this.lastMarketInventoryClickTime = this.time.now;
+
+        if (isDoubleClick) {
+          this.sellSelectedMarketItem();
+        } else {
+          this.renderPanel();
+        }
       });
       this.addPanelText(404, y, getVisibleItemName(state.inventory, item), 13, "#f8fafc");
       this.addPanelText(582, y, `${getMarketSellValue(item)}g`, 13, "#fde68a");
@@ -1743,6 +1754,7 @@ export class UIScene extends Phaser.Scene {
 
     this.renderMarketDetails(92, 432, "Buy", selectedStockItem, selectedStock ? getShopBuyPrice(selectedStockItem!, selectedStock) : 0, () => this.buySelectedShopItem());
     this.renderMarketDetails(392, 432, "Sell", selectedInventoryItem, selectedInventoryItem ? getMarketSellValue(selectedInventoryItem) : 0, () => this.sellSelectedMarketItem());
+    this.addPanelButton(626, 490, 90, 28, "Sell All", () => this.sellSelectedMarketItem(1, true));
     this.addPanelButton(636, 512, 78, 28, "Close", () => this.closePanel());
     this.syncShopDataset(shop, selectedStockItem, selectedInventoryItem, state.inventory.gold);
   }
@@ -2188,7 +2200,7 @@ export class UIScene extends Phaser.Scene {
     this.refreshOpenPanel();
   }
 
-  private sellSelectedMarketItem(sellMultiplier = 1): void {
+  private sellSelectedMarketItem(sellMultiplier = 1, sellAll = false): void {
     if (!this.state || !this.dataRegistry) {
       return;
     }
@@ -2196,11 +2208,13 @@ export class UIScene extends Phaser.Scene {
     const entries = this.getInventoryPanelEntries(this.state.inventory.items, this.state.inventory.equipmentInstances);
     const entry = entries[this.clampSelectedMarketInventoryIndex(entries)];
     const item = entry ? this.dataRegistry.getItem(entry.itemId) : undefined;
-    const result = sellInventoryItem(this.state, item, 1, sellMultiplier);
+    const quantity = sellAll ? entry?.quantity ?? 1 : 1;
+    const result = sellInventoryItem(this.state, item, quantity, sellMultiplier);
 
     this.game.canvas.dataset.lastShopAction = result.success
       ? `sell:${result.itemId}:${result.price}:${result.gold}`
       : `sell-failed:${result.reason}:${result.itemId}:${result.price}:${result.gold}`;
+    this.game.canvas.dataset.lastShopSellQuantity = String(result.quantity);
     this.refreshOpenPanel();
   }
 
@@ -2665,6 +2679,7 @@ export class UIScene extends Phaser.Scene {
     this.game.canvas.dataset.shopStockPrices = shop.stock
       .map((stock) => getShopBuyPrice(this.dataRegistry!.getItem(stock.itemId), stock))
       .join("|");
+    this.game.canvas.dataset.shopButtons = "Buy|Sell|Sell All|Close";
     this.game.canvas.dataset.selectedShopItem = selectedStockItem?.id ?? "";
     this.game.canvas.dataset.selectedShopItemName = selectedStockItem?.name ?? "";
     this.game.canvas.dataset.selectedShopSellItem = selectedInventoryItem?.id ?? "";

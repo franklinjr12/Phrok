@@ -58,7 +58,7 @@ test("merchant NPC opens a JSON-backed shop for buying and selling", async ({ pa
     gold: 50,
     items: [
       { id: "training-sword", quantity: 1 },
-      { id: "jelly-gel", quantity: 1 },
+      { id: "jelly-gel", quantity: 4 },
     ],
   });
   await startApp(page);
@@ -80,8 +80,18 @@ test("merchant NPC opens a JSON-backed shop for buying and selling", async ({ pa
   await expect(canvas).toHaveAttribute("data-last-shop-action", "buy:minor-health-potion:9:41");
   await expect(canvas).toHaveAttribute("data-inventory-gold", "41");
 
-  await canvas.click({ position: { x: 590, y: 452 } });
-  await expect(canvas).toHaveAttribute("data-last-shop-action", /sell:jelly-gel:2:43|sell:training-sword:12:53/);
+  await expect(canvas).toHaveAttribute("data-shop-buttons", "Buy|Sell|Sell All|Close");
+
+  await canvas.click({ position: { x: 430, y: 218 } });
+  await expect(canvas).toHaveAttribute("data-selected-shop-sell-item", "jelly-gel");
+  await canvas.click({ position: { x: 430, y: 218 } });
+  await expect(canvas).toHaveAttribute("data-last-shop-action", "sell:jelly-gel:2:43");
+  await expect(canvas).toHaveAttribute("data-last-shop-sell-quantity", "1");
+
+  await canvas.click({ position: { x: 670, y: 504 } });
+  await expect(canvas).toHaveAttribute("data-last-shop-action", "sell:jelly-gel:6:49");
+  await expect(canvas).toHaveAttribute("data-last-shop-sell-quantity", "3");
+  await expect(canvas).toHaveAttribute("data-inventory-gold", "49");
 });
 
 test("refiner NPC opens refinement UI and upgrades gear with materials", async ({ page }) => {
