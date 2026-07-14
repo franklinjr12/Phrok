@@ -99,6 +99,41 @@ test("rapid target clicks do not bypass player attack cooldown", async ({ page }
   expect(extraDamage).toBeLessThanOrEqual(firstDamage);
 });
 
+test("player basic attacks lunge toward the selected enemy", async ({ page }) => {
+  await page.route("**/assets/data/monsters.json", async (route) => {
+    const response = await route.fetch();
+    const monsters = await response.json() as Array<Record<string, unknown>>;
+
+    await route.fulfill({
+      response,
+      json: monsters.map((monster) => monster.id === "green-jelly"
+        ? {
+          ...monster,
+          hp: 500,
+          attack: 1,
+          defense: 0,
+          behavior: "passive",
+        }
+        : monster),
+    });
+  });
+  await startApp(page);
+
+  const canvas = await enterMeadows(page);
+  await clickPrimaryEnemy(canvas);
+
+  await expect.poll(async () => await canvas.getAttribute("data-last-melee-lunge"), { timeout: 6000 })
+    .toMatch(/^player:green-jelly:/);
+  const [deltaX, deltaY] = parseLungeDelta((await canvas.getAttribute("data-last-melee-lunge")) ?? "");
+  const playerPosition = parsePoint(
+    `${await canvas.getAttribute("data-player-x")},${await canvas.getAttribute("data-player-y")}`,
+  );
+  const enemyPosition = parsePoint((await canvas.getAttribute("data-enemy-position")) ?? "0,0");
+
+  expect(Math.hypot(deltaX, deltaY)).toBeGreaterThan(0);
+  expect(deltaX * (enemyPosition.x - playerPosition.x) + deltaY * (enemyPosition.y - playerPosition.y)).toBeGreaterThan(0);
+});
+
 test("enemy uses the matching monster sprite when it is preloaded", async ({ page }) => {
   await routeMeadowsMonster(page, "field-hopper");
   await startApp(page);
@@ -205,6 +240,19 @@ function parseHp(rawHp: string | null): number {
   return Number((rawHp ?? "0/0").split("/")[0]);
 }
 
+function parsePoint(rawPoint: string): { x: number; y: number } {
+  const [x, y] = rawPoint.split(",").map((value) => Number(value));
+
+  return { x, y };
+}
+
+function parseLungeDelta(rawLunge: string): [number, number] {
+  const delta = rawLunge.split(":").at(-1) ?? "0,0";
+  const [x, y] = delta.split(",").map((value) => Number(value));
+
+  return [x, y];
+}
+
 test("aggressive enemies detect, chase, and attack without being clicked", async ({ page }) => {
   await page.route("**/assets/data/monsters.json", async (route) => {
     const response = await route.fetch();
@@ -255,6 +303,17 @@ test("aggressive enemies detect, chase, and attack without being clicked", async
   await expect.poll(async () => await canvas.getAttribute("data-enemy-combat-state"), { timeout: 4000 }).toMatch(/chasing|attacking/);
   await expect.poll(async () => await canvas.getAttribute("data-enemy-position")).not.toBe(initialPosition);
   await expect.poll(async () => await canvas.getAttribute("data-player-hp"), { timeout: 6000 }).not.toBe("30/30");
+
+  await expect.poll(async () => await canvas.getAttribute("data-last-enemy-melee-lunge"), { timeout: 6000 })
+    .toMatch(/^green-jelly:player:/);
+  const [deltaX, deltaY] = parseLungeDelta((await canvas.getAttribute("data-last-enemy-melee-lunge")) ?? "");
+  const playerPosition = parsePoint(
+    `${await canvas.getAttribute("data-player-x")},${await canvas.getAttribute("data-player-y")}`,
+  );
+  const enemyPosition = parsePoint((await canvas.getAttribute("data-enemy-position")) ?? "0,0");
+
+  expect(Math.hypot(deltaX, deltaY)).toBeGreaterThan(0);
+  expect(deltaX * (playerPosition.x - enemyPosition.x) + deltaY * (playerPosition.y - enemyPosition.y)).toBeGreaterThan(0);
 });
 
 test("assist enemies locally join when a nearby ally is attacked", async ({ page }) => {

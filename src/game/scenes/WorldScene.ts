@@ -102,6 +102,9 @@ const portalInteractionRadius = 72;
 const enemyAttackCooldownMs = 1250;
 const enemyCastWindupMs = 700;
 const playerAttackKnockbackDistance = 18;
+const meleeLungeDistance = 12;
+const meleeLungeOutMs = 55;
+const meleeLungeBackMs = 80;
 const bossRewardGold = 25;
 const monsterSpawnMinimumDistance = 44;
 const monsterSpawnPlacementAttempts = 32;
@@ -170,6 +173,10 @@ export class WorldScene extends Phaser.Scene {
   private unsubscribeSupportChanged?: () => void;
   private unsubscribeSettingsChanged?: () => void;
   private vfxManager?: VfxManager;
+  private meleeLungeTweens = new WeakMap<
+    Phaser.Physics.Arcade.Sprite,
+    { tween: Phaser.Tweens.Tween; originX: number; originY: number }
+  >();
   private playerAttackTimerMs = playerAttackCooldownMs;
   private isCameraFollowingPlayer = false;
   private isTransitioning = false;
@@ -938,6 +945,9 @@ export class WorldScene extends Phaser.Scene {
       debug: import.meta.env.DEV,
     });
 
+    if (this.player) {
+      this.playMeleeLunge(this.player.sprite, enemy.sprite, `player:${enemy.id}`);
+    }
     this.damageEnemy(enemy, result.finalDamage);
     this.spawnHitVfx(enemy, result.finalDamage, result.hit, result.critical);
     this.syncCombatFormulaDataset(result.finalDamage, result.hit, result.critical);
@@ -1669,6 +1679,9 @@ export class WorldScene extends Phaser.Scene {
       ? Math.max(1, Math.floor(result.finalDamage * difficulty.playerMitigationMultiplier))
       : 0;
 
+    if (this.player && enemy.behavior !== "caster") {
+      this.playMeleeLunge(enemy.sprite, this.player.sprite, `${enemy.id}:player`);
+    }
     state.character.stats.hp = Math.max(0, state.character.stats.hp - finalDamage);
     this.vfxManager?.spawnCombatText(
       result.hit ? "damage" : "miss",
@@ -2171,6 +2184,81 @@ export class WorldScene extends Phaser.Scene {
 
   private getEnemyVisualMarkerDataset(enemy: EnemyEntity): string {
     return enemy.boss ? "boss-label" : enemy.elite ? "elite-label" : "none";
+  }
+
+  private playMeleeLunge(
+    attackerSprite: Phaser.Physics.Arcade.Sprite,
+    targetSprite: Phaser.Physics.Arcade.Sprite,
+    label: string,
+  ): void {
+    const activeLunge = this.meleeLungeTweens.get(attackerSprite);
+
+    if (activeLunge) {
+      activeLunge.tween.stop();
+      this.resetMeleeLungeSprite(attackerSprite, activeLunge.originX, activeLunge.originY);
+    }
+
+    const originX = attackerSprite.x;
+    const originY = attackerSprite.y;
+    const direction = new Phaser.Math.Vector2(targetSprite.x - originX, targetSprite.y - originY);
+
+    if (direction.length() <= 1) {
+      direction.set(1, 0);
+    }
+
+    direction.normalize();
+    const deltaX = direction.x * meleeLungeDistance;
+    const deltaY = direction.y * meleeLungeDistance;
+    const targetX = originX + deltaX;
+    const targetY = originY + deltaY;
+
+    if (label.startsWith("player:")) {
+      this.game.canvas.dataset.lastMeleeLunge = `${label}:${deltaX.toFixed(1)},${deltaY.toFixed(1)}`;
+    } else {
+      this.game.canvas.dataset.lastEnemyMeleeLunge = `${label}:${deltaX.toFixed(1)},${deltaY.toFixed(1)}`;
+    }
+
+    const lungeOut = this.tweens.add({
+      targets: attackerSprite,
+      x: targetX,
+      y: targetY,
+      duration: meleeLungeOutMs,
+      ease: "Sine.easeOut",
+      onUpdate: () => this.syncLungingSprite(attackerSprite),
+      onComplete: () => {
+        const lungeBack = this.tweens.add({
+          targets: attackerSprite,
+          x: originX,
+          y: originY,
+          duration: meleeLungeBackMs,
+          ease: "Sine.easeIn",
+          onUpdate: () => this.syncLungingSprite(attackerSprite),
+          onComplete: () => {
+            this.resetMeleeLungeSprite(attackerSprite, originX, originY);
+            this.meleeLungeTweens.delete(attackerSprite);
+          },
+        });
+
+        this.meleeLungeTweens.set(attackerSprite, { tween: lungeBack, originX, originY });
+      },
+    });
+
+    this.meleeLungeTweens.set(attackerSprite, { tween: lungeOut, originX, originY });
+  }
+
+  private resetMeleeLungeSprite(sprite: Phaser.Physics.Arcade.Sprite, x: number, y: number): void {
+    const body = sprite.body as Phaser.Physics.Arcade.Body | null;
+
+    body?.reset(x, y);
+    sprite.setPosition(x, y);
+    this.syncLungingSprite(sprite);
+  }
+
+  private syncLungingSprite(sprite: Phaser.Physics.Arcade.Sprite): void {
+    const body = sprite.body as Phaser.Physics.Arcade.Body | null;
+
+    body?.reset(sprite.x, sprite.y);
+    this.enemies.find((enemy) => enemy.sprite === sprite)?.updateVisuals();
   }
 
   private spawnHitVfx(enemy: EnemyEntity, damage: number, hit: boolean, critical: boolean): void {
