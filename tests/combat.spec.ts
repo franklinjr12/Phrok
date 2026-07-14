@@ -11,9 +11,12 @@ test("world supports target selection and auto-attack combat", async ({ page }) 
   await expect(canvas).toHaveAttribute("data-spawn-name", "TownGateSpawn");
   await expect(canvas).toHaveAttribute("data-last-autosave-slot", "1");
   await expect(canvas).toHaveAttribute("data-last-autosave-map", "crownfield-meadows");
-  await expect(canvas).toHaveAttribute("data-monster-spawn-zone-count", "1");
-  await expect(canvas).toHaveAttribute("data-monster-spawn-zones", "JellyGrove:green-jelly:1");
-  await expect(canvas).toHaveAttribute("data-enemy-entity-count", "1");
+  await expect(canvas).toHaveAttribute("data-monster-spawn-zone-count", "4");
+  await expect(canvas).toHaveAttribute(
+    "data-monster-spawn-zones",
+    "JellyGrove:green-jelly:1|SlimePatch:green-jelly:7|HopperPatch:field-hopper:3|PupRun:meadow-pup:2",
+  );
+  await expect(canvas).toHaveAttribute("data-enemy-entity-count", "13");
   await expect(canvas).toHaveAttribute("data-enemy-behavior", "passive");
   await expect(canvas).toHaveAttribute("data-enemy-aggro-range", "150");
   await expect(canvas).toHaveAttribute("data-enemy-leash-distance", "240");
@@ -21,6 +24,8 @@ test("world supports target selection and auto-attack combat", async ({ page }) 
   await expect(canvas).toHaveAttribute("data-treasure-spot-count", "1");
   await expect(canvas).toHaveAttribute("data-enemy-hp", "10/10");
   await expect(canvas).toHaveAttribute("data-target-frame", "hidden");
+
+  const initialEnemyPosition = (await canvas.getAttribute("data-enemy-position")) ?? "528,300";
 
   await clickPrimaryEnemy(canvas);
   await expect.poll(async () => {
@@ -30,11 +35,8 @@ test("world supports target selection and auto-attack combat", async ({ page }) 
   }).toBe("engaged");
   await expect(canvas).toHaveAttribute("data-auto-attack", /moving-to-range|attacking|stopped/);
 
-  await expect.poll(async () => await canvas.getAttribute("data-enemy-hp")).not.toBe("10/10");
   await expect.poll(async () => await canvas.getAttribute("data-last-combat-formula")).toContain("weapon=2");
-  await expect.poll(async () => await canvas.getAttribute("data-enemy-alive"), { timeout: 6000 }).toBe("false");
-  await expect(canvas).toHaveAttribute("data-enemy-hp", "0/10");
-  await expect(canvas).toHaveAttribute("data-auto-attack", "stopped");
+  await expect.poll(async () => await canvas.getAttribute("data-last-xp-gain"), { timeout: 6000 }).toBe("5");
   await expect(canvas).toHaveAttribute("data-target-frame", "hidden");
   await expect(canvas).toHaveAttribute("data-player-xp", "5");
   await expect(canvas).toHaveAttribute("data-last-xp-gain", "5");
@@ -47,12 +49,12 @@ test("world supports target selection and auto-attack combat", async ({ page }) 
   await expect(canvas).toHaveAttribute("data-pending-loot-count", "2");
   await expect(canvas).toHaveAttribute("data-last-loot-drop", /gold:[3-5]/);
 
-  await clickLootDropNearPrimaryEnemy(canvas, 0);
+  await clickLootDropAtPosition(canvas, initialEnemyPosition, 0);
   await expect(canvas).toHaveAttribute("data-pending-loot-count", "1");
   await expect(canvas).toHaveAttribute("data-last-loot-pickup", /jelly-gel:[1-2]/);
   await expect(canvas).toHaveAttribute("data-inventory-stack-count", "2");
 
-  await clickLootDropNearPrimaryEnemy(canvas, 1);
+  await clickLootDropAtPosition(canvas, initialEnemyPosition, 1);
   await expect(canvas).toHaveAttribute("data-pending-loot-count", "0");
   await expect(canvas).toHaveAttribute("data-last-loot-pickup", /gold:[3-5]/);
   await expect.poll(async () => Number(await canvas.getAttribute("data-player-gold"))).toBeGreaterThan(0);
@@ -209,6 +211,7 @@ async function routeMeadowsMonster(page: Parameters<typeof startApp>[0], monster
     const response = await route.fetch();
     const map = await response.json();
     const objectLayer = map.layers.find((layer: { name?: string }) => layer.name === "Objects");
+    isolateMeadowsSpawnObjects(map);
     const monsterSpawn = objectLayer?.objects.find((object: { type?: string }) => object.type === "monsterSpawn");
 
     if (monsterSpawn) {
@@ -222,6 +225,21 @@ async function routeMeadowsMonster(page: Parameters<typeof startApp>[0], monster
   });
 }
 
+function isolateMeadowsSpawnObjects(
+  map: { layers: Array<{ name?: string; objects?: Array<Record<string, unknown>> }> },
+  keptSpawnNames = ["JellyGrove"],
+) {
+  const objectLayer = map.layers.find((layer) => layer.name === "Objects");
+
+  if (!objectLayer?.objects) {
+    return;
+  }
+
+  objectLayer.objects = objectLayer.objects.filter((object) => (
+    object.type !== "monsterSpawn" || keptSpawnNames.includes(String(object.name ?? ""))
+  ));
+}
+
 async function clickPrimaryEnemy(canvas: Locator) {
   const enemyPosition = (await canvas.getAttribute("data-enemy-position")) ?? "528,300";
   const [enemyX, enemyY] = enemyPosition.split(",").map((value) => Number(value));
@@ -231,6 +249,11 @@ async function clickPrimaryEnemy(canvas: Locator) {
 
 async function clickLootDropNearPrimaryEnemy(canvas: Locator, index: number) {
   const enemyPosition = (await canvas.getAttribute("data-enemy-position")) ?? "528,300";
+
+  await clickLootDropAtPosition(canvas, enemyPosition, index);
+}
+
+async function clickLootDropAtPosition(canvas: Locator, enemyPosition: string, index: number) {
   const [enemyX, enemyY] = enemyPosition.split(",").map((value) => Number(value));
 
   await canvas.click({ position: { x: enemyX + index * 28, y: enemyY + 18 } });
@@ -281,6 +304,7 @@ test("aggressive enemies detect, chase, and attack without being clicked", async
       }>;
     };
     const objectLayer = map.layers.find((layer) => layer.name === "Objects");
+    isolateMeadowsSpawnObjects(map);
     const jellyGrove = objectLayer?.objects?.find((object) => object.name === "JellyGrove");
 
     if (jellyGrove) {
@@ -345,6 +369,7 @@ test("player death opens respawn popup and returns to the last safe hub", async 
       }>;
     };
     const objectLayer = map.layers.find((layer) => layer.name === "Objects");
+    isolateMeadowsSpawnObjects(map);
     const jellyGrove = objectLayer?.objects?.find((object) => object.name === "JellyGrove");
 
     if (jellyGrove) {
@@ -407,6 +432,7 @@ test("assist enemies locally join when a nearby ally is attacked", async ({ page
       }>;
     };
     const objectLayer = map.layers.find((layer) => layer.name === "Objects");
+    isolateMeadowsSpawnObjects(map);
     const jellyGrove = objectLayer?.objects?.find((object) => object.name === "JellyGrove");
 
     if (jellyGrove) {
@@ -486,6 +512,7 @@ test("caster enemies keep distance, cast on cooldown, and show telegraphs", asyn
       }>;
     };
     const objectLayer = map.layers.find((layer) => layer.name === "Objects");
+    isolateMeadowsSpawnObjects(map);
     const jellyGrove = objectLayer?.objects?.find((object) => object.name === "JellyGrove");
 
     if (jellyGrove) {
@@ -559,6 +586,7 @@ test("caster enemies can be silenced", async ({ page }) => {
       }>;
     };
     const objectLayer = map.layers.find((layer) => layer.name === "Objects");
+    isolateMeadowsSpawnObjects(map);
     const jellyGrove = objectLayer?.objects?.find((object) => object.name === "JellyGrove");
 
     if (jellyGrove) {
@@ -617,6 +645,7 @@ test("elite enemies show markers, hit harder, drop better loot, and respawn slow
       }>;
     };
     const objectLayer = map.layers.find((layer) => layer.name === "Objects");
+    isolateMeadowsSpawnObjects(map);
     const jellyGrove = objectLayer?.objects?.find((object) => object.name === "JellyGrove");
 
     if (jellyGrove) {
@@ -645,6 +674,7 @@ test("elite enemies show markers, hit harder, drop better loot, and respawn slow
 });
 
 test("boss enemies use boss protocol, show boss UI, resist control, phase, and drop boss rewards", async ({ page }) => {
+  await routeMeadowsMonster(page, "green-jelly");
   await page.route("**/assets/data/monsters.json", async (route) => {
     const response = await route.fetch();
     const monsters = await response.json() as Array<Record<string, unknown>>;

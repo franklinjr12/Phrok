@@ -1532,6 +1532,11 @@
               "name": "monsterId",
               "type": "string",
               "value": "green-jelly"
+            },
+            {
+              "name": "maxCount",
+              "type": "int",
+              "value": 1
             }
           ],
           "rotation": 0,
@@ -1540,6 +1545,75 @@
           "width": 32,
           "x": 528,
           "y": 300
+        },
+        {
+          "height": 128,
+          "id": 13,
+          "name": "SlimePatch",
+          "properties": [
+            {
+              "name": "monsterId",
+              "type": "string",
+              "value": "green-jelly"
+            },
+            {
+              "name": "maxCount",
+              "type": "int",
+              "value": 7
+            }
+          ],
+          "rotation": 0,
+          "type": "monsterSpawn",
+          "visible": true,
+          "width": 160,
+          "x": 192,
+          "y": 416
+        },
+        {
+          "height": 96,
+          "id": 11,
+          "name": "HopperPatch",
+          "properties": [
+            {
+              "name": "monsterId",
+              "type": "string",
+              "value": "field-hopper"
+            },
+            {
+              "name": "maxCount",
+              "type": "int",
+              "value": 3
+            }
+          ],
+          "rotation": 0,
+          "type": "monsterSpawn",
+          "visible": true,
+          "width": 96,
+          "x": 352,
+          "y": 208
+        },
+        {
+          "height": 96,
+          "id": 12,
+          "name": "PupRun",
+          "properties": [
+            {
+              "name": "monsterId",
+              "type": "string",
+              "value": "meadow-pup"
+            },
+            {
+              "name": "maxCount",
+              "type": "int",
+              "value": 2
+            }
+          ],
+          "rotation": 0,
+          "type": "monsterSpawn",
+          "visible": true,
+          "width": 96,
+          "x": 568,
+          "y": 416
         },
         {
           "height": 20,
@@ -1639,7 +1713,7 @@
     }
   ],
   "nextlayerid": 5,
-  "nextobjectid": 11,
+  "nextobjectid": 14,
   "orientation": "orthogonal",
   "renderorder": "right-down",
   "tiledversion": "1.11.2",

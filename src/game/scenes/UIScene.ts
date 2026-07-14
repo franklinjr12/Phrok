@@ -105,7 +105,7 @@ import { audioManager } from "../systems/audioManager";
 import { applySettingsPatch, adjustFlashIntensity, adjustTextSpeed, cycleDifficulty, cycleUiScale, difficultyPresets, getReadableSettingsSummary, getSettingsSummary } from "../systems/settings";
 import type { DataRegistry } from "../data/dataRegistry";
 import type { ItemDefinition, ItemRarity, MonsterDefinition, QuestDefinition, RecipeDefinition, ShopDefinition, SkillDefinition } from "../types/dataDefinitions";
-import type { BaseStatKey, EquipmentInstance, EquipmentSlot, GameState, InventoryItem } from "../types/gameState";
+import type { ActiveStatusEffect, BaseStatKey, EquipmentInstance, EquipmentSlot, GameState, InventoryItem, StatModifier } from "../types/gameState";
 
 type PanelMode = "inventory" | "equipment" | "character" | "skills" | "bestiary" | "crafting" | "refinement" | "shop" | "appraiser" | "storage" | "huntingBoard" | "questLog" | "worldMap" | "settings";
 type InventoryPanelEntry = {
@@ -115,6 +115,13 @@ type InventoryPanelEntry = {
 };
 type VisibleGameObject = Phaser.GameObjects.GameObject & {
   setVisible(visible: boolean): VisibleGameObject;
+};
+type ActiveEffectSummary = {
+  id: string;
+  icon: string;
+  label: string;
+  tooltip: string[];
+  stackCount?: number;
 };
 
 const panelDepth = 130;
@@ -142,6 +149,7 @@ export class UIScene extends Phaser.Scene {
   private unsubscribeEnemyTarget?: () => void;
   private unsubscribeMapChanged?: () => void;
   private unsubscribeSaveCompleted?: () => void;
+  private unsubscribeSkillUsed?: () => void;
   private unsubscribeSkillPointsChanged?: () => void;
   private unsubscribeConsumableUsed?: () => void;
   private unsubscribeAutoPotionSettingsChanged?: () => void;
@@ -188,6 +196,8 @@ export class UIScene extends Phaser.Scene {
   private minimapPlayerMarker?: Phaser.GameObjects.Arc;
   private minimapVisible = true;
   private tooltipObjects: Phaser.GameObjects.GameObject[] = [];
+  private activeEffectObjects: Phaser.GameObjects.GameObject[] = [];
+  private activeEffectSummaryKey = "";
   private activePanel: PanelMode | null = null;
   private selectedInventoryIndex = 0;
   private selectedShopIndex = 0;
@@ -217,6 +227,8 @@ export class UIScene extends Phaser.Scene {
   private storageSortDirection: StorageSortDirection = "asc";
   private panelObjects: Phaser.GameObjects.GameObject[] = [];
   private comparisonObjects: Phaser.GameObjects.GameObject[] = [];
+  private hotbarSlotFrames: Phaser.GameObjects.Rectangle[] = [];
+  private hotbarSlotLabels: Phaser.GameObjects.Text[] = [];
 
   constructor() {
     super("UIScene");
@@ -294,6 +306,7 @@ export class UIScene extends Phaser.Scene {
       this.unsubscribeEnemyTarget?.();
       this.unsubscribeMapChanged?.();
       this.unsubscribeSaveCompleted?.();
+      this.unsubscribeSkillUsed?.();
       this.unsubscribeSkillPointsChanged?.();
       this.unsubscribeConsumableUsed?.();
       this.unsubscribeAutoPotionSettingsChanged?.();
@@ -313,12 +326,16 @@ export class UIScene extends Phaser.Scene {
       this.unsubscribeStorageChanged?.();
       this.unsubscribeSettingsChanged?.();
       this.clearTooltip();
+      this.clearActiveEffectObjects();
       this.clearMinimap();
     });
   }
 
   update(): void {
     this.updateMinimapPlayerMarker();
+    if (this.state && this.dataRegistry) {
+      this.syncActiveEffectTray(this.state, this.dataRegistry);
+    }
   }
 
   private registerEvents(state: GameState, dataRegistry: DataRegistry): void {
@@ -462,6 +479,11 @@ export class UIScene extends Phaser.Scene {
       this.game.canvas.dataset.lastAutosaveSlot = String(saveSlot);
     });
 
+    this.unsubscribeSkillUsed = eventBus.on("skillUsed", () => {
+      this.syncActiveEffectTray(state, dataRegistry);
+      this.syncSkillDataset(state, dataRegistry);
+    });
+
     this.unsubscribeSkillPointsChanged = eventBus.on("skillPointsChanged", ({ skillId, skillLevel, skillPoints }) => {
       this.game.canvas.dataset.lastSkillAllocation = `${skillId}:${skillLevel}`;
       this.game.canvas.dataset.playerSkillPoints = String(skillPoints);
@@ -476,6 +498,7 @@ export class UIScene extends Phaser.Scene {
       this.game.canvas.dataset.lastConsumableAutomatic = String(result.automatic);
       this.game.canvas.dataset.consumableCooldowns = getConsumableCooldownSummary(state);
       this.syncVitalsDataset(state);
+      this.syncActiveEffectTray(state, dataRegistry);
       this.refreshOpenPanel();
     });
 
@@ -486,11 +509,16 @@ export class UIScene extends Phaser.Scene {
 
     this.unsubscribeHotbarChanged = eventBus.on("hotbarChanged", ({ hotbar }) => {
       this.game.canvas.dataset.hotbarAssignments = hotbar.map((entry) => `${entry.slot}:${entry.type}:${entry.id}`).join("|");
+      this.game.canvas.dataset.hotbarIconLabels = hotbar
+        .map((entry) => `${entry.slot}:${this.getHotbarIconLabel(entry.type, entry.id)}`)
+        .join("|");
+      this.syncHotbarHud();
       this.refreshOpenPanel();
     });
 
     this.unsubscribeHotbarUsed = eventBus.on("hotbarUsed", ({ slot, type, id, success }) => {
       this.game.canvas.dataset.lastHotbarUse = `${slot}:${type}:${id}:${success ? "success" : "failed"}`;
+      this.syncActiveEffectTray(state, dataRegistry);
     });
 
     this.unsubscribeBestiaryMilestoneUnlocked = eventBus.on("bestiaryMilestoneUnlocked", ({ monsterId, milestone, family }) => {
@@ -510,6 +538,7 @@ export class UIScene extends Phaser.Scene {
         this.game.canvas.dataset.playerStatusEffectIcons = this.getPlayerStatusIcons(state, dataRegistry);
         this.statusText?.setText(this.getPlayerStatusText(state, dataRegistry));
         this.syncHudStatusIcons(state, dataRegistry);
+        this.syncActiveEffectTray(state, dataRegistry);
         this.syncDerivedStatsDataset(state, dataRegistry);
         this.refreshCombatText(state, dataRegistry);
       } else if (this.game.canvas.dataset.targetEnemyId === targetId) {
@@ -636,6 +665,7 @@ export class UIScene extends Phaser.Scene {
     this.createHotbar();
     this.syncVitalBars();
     this.syncHudStatusIcons(state, dataRegistry);
+    this.syncActiveEffectTray(state, dataRegistry);
     this.refreshCombatText(state, dataRegistry);
     this.syncEquipmentDataset(state, dataRegistry);
     this.syncBaseStatsDataset(state, dataRegistry);
@@ -661,6 +691,8 @@ export class UIScene extends Phaser.Scene {
     const x = Math.max(210, width / 2 - 140);
     const y = Math.max(540, Number(this.scale.height || 600) - 58);
 
+    this.hotbarSlotFrames = [];
+    this.hotbarSlotLabels = [];
     for (let index = 0; index < hotbarSlotCount; index += 1) {
       const assignment = this.state?.character.hotbar.find((entry) => entry.slot === index + 1);
       const slot = this.add.rectangle(x + index * 42, y, 36, 36, 0x17212b, 0.94)
@@ -678,13 +710,15 @@ export class UIScene extends Phaser.Scene {
         .setScrollFactor(0)
         .setDepth(hudDepth + 1);
       const label = assignment ? this.getHotbarIconLabel(assignment.type, assignment.id) : "";
-      this.add.text(x + index * 42 - 12, y + 2, label, {
+      const labelText = this.add.text(x + index * 42 - 12, y + 2, label, {
         color: assignment?.type === "item" ? "#fecaca" : "#bfdbfe",
         fontFamily: "Arial, sans-serif",
         fontSize: "10px",
       })
         .setScrollFactor(0)
         .setDepth(hudDepth + 1);
+      this.hotbarSlotFrames.push(slot);
+      this.hotbarSlotLabels.push(labelText);
     }
 
     this.game.canvas.dataset.hotbarSlots = Array.from({ length: hotbarSlotCount }, (_, index) => String(index + 1)).join("|");
@@ -692,6 +726,30 @@ export class UIScene extends Phaser.Scene {
     this.game.canvas.dataset.hotbarIconLabels = this.state?.character.hotbar
       .map((entry) => `${entry.slot}:${this.getHotbarIconLabel(entry.type, entry.id)}`)
       .join("|") ?? "";
+    this.syncHotbarHud();
+  }
+
+  private syncHotbarHud(): void {
+    if (!this.state) {
+      return;
+    }
+
+    const renderedLabels: string[] = [];
+    for (let index = 0; index < hotbarSlotCount; index += 1) {
+      const slotNumber = index + 1;
+      const assignment = this.state.character.hotbar.find((entry) => entry.slot === slotNumber);
+      const strokeColor = assignment
+        ? (assignment.type === "skill" ? 0x60a5fa : 0xf87171)
+        : 0x64748b;
+      const label = assignment ? this.getHotbarIconLabel(assignment.type, assignment.id) : "";
+      const labelColor = assignment?.type === "item" ? "#fecaca" : "#bfdbfe";
+
+      this.hotbarSlotFrames[index]?.setStrokeStyle(2, strokeColor, 0.9);
+      this.hotbarSlotLabels[index]?.setText(label).setColor(labelColor);
+      renderedLabels.push(`${slotNumber}:${label}`);
+    }
+
+    this.game.canvas.dataset.hotbarRenderedLabels = renderedLabels.join("|");
   }
 
   private addHudText(x: number, y: number, text: string, color: string): Phaser.GameObjects.Text {
@@ -965,6 +1023,12 @@ export class UIScene extends Phaser.Scene {
     const slot = Number(event.key);
 
     if (Number.isInteger(slot) && slot >= 1 && slot <= hotbarSlotCount) {
+      if (this.activePanel === "skills") {
+        event.preventDefault();
+        this.assignSelectedSkillToHotbar(slot);
+        return;
+      }
+
       this.requestHotbarAction(slot);
     }
   }
@@ -2962,6 +3026,116 @@ export class UIScene extends Phaser.Scene {
       .join("|");
   }
 
+  private syncActiveEffectTray(state: GameState, dataRegistry: DataRegistry): void {
+    const effects = this.getActiveEffectSummaries(state, dataRegistry);
+    const nextKey = effects
+      .map((effect) => `${effect.id}:${effect.label}:${effect.stackCount ?? 1}:${effect.tooltip.join("/")}`)
+      .join("|");
+
+    this.game.canvas.dataset.activeEffectIcons = effects.map((effect) => effect.id).join("|");
+    this.game.canvas.dataset.activeEffectLabels = effects.map((effect) => effect.label).join("|");
+    this.game.canvas.dataset.activeEffectCount = String(effects.length);
+
+    if (nextKey === this.activeEffectSummaryKey) {
+      return;
+    }
+
+    this.activeEffectSummaryKey = nextKey;
+    this.clearActiveEffectObjects();
+    this.renderActiveEffectTray(effects);
+  }
+
+  private getActiveEffectSummaries(state: GameState, dataRegistry: DataRegistry): ActiveEffectSummary[] {
+    return [
+      ...state.character.statBuffs
+        .filter((modifier) => modifier.id.startsWith("skill-toggle-") || modifier.id.startsWith("skill-buff-"))
+        .map((modifier) => this.createSkillEffectSummary(modifier, dataRegistry))
+        .filter((effect): effect is ActiveEffectSummary => Boolean(effect)),
+      ...state.character.statusEffects.map((effect) => this.createStatusEffectSummary(effect, dataRegistry)),
+    ];
+  }
+
+  private createSkillEffectSummary(modifier: StatModifier, dataRegistry: DataRegistry): ActiveEffectSummary | null {
+    const skillId = modifier.sourceSkillId;
+
+    if (!skillId) {
+      return null;
+    }
+
+    const skill = dataRegistry.getSkill(skillId);
+    const remaining = modifier.expiresAt ? Math.max(0, modifier.expiresAt - Date.now()) : null;
+    const stateText = remaining === null
+      ? "Active toggle"
+      : `Remaining ${Math.ceil(remaining / 1000)}s`;
+
+    return {
+      id: skill.id,
+      icon: skill.icon,
+      label: this.getHotbarIconLabel("skill", skill.id),
+      tooltip: [skill.name, `${skill.type} ${skill.targetingMode}`, stateText, this.getSkillEffectText(skill)],
+    };
+  }
+
+  private createStatusEffectSummary(effect: ActiveStatusEffect, dataRegistry: DataRegistry): ActiveEffectSummary {
+    const status = dataRegistry.getStatusEffect(effect.id);
+    const remaining = Math.max(0, effect.expiresAt - Date.now());
+
+    return {
+      id: status.id,
+      icon: status.visualIcon,
+      label: this.getHotbarIconLabel("skill", status.id),
+      stackCount: effect.stacks,
+      tooltip: [status.name, status.type, `Remaining ${Math.ceil(remaining / 1000)}s`, status.description],
+    };
+  }
+
+  private renderActiveEffectTray(effects: ActiveEffectSummary[]): void {
+    const width = Number(this.scale.width || 800);
+    const startX = Phaser.Math.Clamp(width - 52, 340, width - 44);
+    const startY = 120;
+
+    effects.forEach((effect, index) => {
+      const y = startY + index * 42;
+      const box = this.add.rectangle(startX, y, 34, 34, 0x111827, 0.94)
+        .setStrokeStyle(2, effect.id === effect.icon ? 0x93c5fd : 0xfacc15, 0.92)
+        .setScrollFactor(0)
+        .setDepth(hudDepth + 6)
+        .setInteractive({ useHandCursor: true });
+      const label = this.add.text(startX, y - 2, effect.label, {
+        color: "#f8fafc",
+        fontFamily: "Arial, sans-serif",
+        fontSize: "10px",
+      })
+        .setOrigin(0.5)
+        .setScrollFactor(0)
+        .setDepth(hudDepth + 7);
+
+      box.on("pointerover", () => this.showTooltip(effect.tooltip, startX - 260, y - 24));
+      box.on("pointerout", () => this.clearTooltip());
+      this.activeEffectObjects.push(box, label);
+
+      if (effect.stackCount && effect.stackCount > 1) {
+        const stackLabel = this.add.text(startX + 9, y + 8, String(effect.stackCount), {
+          color: "#fde68a",
+          fontFamily: "Arial, sans-serif",
+          fontSize: "10px",
+        })
+          .setOrigin(0.5)
+          .setScrollFactor(0)
+          .setDepth(hudDepth + 8);
+        this.activeEffectObjects.push(stackLabel);
+      }
+    });
+  }
+
+  private clearActiveEffectObjects(): void {
+    for (const object of this.activeEffectObjects) {
+      object.destroy();
+    }
+
+    this.activeEffectObjects = [];
+  }
+
   private showTooltip(lines: string[], x: number, y: number): void {
     this.clearTooltip();
     const width = 238;
@@ -3295,6 +3469,7 @@ export class UIScene extends Phaser.Scene {
       .filter((modifier) => modifier.sourceSkillId)
       .map((modifier) => modifier.sourceSkillId)
       .join("|");
+    this.syncActiveEffectTray(state, dataRegistry);
     this.game.canvas.dataset.hotbarAssignments = state.character.hotbar
       .map((entry) => `${entry.slot}:${entry.type}:${entry.id}`)
       .join("|");

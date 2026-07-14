@@ -106,6 +106,12 @@ export function assignHotbarAction(state: GameState, slot: number, action: Omit<
   }
 
   const next = { slot, ...action };
+  state.character.hotbar = state.character.hotbar.filter((entry) => (
+    entry.slot === slot
+    || action.type !== "skill"
+    || entry.type !== action.type
+    || entry.id !== action.id
+  ));
   const existingIndex = state.character.hotbar.findIndex((entry) => entry.slot === slot);
 
   if (existingIndex >= 0) {

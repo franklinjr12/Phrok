@@ -78,6 +78,16 @@ describe("skills", () => {
     expect(assignHotbarAction(state, 9, { type: "skill", id: "power-slash" })).toBe(false);
   });
 
+  it("moves a skill between hotbar slots instead of duplicating it", () => {
+    const state = createNewGameState();
+
+    expect(assignHotbarAction(state, 3, { type: "skill", id: "power-slash" })).toBe(true);
+
+    expect(getHotbarAction(state, 1)).toBeNull();
+    expect(getHotbarAction(state, 3)).toEqual({ slot: 3, type: "skill", id: "power-slash" });
+    expect(state.character.hotbar.filter((entry) => entry.type === "skill" && entry.id === "power-slash")).toHaveLength(1);
+  });
+
   it("executes active target skills with SP, range, cooldown, damage, and effects", () => {
     const state = createNewGameState();
     let hp = 40;

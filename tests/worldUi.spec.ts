@@ -94,9 +94,17 @@ test("skill screen supports leveling, requirements, hotbar assignment, and persi
   await expect(canvas).toHaveAttribute("data-last-hotbar-assignment", "1:skill:power-slash");
   await expect(canvas).toHaveAttribute("data-hotbar-assignments", /1:skill:power-slash/);
 
+  await page.keyboard.press("Digit3");
+  await expect(canvas).toHaveAttribute("data-last-hotbar-assignment", "3:skill:power-slash");
+  await expect(canvas).toHaveAttribute("data-hotbar-assignments", /3:skill:power-slash/);
+  await expect(canvas).toHaveAttribute("data-hotbar-rendered-labels", /3:PS/);
+  await expect(canvas).not.toHaveAttribute("data-hotbar-assignments", /1:skill:power-slash/);
+  await expect(canvas).not.toHaveAttribute("data-hotbar-rendered-labels", /1:PS/);
+
   await canvas.click({ position: { x: 674, y: 438 } });
   await expect(canvas).toHaveAttribute("data-last-hotbar-assignment", "2:item:minor-health-potion");
   await expect(canvas).toHaveAttribute("data-hotbar-assignments", /2:item:minor-health-potion/);
+  await expect(canvas).toHaveAttribute("data-hotbar-rendered-labels", /2:POT/);
 });
 
 test("polished HUD exposes minimap, world map, readable bars, and tooltips", async ({ page }) => {
@@ -132,6 +140,54 @@ test("polished HUD exposes minimap, world map, readable bars, and tooltips", asy
   await expect(canvas).toHaveAttribute("data-world-map-discovered-maps", /crownfield-town/);
   await expect(canvas).toHaveAttribute("data-world-map-fast-travel", /crownfield-town/);
   await expect(canvas).toHaveAttribute("data-world-map-buttons", "Close");
+});
+
+test("active player effects show in right-side HUD tray", async ({ page }) => {
+  await page.route("**/assets/data/classes.json", async (route) => {
+    const response = await route.fetch();
+    const classes = await response.json() as Array<Record<string, unknown>>;
+
+    await route.fulfill({
+      response,
+      json: classes.map((playerClass) => playerClass.id === "swordsman"
+        ? {
+          ...playerClass,
+          startingSkillIds: ["power-slash", "guard-stance"],
+        }
+        : playerClass),
+    });
+  });
+  await page.route("**/assets/data/skills.json", async (route) => {
+    const response = await route.fetch();
+    const skills = await response.json() as Array<Record<string, unknown>>;
+
+    await route.fulfill({
+      response,
+      json: skills.map((skill) => skill.id === "guard-stance"
+        ? {
+          ...skill,
+          cooldown: 0,
+        }
+        : skill),
+    });
+  });
+  await startApp(page);
+
+  const canvas = await confirmDefaultCharacter(page);
+
+  await expect(canvas).toHaveAttribute("data-hotbar-assignments", /2:skill:guard-stance/);
+  await page.keyboard.press("Digit2");
+  await expect.poll(async () => await canvas.getAttribute("data-active-effect-icons")).toContain("guard-stance");
+  await expect(canvas).toHaveAttribute("data-active-effect-labels", /GS/);
+  await expect(canvas).toHaveAttribute("data-active-effect-count", "1");
+
+  await canvas.hover({ position: { x: 748, y: 120 } });
+  await expect(canvas).toHaveAttribute("data-tooltip", "visible");
+  await expect(canvas).toHaveAttribute("data-tooltip-text", /Guard Stance/);
+
+  await page.keyboard.press("Digit2");
+  await expect.poll(async () => await canvas.getAttribute("data-active-effect-icons")).not.toContain("guard-stance");
+  await expect(canvas).toHaveAttribute("data-active-effect-count", "0");
 });
 
 test("bestiary opens with B, filters entries, and shows partial monster knowledge", async ({ page }) => {
