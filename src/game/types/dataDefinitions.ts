@@ -445,7 +445,7 @@ export interface StatusEffectDefinition {
 
 export interface VfxDefinition {
   id: string;
-  kind: "ring" | "burst" | "beam" | "text";
+  kind: "ring" | "burst" | "beam" | "text" | "particles";
   color: string;
   secondaryColor?: string;
   durationMs: number;
@@ -454,6 +454,14 @@ export interface VfxDefinition {
   alpha: number;
   scale: number;
   depth: number;
+  particleCount: number;
+  lifespanMs: number;
+  speedMin: number;
+  speedMax: number;
+  spreadDeg: number;
+  gravityY: number;
+  startScale: number;
+  endScale: number;
 }
 
 export interface XpTableDefinition {

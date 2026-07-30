@@ -273,7 +273,7 @@ export class UIScene extends Phaser.Scene {
     this.input.keyboard?.on("keydown-O", this.toggleWorldMapPanel, this);
     this.input.keyboard?.on("keydown-Q", this.toggleSettingsPanel, this);
     this.input.keyboard?.on("keydown-S", this.manualSave, this);
-    this.input.keyboard?.on("keydown-ESC", this.closePanel, this);
+    this.input.keyboard?.on("keydown-ESC", this.handleEscapeKey, this);
     this.input.keyboard?.on("keydown", this.handleHotbarKey, this);
 
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
@@ -289,7 +289,7 @@ export class UIScene extends Phaser.Scene {
       this.input.keyboard?.off("keydown-O", this.toggleWorldMapPanel, this);
       this.input.keyboard?.off("keydown-Q", this.toggleSettingsPanel, this);
       this.input.keyboard?.off("keydown-S", this.manualSave, this);
-      this.input.keyboard?.off("keydown-ESC", this.closePanel, this);
+      this.input.keyboard?.off("keydown-ESC", this.handleEscapeKey, this);
       this.input.keyboard?.off("keydown", this.handleHotbarKey, this);
       this.unsubscribeHealth?.();
       this.unsubscribeSp?.();
@@ -972,7 +972,20 @@ export class UIScene extends Phaser.Scene {
     this.resetPanelDatasets();
   }
 
+  private handleEscapeKey(): void {
+    if (this.activePanel) {
+      this.closePanel();
+      return;
+    }
+
+    this.openPanel("settings");
+  }
+
   private resetPanelDatasets(): void {
+    this.game.canvas.dataset.inventoryPanel = "hidden";
+    this.game.canvas.dataset.equipmentPanel = "hidden";
+    this.game.canvas.dataset.characterPanel = "hidden";
+    this.game.canvas.dataset.skillPanel = "hidden";
     this.game.canvas.dataset.shopPanel = "hidden";
     this.game.canvas.dataset.appraiserPanel = "hidden";
     this.game.canvas.dataset.storagePanel = "hidden";

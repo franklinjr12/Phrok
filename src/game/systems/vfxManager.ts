@@ -2,6 +2,8 @@ import Phaser from "phaser";
 import type { ItemRarity, VfxDefinition } from "../types/dataDefinitions";
 import { getCombatTextDefinitionId, getLootBeamDefinitionId, type CombatTextKind } from "./vfxRouting";
 
+const particleTextureKey = "vfx-spark-particle";
+
 export type VfxIntensity = "full" | "reduced";
 
 export interface VfxManagerOptions {
@@ -26,6 +28,7 @@ export class VfxManager {
     private readonly options: VfxManagerOptions,
   ) {
     this.definitions = new Map(definitions.map((definition) => [definition.id, definition]));
+    this.ensureParticleTexture();
     this.syncDataset();
   }
 
@@ -46,6 +49,16 @@ export class VfxManager {
     this.syncDataset();
 
     const durationMs = this.getDuration(definition);
+    if (definition.kind === "particles") {
+      this.scene.time.delayedCall(durationMs, () => this.destroy(id));
+
+      return {
+        id,
+        definitionId,
+        destroy: () => this.destroy(id),
+      };
+    }
+
     this.scene.tweens.add({
       targets: objects,
       y: `-=${definition.rise}`,
@@ -150,6 +163,10 @@ export class VfxManager {
       ];
     }
 
+    if (definition.kind === "particles") {
+      return [this.createParticleEmitter(definition, x, y, color)];
+    }
+
     return [
       this.scene.add.star(x, y, 6, definition.radius * 0.2, definition.radius, color, definition.alpha)
         .setStrokeStyle(2, secondaryColor, definition.alpha)
@@ -157,10 +174,73 @@ export class VfxManager {
     ];
   }
 
+  private createParticleEmitter(definition: VfxDefinition, x: number, y: number, color: number): Phaser.GameObjects.Particles.ParticleEmitter {
+    const count = this.getParticleCount(definition);
+    const lifespan = this.getParticleLifespan(definition);
+    const speedMax = this.options.intensity === "reduced" ? definition.speedMax * 0.75 : definition.speedMax;
+    const speedMin = Math.min(definition.speedMin, speedMax);
+    const spread = definition.spreadDeg;
+    const angle = spread >= 360
+      ? { min: 0, max: 360 }
+      : { min: -90 - spread / 2, max: -90 + spread / 2 };
+    const scaleFactor = this.options.intensity === "reduced" ? 0.82 : 1;
+    const emitter = this.scene.add.particles(x, y, particleTextureKey, {
+      alpha: { start: definition.alpha, end: 0 },
+      angle,
+      blendMode: Phaser.BlendModes.ADD,
+      emitting: false,
+      frequency: -1,
+      gravityY: this.options.intensity === "reduced" ? definition.gravityY * 0.75 : definition.gravityY,
+      lifespan,
+      quantity: count,
+      scale: {
+        start: definition.startScale * scaleFactor,
+        end: definition.endScale * scaleFactor,
+      },
+      speed: { min: speedMin, max: speedMax },
+      tint: color,
+    });
+
+    emitter.setDepth(definition.depth);
+    emitter.explode(count, 0, 0);
+
+    return emitter;
+  }
+
   private getDuration(definition: VfxDefinition): number {
+    if (definition.kind === "particles") {
+      return this.getParticleLifespan(definition) + 80;
+    }
+
     return this.options.intensity === "reduced"
       ? Math.max(120, Math.round(definition.durationMs * 0.65))
       : definition.durationMs;
+  }
+
+  private getParticleCount(definition: VfxDefinition): number {
+    return this.options.intensity === "reduced"
+      ? Math.max(1, Math.ceil(definition.particleCount * 0.55))
+      : definition.particleCount;
+  }
+
+  private getParticleLifespan(definition: VfxDefinition): number {
+    return this.options.intensity === "reduced"
+      ? Math.max(80, Math.round(definition.lifespanMs * 0.65))
+      : definition.lifespanMs;
+  }
+
+  private ensureParticleTexture(): void {
+    if (this.scene.textures.exists(particleTextureKey)) {
+      return;
+    }
+
+    const graphics = this.scene.add.graphics();
+    graphics.fillStyle(0xffffff, 1);
+    graphics.fillCircle(4, 4, 4);
+    graphics.fillStyle(0xffffff, 0.5);
+    graphics.fillCircle(4, 4, 2);
+    graphics.generateTexture(particleTextureKey, 8, 8);
+    graphics.destroy();
   }
 
   private destroy(id: string): void {

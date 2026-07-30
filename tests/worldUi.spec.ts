@@ -302,7 +302,7 @@ test("settings panel applies accessibility scale and gameplay presets immediatel
 
   const canvas = await confirmDefaultCharacter(page);
 
-  await page.keyboard.press("KeyQ");
+  await page.keyboard.press("Escape");
   await expect(canvas).toHaveAttribute("data-ui-panel", "settings");
   await expect(canvas).toHaveAttribute("data-settings-panel", "visible");
   await expect(canvas).toHaveAttribute("data-settings-buttons", /UI.*Damage.*Difficulty.*Text/);
@@ -327,4 +327,14 @@ test("settings panel applies accessibility scale and gameplay presets immediatel
   expect(savedSlot).toContain("\"uiScale\":1.25");
   expect(savedSlot).toContain("\"difficulty\":\"Veteran\"");
   expect(savedSlot).toContain("\"autoPotionEnabled\":false");
+
+  await page.keyboard.press("Escape");
+  await expect(canvas).toHaveAttribute("data-ui-panel", "closed");
+  await expect(canvas).toHaveAttribute("data-settings-panel", "hidden");
+
+  await page.keyboard.press("KeyI");
+  await expect(canvas).toHaveAttribute("data-ui-panel", "inventory");
+  await page.keyboard.press("Escape");
+  await expect(canvas).toHaveAttribute("data-ui-panel", "closed");
+  await expect(canvas).toHaveAttribute("data-inventory-panel", "hidden");
 });

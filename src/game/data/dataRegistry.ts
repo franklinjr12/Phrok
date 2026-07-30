@@ -1203,11 +1203,19 @@ function validateVfx(source: Record<string, unknown>, fileName: string): VfxDefi
     alpha: Math.min(1, Math.max(0.05, optionalNumber(source, "alpha", 0.9))),
     scale: Math.max(0.1, optionalNumber(source, "scale", 1)),
     depth: optionalNumber(source, "depth", 40),
+    particleCount: Math.max(1, Math.round(optionalNumber(source, "particleCount", 14))),
+    lifespanMs: Math.max(50, optionalNumber(source, "lifespanMs", optionalNumber(source, "durationMs", 500))),
+    speedMin: Math.max(0, optionalNumber(source, "speedMin", 48)),
+    speedMax: Math.max(0, optionalNumber(source, "speedMax", 140)),
+    spreadDeg: Math.min(360, Math.max(1, optionalNumber(source, "spreadDeg", 360))),
+    gravityY: optionalNumber(source, "gravityY", 0),
+    startScale: Math.max(0.01, optionalNumber(source, "startScale", Math.max(0.1, optionalNumber(source, "scale", 1)))),
+    endScale: Math.max(0, optionalNumber(source, "endScale", 0)),
   };
 }
 
 function normalizeVfxKind(value: string): VfxDefinition["kind"] {
-  return value === "ring" || value === "beam" || value === "text" ? value : "burst";
+  return value === "ring" || value === "beam" || value === "text" || value === "particles" ? value : "burst";
 }
 
 function normalizeStatusType(value: string): StatusEffectDefinition["type"] {

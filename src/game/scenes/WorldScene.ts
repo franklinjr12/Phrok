@@ -172,6 +172,7 @@ export class WorldScene extends Phaser.Scene {
   private unsubscribeHotbarActionRequested?: () => void;
   private unsubscribeConsumableUsed?: () => void;
   private unsubscribeSupportChanged?: () => void;
+  private unsubscribeLevelUp?: () => void;
   private unsubscribeSettingsChanged?: () => void;
   private vfxManager?: VfxManager;
   private meleeLungeTweens = new WeakMap<
@@ -312,18 +313,31 @@ export class WorldScene extends Phaser.Scene {
       this.useHotbarSlot(slot);
     });
     this.unsubscribeConsumableUsed = eventBus.on("consumableUsed", (result) => {
-      if (!result.success || result.restoredHp <= 0 || !this.player) {
+      if (!result.success || !this.player) {
         return;
       }
 
-      this.vfxManager?.spawnCombatText("healing", result.restoredHp, this.player.sprite.x, this.player.sprite.y - 34);
+      this.vfxManager?.spawn("item-use", this.player.sprite.x, this.player.sprite.y + 8);
+      if (result.restoredHp > 0) {
+        this.vfxManager?.spawnCombatText("healing", result.restoredHp, this.player.sprite.x, this.player.sprite.y - 34);
+      }
+      if (result.restoredSp > 0) {
+        this.vfxManager?.spawn("skill-cast", this.player.sprite.x, this.player.sprite.y + 8);
+      }
     });
     this.unsubscribeSupportChanged = eventBus.on("supportChanged", ({ actionId }) => {
       if (!actionId || !this.player) {
         return;
       }
 
-      this.vfxManager?.spawn("skill-cast", this.player.sprite.x, this.player.sprite.y + 8);
+      this.vfxManager?.spawn("support-action", this.player.sprite.x, this.player.sprite.y + 8);
+    });
+    this.unsubscribeLevelUp = eventBus.on("levelUp", () => {
+      if (!this.player) {
+        return;
+      }
+
+      this.vfxManager?.spawn("level-up-burst", this.player.sprite.x, this.player.sprite.y - 8);
     });
     this.unsubscribeSettingsChanged = eventBus.on("settingsChanged", ({ settings }) => {
       this.vfxManager?.setOptions({
@@ -358,6 +372,7 @@ export class WorldScene extends Phaser.Scene {
       this.unsubscribeHotbarActionRequested?.();
       this.unsubscribeConsumableUsed?.();
       this.unsubscribeSupportChanged?.();
+      this.unsubscribeLevelUp?.();
       this.unsubscribeSettingsChanged?.();
       this.vfxManager?.destroyAll();
       this.input.keyboard?.off("keydown-F9", this.toggleAssistDebugOverlay, this);
@@ -2339,8 +2354,10 @@ export class WorldScene extends Phaser.Scene {
       return;
     }
 
-    this.vfxManager?.spawn(critical ? "critical-hit" : "weapon-hit", enemy.sprite.x, enemy.sprite.y);
+    const hitVfxId = critical ? "critical-hit" : "weapon-hit";
+    this.vfxManager?.spawn(hitVfxId, enemy.sprite.x, enemy.sprite.y);
     this.vfxManager?.spawnCombatText(critical ? "critical" : "damage", damage, enemy.sprite.x, enemy.sprite.y - 38);
+    this.game.canvas.dataset.lastHitVfx = hitVfxId;
     this.game.canvas.dataset.lastHitReaction = `${enemy.id}:${critical ? "critical" : "hit"}:${damage}`;
 
     if (enemy.isAlive) {
@@ -2364,7 +2381,7 @@ export class WorldScene extends Phaser.Scene {
     }
 
     if (target?.isAlive || target?.hp === 0) {
-      this.vfxManager?.spawn("weapon-hit", target.sprite.x, target.sprite.y);
+      this.vfxManager?.spawn("skill-impact", target.sprite.x, target.sprite.y);
       if (damage > 0) {
         this.vfxManager?.spawnCombatText("damage", damage, target.sprite.x, target.sprite.y - 38);
       }

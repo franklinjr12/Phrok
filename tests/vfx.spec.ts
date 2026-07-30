@@ -18,13 +18,17 @@ test("combat VFX settings, damage numbers, and rare loot beams are exposed in wo
   await page.keyboard.press("U");
   await expect(canvas).toHaveAttribute("data-vfx-intensity", "reduced");
 
+  await expect(canvas).toHaveAttribute("data-enemy-alive", "true");
   await canvas.click({ position: { x: 528, y: 300 } });
   await expect.poll(async () => await canvas.getAttribute("data-last-combat-text"), { timeout: 6000 })
     .toMatch(/^(damage|critical|miss):/);
-  await expect.poll(async () => await canvas.getAttribute("data-last-vfx"), { timeout: 6000 })
-    .toMatch(/^(weapon-hit|critical-hit|damage-number|critical-number|miss):/);
+  await expect.poll(async () => await canvas.getAttribute("data-last-hit-vfx"), { timeout: 6000 })
+    .toMatch(/^(weapon-hit|critical-hit)$/);
 
   await expect.poll(async () => await canvas.getAttribute("data-enemy-alive"), { timeout: 6000 }).toBe("false");
+  await expect.poll(async () => await canvas.getAttribute("data-last-level-up"), { timeout: 6000 }).toBe("2");
+  await expect.poll(async () => await canvas.getAttribute("data-last-vfx"), { timeout: 6000 })
+    .toMatch(/^level-up-burst:/);
   await expect(canvas).toHaveAttribute("data-last-loot-beam", "Rare:rare-loot-beam");
 });
 
@@ -52,6 +56,18 @@ async function routePredictableMeadows(page: Page) {
             { type: "item", itemId: "jelly-gel", chance: 1, minQuantity: 1, maxQuantity: 1 },
           ],
         }
+        : table),
+    });
+  });
+
+  await page.route("**/assets/data/xp-tables.json", async (route) => {
+    const response = await route.fetch();
+    const xpTables = await response.json() as Array<Record<string, unknown>>;
+
+    await route.fulfill({
+      response,
+      json: xpTables.map((table) => table.id === "standard"
+        ? { ...table, levels: { ...(table.levels as Record<string, number>), "2": 1 } }
         : table),
     });
   });
