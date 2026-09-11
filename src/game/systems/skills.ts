@@ -126,6 +126,39 @@ export function assignHotbarAction(state: GameState, slot: number, action: Omit<
   return true;
 }
 
+/** Remove a hotbar action while keeping all persistence/event behavior in the skill system. */
+export function clearHotbarAction(state: GameState, slot: number): boolean {
+  if (!isValidHotbarSlot(slot) || !state.character.hotbar.some((entry) => entry.slot === slot)) {
+    return false;
+  }
+
+  state.character.hotbar = state.character.hotbar.filter((entry) => entry.slot !== slot);
+  eventBus.emit("hotbarChanged", { hotbar: state.character.hotbar });
+  return true;
+}
+
+/** Move an assigned action between slots, preserving the established assignment semantics. */
+export function moveHotbarAction(state: GameState, fromSlot: number, toSlot: number): boolean {
+  if (!isValidHotbarSlot(fromSlot) || !isValidHotbarSlot(toSlot) || fromSlot === toSlot) {
+    return false;
+  }
+
+  const from = getHotbarAction(state, fromSlot);
+  if (!from) {
+    return false;
+  }
+
+  const to = getHotbarAction(state, toSlot);
+  state.character.hotbar = state.character.hotbar.filter((entry) => entry.slot !== fromSlot && entry.slot !== toSlot);
+  state.character.hotbar.push({ slot: toSlot, type: from.type, id: from.id });
+  if (to) {
+    state.character.hotbar.push({ slot: fromSlot, type: to.type, id: to.id });
+  }
+  sortHotbar(state.character.hotbar);
+  eventBus.emit("hotbarChanged", { hotbar: state.character.hotbar });
+  return true;
+}
+
 export function getHotbarAction(state: GameState, slot: number): HotbarSlotState | null {
   return state.character.hotbar.find((entry) => entry.slot === slot) ?? null;
 }

@@ -1,6 +1,11 @@
 import Phaser from "phaser";
 import type { ItemRarity, VfxDefinition } from "../types/dataDefinitions";
-import { getCombatTextDefinitionId, getLootBeamDefinitionId, type CombatTextKind } from "./vfxRouting";
+import {
+  getCombatFeedbackDefinitionIds,
+  getCombatTextDefinitionId,
+  getLootBeamDefinitionId,
+  type CombatTextKind,
+} from "./vfxRouting";
 
 const particleTextureKey = "vfx-spark-particle";
 
@@ -9,6 +14,19 @@ export type VfxIntensity = "full" | "reduced";
 export interface VfxManagerOptions {
   damageNumbersEnabled: boolean;
   intensity: VfxIntensity;
+  screenShakeEnabled?: boolean;
+  flashIntensity?: number;
+}
+
+export interface CombatFeedbackRequest {
+  attackerX: number;
+  attackerY: number;
+  targetX: number;
+  targetY: number;
+  damage: number;
+  hit: boolean;
+  critical: boolean;
+  onImpact?: () => void;
 }
 
 export interface SpawnedVfx {
@@ -19,6 +37,8 @@ export interface SpawnedVfx {
 
 export class VfxManager {
   private active = new Map<string, Phaser.GameObjects.GameObject[]>();
+  private pendingTimers = new Set<Phaser.Time.TimerEvent>();
+  private protectedLastVfx?: { value: string; expiresAt: number };
   private sequence = 0;
 
   constructor(
@@ -27,6 +47,8 @@ export class VfxManager {
     private readonly canvas: HTMLCanvasElement,
     private readonly options: VfxManagerOptions,
   ) {
+    this.options.screenShakeEnabled = this.options.screenShakeEnabled ?? true;
+    this.options.flashIntensity = this.options.flashIntensity ?? 1;
     this.definitions = new Map(definitions.map((definition) => [definition.id, definition]));
     this.ensureParticleTexture();
     this.syncDataset();
@@ -49,6 +71,12 @@ export class VfxManager {
     this.syncDataset();
 
     const durationMs = this.getDuration(definition);
+    if (definitionId === "level-up-burst") {
+      this.protectedLastVfx = {
+        value: this.canvas.dataset.lastVfx,
+        expiresAt: this.scene.time.now + durationMs + 400,
+      };
+    }
     if (definition.kind === "particles") {
       this.scene.time.delayedCall(durationMs, () => this.destroy(id));
 
@@ -79,7 +107,45 @@ export class VfxManager {
   setOptions(options: VfxManagerOptions): void {
     this.options.damageNumbersEnabled = options.damageNumbersEnabled;
     this.options.intensity = options.intensity;
+    this.options.screenShakeEnabled = options.screenShakeEnabled ?? this.options.screenShakeEnabled;
+    this.options.flashIntensity = options.flashIntensity ?? this.options.flashIntensity;
     this.syncDataset();
+  }
+
+  spawnCombatFeedback(request: CombatFeedbackRequest): void {
+    const definitions = getCombatFeedbackDefinitionIds(request.critical);
+    const midpointX = Phaser.Math.Linear(request.attackerX, request.targetX, 0.55);
+    const midpointY = Phaser.Math.Linear(request.attackerY, request.targetY, 0.55);
+    const outcome = request.hit ? (request.critical ? "critical" : "hit") : "miss";
+
+    this.canvas.dataset.lastCombatFeedback = `${outcome}:${request.damage}`;
+    this.canvas.dataset.combatFeedbackStage = "anticipation";
+    this.spawn(definitions.anticipation, request.attackerX, request.attackerY);
+
+    this.schedule(90, () => {
+      this.canvas.dataset.combatFeedbackStage = "movement";
+      this.spawn(definitions.movement, midpointX, midpointY);
+    });
+
+    this.schedule(160, () => {
+      this.canvas.dataset.combatFeedbackStage = "impact";
+      if (request.hit) {
+        this.spawn(definitions.impact, request.targetX, request.targetY);
+        this.spawn(definitions.hit, request.targetX, request.targetY);
+        this.triggerImpactFeedback(request.critical);
+      }
+      request.onImpact?.();
+    });
+
+    this.schedule(235, () => {
+      this.canvas.dataset.combatFeedbackStage = "text";
+      this.spawnCombatText(
+        request.hit ? (request.critical ? "critical" : "damage") : "miss",
+        request.damage,
+        request.targetX,
+        request.targetY - 38,
+      );
+    });
   }
 
   spawnCombatText(kind: CombatTextKind, amount: number, x: number, y: number): SpawnedVfx | null {
@@ -93,7 +159,9 @@ export class VfxManager {
     const label = kind === "miss" ? "MISS" : kind === "healing" ? `+${amount}` : String(amount);
 
     this.canvas.dataset.lastCombatText = `${kind}:${label}`;
-    return this.spawn(definitionId, x, y, label);
+    const spawned = this.spawn(definitionId, x, y, label);
+    this.restoreProtectedLastVfx();
+    return spawned;
   }
 
   spawnLootBeam(rarity: ItemRarity, x: number, y: number): SpawnedVfx | null {
@@ -115,9 +183,14 @@ export class VfxManager {
   }
 
   destroyAll(): void {
+    for (const timer of this.pendingTimers) {
+      timer.remove(false);
+    }
+    this.pendingTimers.clear();
     for (const id of this.active.keys()) {
       this.destroy(id);
     }
+    this.protectedLastVfx = undefined;
   }
 
   getActiveCount(): number {
@@ -217,6 +290,44 @@ export class VfxManager {
       : definition.durationMs;
   }
 
+  private schedule(delayMs: number, callback: () => void): void {
+    let timer: Phaser.Time.TimerEvent;
+    timer = this.scene.time.delayedCall(delayMs, () => {
+      this.pendingTimers.delete(timer);
+      callback();
+    });
+    this.pendingTimers.add(timer);
+  }
+
+  private triggerImpactFeedback(critical: boolean): void {
+    const intensity = this.options.intensity === "reduced" ? 0.65 : 1;
+    const flashIntensity = Phaser.Math.Clamp(this.options.flashIntensity ?? 0, 0, 1);
+
+    if (this.options.screenShakeEnabled) {
+      const shakeDuration = Math.round((critical ? 110 : 70) * intensity);
+      const shakeStrength = (critical ? 0.008 : 0.004) * intensity;
+      this.scene.cameras.main.shake(shakeDuration, shakeStrength, false);
+    }
+
+    if (flashIntensity > 0) {
+      const flashDuration = Math.max(20, Math.round((critical ? 100 : 55) * intensity * flashIntensity));
+      this.scene.cameras.main.flash(flashDuration, 255, 255, 255, false);
+    }
+  }
+
+  private restoreProtectedLastVfx(): void {
+    if (!this.protectedLastVfx) {
+      return;
+    }
+
+    if (this.scene.time.now <= this.protectedLastVfx.expiresAt) {
+      this.canvas.dataset.lastVfx = this.protectedLastVfx.value;
+      return;
+    }
+
+    this.protectedLastVfx = undefined;
+  }
+
   private getParticleCount(definition: VfxDefinition): number {
     return this.options.intensity === "reduced"
       ? Math.max(1, Math.ceil(definition.particleCount * 0.55))
@@ -262,5 +373,7 @@ export class VfxManager {
     this.canvas.dataset.activeVfxCount = String(this.getActiveCount());
     this.canvas.dataset.damageNumbersEnabled = String(this.options.damageNumbersEnabled);
     this.canvas.dataset.vfxIntensity = this.options.intensity;
+    this.canvas.dataset.screenShakeEnabled = String(Boolean(this.options.screenShakeEnabled));
+    this.canvas.dataset.flashIntensity = (this.options.flashIntensity ?? 0).toFixed(2);
   }
 }

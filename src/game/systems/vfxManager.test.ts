@@ -1,7 +1,21 @@
 import { describe, expect, it } from "vitest";
-import { getCombatTextDefinitionId, getLootBeamDefinitionId } from "./vfxRouting";
+import {
+  getCombatFeedbackDefinitionIds,
+  getCombatTextDefinitionId,
+  getLootBeamDefinitionId,
+} from "./vfxRouting";
 
 describe("vfx routing", () => {
+  it("routes hit choreography through reusable data definitions", () => {
+    expect(getCombatFeedbackDefinitionIds(false)).toEqual({
+      anticipation: "attack-anticipation",
+      movement: "attack-motion",
+      impact: "impact-emphasis",
+      hit: "weapon-hit",
+    });
+    expect(getCombatFeedbackDefinitionIds(true).hit).toBe("critical-hit");
+  });
+
   it("routes combat text variants to configured VFX definitions", () => {
     expect(getCombatTextDefinitionId("damage")).toBe("damage-number");
     expect(getCombatTextDefinitionId("critical")).toBe("critical-number");

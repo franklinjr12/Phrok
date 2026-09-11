@@ -1,5 +1,6 @@
 import Phaser from "phaser";
 import type { CharacterData } from "../types/gameState";
+import { EntityPresentationController } from "../presentation/EntityPresentationController";
 import {
   getAnimationState,
   moveToward,
@@ -27,6 +28,7 @@ export class PlayerEntity {
   readonly sprite: Phaser.Physics.Arcade.Sprite;
   readonly character: CharacterData;
   readonly speed = PLAYER_SPEED;
+  readonly presentation: EntityPresentationController;
 
   direction: PlayerDirection = "down";
   motionState: PlayerMotionState = "idle";
@@ -43,6 +45,11 @@ export class PlayerEntity {
     this.sprite.body?.setSize(24, 28);
     this.sprite.body?.setOffset(12, 20);
     this.createClassAnimations(scene);
+    this.presentation = new EntityPresentationController(scene, this.sprite, {
+      textureKey: this.getAvailableTextureKey(scene),
+      depthOffset: 1,
+      idlePhase: Math.random() * Math.PI * 2,
+    });
     this.applyAnimationState();
   }
 
@@ -55,6 +62,7 @@ export class PlayerEntity {
 
   setPosition(position: Vector2Like): void {
     this.sprite.setPosition(position.x, position.y);
+    this.presentation.syncVisualTransform();
   }
 
   setDestination(destination: Vector2Like): void {
@@ -87,6 +95,32 @@ export class PlayerEntity {
     }
 
     this.applyAnimationState();
+    this.presentation.update(deltaMs, this.motionState, this.direction);
+  }
+
+  playLunge(deltaX: number, deltaY: number): void {
+    this.presentation.playLunge(deltaX, deltaY);
+  }
+
+  playAttack(): void {
+    this.presentation.playAttack();
+  }
+
+  playCast(): void {
+    this.presentation.playCast();
+  }
+
+  playHurt(): void {
+    this.presentation.playHurt();
+  }
+
+  playDeath(): void {
+    this.presentation.playDeath();
+  }
+
+  destroy(): void {
+    this.presentation.destroy();
+    this.sprite.destroy();
   }
 
   private createClassAnimations(scene: Phaser.Scene): void {

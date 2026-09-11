@@ -1,5 +1,41 @@
 [
   {
+    "id": "attack-anticipation",
+    "kind": "ring",
+    "color": "#facc15",
+    "secondaryColor": "#fef3c7",
+    "durationMs": 180,
+    "radius": 18,
+    "rise": 4,
+    "alpha": 0.55,
+    "scale": 0.85,
+    "depth": 36
+  },
+  {
+    "id": "attack-motion",
+    "kind": "burst",
+    "color": "#fde68a",
+    "secondaryColor": "#f8fafc",
+    "durationMs": 160,
+    "radius": 14,
+    "rise": 8,
+    "alpha": 0.72,
+    "scale": 0.8,
+    "depth": 37
+  },
+  {
+    "id": "impact-emphasis",
+    "kind": "burst",
+    "color": "#fef3c7",
+    "secondaryColor": "#f97316",
+    "durationMs": 220,
+    "radius": 26,
+    "rise": 6,
+    "alpha": 0.9,
+    "scale": 1,
+    "depth": 40
+  },
+  {
     "id": "weapon-hit",
     "kind": "particles",
     "color": "#f8fafc",

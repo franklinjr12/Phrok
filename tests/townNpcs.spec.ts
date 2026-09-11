@@ -82,9 +82,10 @@ test("merchant NPC opens a JSON-backed shop for buying and selling", async ({ pa
 
   await expect(canvas).toHaveAttribute("data-shop-buttons", "Buy|Sell|Sell All|Close");
 
-  await canvas.click({ position: { x: 430, y: 218 } });
+  // Keep the two clicks inside the game's double-click interval. An assertion
+  // between independent clicks can exceed it on software-rendered browsers.
+  await canvas.dblclick({ position: { x: 430, y: 218 }, delay: 100 });
   await expect(canvas).toHaveAttribute("data-selected-shop-sell-item", "jelly-gel");
-  await canvas.click({ position: { x: 430, y: 218 } });
   await expect(canvas).toHaveAttribute("data-last-shop-action", "sell:jelly-gel:2:43");
   await expect(canvas).toHaveAttribute("data-last-shop-sell-quantity", "1");
 

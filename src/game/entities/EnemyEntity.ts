@@ -1,6 +1,7 @@
 import Phaser from "phaser";
 import type { MonsterDefinition } from "../types/dataDefinitions";
 import type { ActiveStatusEffect } from "../types/gameState";
+import { EntityPresentationController } from "../presentation/EntityPresentationController";
 
 export const EnemyTextureKeys = {
   GreenJellyFallback: "enemy-green-jelly",
@@ -49,6 +50,7 @@ export class EnemyEntity {
   };
   readonly textureKey: string;
   readonly sprite: Phaser.Physics.Arcade.Sprite;
+  readonly presentation: EntityPresentationController;
 
   hp: number;
   bossPhase: BossPhase = 1;
@@ -66,6 +68,7 @@ export class EnemyEntity {
   private readonly castBarBackground: Phaser.GameObjects.Rectangle;
   private readonly castBarFill: Phaser.GameObjects.Rectangle;
   private readonly traitMarker?: Phaser.GameObjects.Text;
+  private selectionTween?: Phaser.Tweens.Tween;
 
   constructor(scene: Phaser.Scene, monster: MonsterDefinition, position: Phaser.Math.Vector2) {
     this.id = monster.id;
@@ -107,6 +110,14 @@ export class EnemyEntity {
     this.sprite.setInteractive({ useHandCursor: true });
     this.sprite.body?.setSize(34, 24);
     this.sprite.body?.setOffset(7, 20);
+    this.presentation = new EntityPresentationController(scene, this.sprite, {
+      textureKey: this.textureKey,
+      depthOffset: 1,
+      idlePhase: Math.random() * Math.PI * 2,
+      idleAmplitude: 0.82 + Math.random() * 0.36,
+    });
+    this.sprite.on(Phaser.Input.Events.POINTER_OVER, () => this.presentation.setHovered(true));
+    this.sprite.on(Phaser.Input.Events.POINTER_OUT, () => this.presentation.setHovered(false));
 
     this.hpBarBackground = scene.add.rectangle(position.x, position.y - 34, 44, 6, 0x111827, 0.85)
       .setDepth(21);
@@ -149,22 +160,71 @@ export class EnemyEntity {
       selected,
       targetId,
     };
+    this.selectionTween?.stop();
     this.highlight.setVisible(selected && this.isAlive);
+    this.highlight.setScale(1);
+    if (selected && this.isAlive) {
+      this.selectionTween = this.sprite.scene.tweens.add({
+        targets: this.highlight,
+        scaleX: 1.12,
+        scaleY: 1.12,
+        duration: 420,
+        yoyo: true,
+        repeat: -1,
+        ease: "Sine.easeInOut",
+      });
+    }
   }
 
   takeDamage(amount: number): void {
+    if (amount <= 0 || !this.isAlive) {
+      return;
+    }
     this.hp = Math.max(0, this.hp - amount);
     this.bossPhase = this.getBossPhase();
 
     if (this.hp === 0) {
+      this.presentation.playDeath();
       this.die();
       return;
     }
 
+    this.presentation.playHurt();
     this.syncVisuals();
   }
 
+  updatePresentation(deltaMs: number): void {
+    const body = this.sprite.body as Phaser.Physics.Arcade.Body | null;
+    const velocityX = body?.velocity.x ?? 0;
+    const velocityY = body?.velocity.y ?? 0;
+    const motion = Math.abs(velocityX) + Math.abs(velocityY) > 1 ? "walk" : "idle";
+    const direction = Math.abs(velocityX) > 1 ? (velocityX < 0 ? "left" : "right") : "none";
+    this.presentation.update(deltaMs, motion, direction);
+  }
+
+  playLunge(deltaX: number, deltaY: number): void {
+    this.presentation.playLunge(deltaX, deltaY);
+  }
+
+  playAttack(): void {
+    this.presentation.playAttack();
+  }
+
+  playCast(): void {
+    this.presentation.playCast();
+  }
+
+  playHurt(): void {
+    this.presentation.playHurt();
+  }
+
+  playSpawn(): void {
+    this.presentation.playSpawn();
+  }
+
   destroy(): void {
+    this.selectionTween?.stop();
+    this.presentation.destroy();
     this.highlight.destroy();
     this.hpBarBackground.destroy();
     this.hpBarFill.destroy();

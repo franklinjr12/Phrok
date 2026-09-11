@@ -3,6 +3,7 @@ import { createNewGameState } from "../data/gameState";
 import {
   autosaveStorageKey,
   createSaveData,
+  deleteSaveSlot,
   deserializeSaveData,
   getSaveSlotStorageKey,
   readSaveSlot,
@@ -295,5 +296,25 @@ describe("autosave", () => {
       cooldowns: { "emergency-potion": 9000 },
       autoPickupFilter: "materials",
     });
+  });
+
+  it("deletes only the requested manual save slot", () => {
+    const values = new Map<string, string>();
+    const storage = {
+      getItem: (key: string) => values.get(key) ?? null,
+      setItem: (key: string, value: string) => values.set(key, value),
+      removeItem: (key: string) => values.delete(key),
+      clear: () => values.clear(),
+      key: (index: number) => [...values.keys()][index] ?? null,
+      get length() { return values.size; },
+    } as Storage;
+    const state = createNewGameState();
+
+    writeSaveSlot(1, state, storage);
+    writeSaveSlot(2, state, storage);
+    deleteSaveSlot(1, storage);
+
+    expect(readSaveSlot(1, storage)).toBeNull();
+    expect(readSaveSlot(2, storage)).not.toBeNull();
   });
 });

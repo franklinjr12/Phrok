@@ -1,6 +1,6 @@
 import { describe, expect, it, beforeEach } from "vitest";
 import { eventBus } from "./eventBus";
-import { addGold, addInventoryItem, removeInventoryItem } from "./inventory";
+import { addGold, addInventoryItem, getInventoryWeight, removeInventoryItem } from "./inventory";
 import type { InventoryState } from "../types/gameState";
 
 describe("inventory", () => {
@@ -60,6 +60,14 @@ describe("inventory", () => {
     expect(inventory.items).toEqual([{ id: "jelly-gel", quantity: 1 }]);
     expect(inventory.equipmentInstances).toEqual([]);
     expect(inventory.gold).toBe(8);
+  });
+
+  it("counts stack quantities and equipment instances as weight", () => {
+    const inventory = createInventory();
+    inventory.items.push({ id: "potion", quantity: 4 });
+    inventory.equipmentInstances.push({ instanceId: "sword-1", itemId: "sword" });
+
+    expect(getInventoryWeight(inventory)).toBe(5);
   });
 });
 

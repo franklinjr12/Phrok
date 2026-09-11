@@ -4,6 +4,7 @@ import { SceneKeys } from "../constants/sceneKeys";
 import { autosaveSlot, writeAutosave, writeSaveSlot } from "../systems/autosave";
 import { eventBus } from "../systems/eventBus";
 import type { GameState } from "../types/gameState";
+import { getGameInputOwnership } from "../ui/input/GameInputOwnership";
 
 type GameOverSceneData = {
   deathSource?: string;
@@ -27,6 +28,7 @@ export class GameOverScene extends Phaser.Scene {
   }
 
   create(): void {
+    getGameInputOwnership(this.registry).set("game-over");
     const width = this.scale.width;
     const height = this.scale.height;
     const panelWidth = Math.min(420, width - 64);
@@ -92,6 +94,7 @@ export class GameOverScene extends Phaser.Scene {
     state.character.statusEffects = [];
     state.challengeDungeons.activeRun = null;
     state.challengeDungeons.activeClassTrialId = null;
+    getGameInputOwnership(this.registry).restoreWindowOwner();
     this.game.canvas.dataset.playerCombatState = "alive";
     this.game.canvas.dataset.gameplayInputBlocked = "false";
     this.game.canvas.dataset.autoAttack = "stopped";

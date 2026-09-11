@@ -16,6 +16,20 @@ export class UIDebugAdapter {
     this.set("gameplayInputBlocked", blocked);
   }
 
+  setWindowLayoutSnapshot(windows: Array<{
+    id: string;
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+    overflow: boolean;
+  }>): void {
+    this.set("uiWindowBounds", windows
+      .map(({ id, x, y, width, height }) => `${id}:${x},${y},${width},${height}`)
+      .join("|"));
+    this.set("uiLayoutOverflow", windows.some((window) => window.overflow));
+  }
+
   setInventorySnapshot(itemId: string, itemName: string, stackCount: number, equipmentInstanceCount: number, gold: number): void {
     this.set("inventoryItem", itemId);
     this.set("inventoryItemName", itemName);

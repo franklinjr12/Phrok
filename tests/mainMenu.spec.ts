@@ -25,6 +25,25 @@ test("main menu buttons respond to pointer input", async ({ page }) => {
   await expect(canvas).toBeVisible();
 });
 
+test("main menu supports keyboard navigation and escape closes overlays", async ({ page }) => {
+  await startApp(page);
+
+  const canvas = page.locator("canvas");
+  await expect(canvas).toHaveAttribute("data-scene", "main-menu");
+
+  await page.keyboard.press("ArrowDown");
+  await expect(canvas).toHaveAttribute("data-active-button", "Continue");
+  await page.keyboard.press("ArrowDown");
+  await page.keyboard.press("ArrowDown");
+  await page.keyboard.press("ArrowDown");
+  await expect(canvas).toHaveAttribute("data-active-button", "Credits");
+  await page.keyboard.press("Enter");
+  await expect(canvas).toHaveAttribute("data-credits-screen", "visible");
+
+  await page.keyboard.press("Escape");
+  await expect(canvas).toHaveAttribute("data-credits-screen", "hidden");
+});
+
 test("credits and quit actions are available from the final main menu", async ({ page }) => {
   await startApp(page);
 
@@ -101,4 +120,31 @@ test("save slots support manual save and continue", async ({ page }) => {
   await expect(canvas).toHaveAttribute("data-player-level", "1");
   await expect(canvas).toHaveAttribute("data-inventory-item", "training-sword");
   await expect(canvas).toHaveAttribute("data-equipment-weapon", "training-sword");
+});
+
+test("save slot actions select before loading and confirm deletion", async ({ page }) => {
+  await startApp(page);
+  const canvas = await confirmDefaultCharacter(page);
+  await page.keyboard.press("KeyS");
+  await expect(canvas).toHaveAttribute("data-last-manual-save-status", "saved");
+
+  await page.reload();
+  await expect(canvas).toHaveAttribute("data-scene", "main-menu");
+  await canvas.click({ position: { x: 600, y: 250 } });
+  await expect(canvas).toHaveAttribute("data-selected-save-slot", "1");
+  await expect(canvas).toHaveAttribute("data-save-action-buttons", "Load Selected|Delete Selected");
+
+  await canvas.click({ position: { x: 680, y: 414 } });
+  await expect(canvas).toHaveAttribute("data-save-delete-confirmation", "visible");
+  expect(await page.evaluate(() => localStorage.getItem("prok-save-slot-1"))).not.toBeNull();
+
+  await page.keyboard.press("Escape");
+  await expect(canvas).toHaveAttribute("data-save-delete-confirmation", "hidden");
+  await canvas.click({ position: { x: 600, y: 250 } });
+  await canvas.click({ position: { x: 680, y: 414 } });
+  await canvas.click({ position: { x: 486, y: 353 } });
+
+  await expect(canvas).toHaveAttribute("data-save-delete-status", "deleted");
+  await expect(canvas).toHaveAttribute("data-save-slots", "1:empty:New Game|2:empty:New Game|3:empty:New Game");
+  expect(await page.evaluate(() => localStorage.getItem("prok-save-slot-1"))).toBeNull();
 });

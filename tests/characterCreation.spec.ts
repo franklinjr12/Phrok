@@ -107,3 +107,18 @@ test("character creation accepts name input and class selection", async ({ page 
   await expect(canvas).toHaveAttribute("data-skill", "fire-bolt");
   await expect(canvas).toHaveAttribute("data-skill-name", "Fire Bolt");
 });
+
+test("character creation explains when the name is invalid", async ({ page }) => {
+  await startApp(page);
+
+  const canvas = await openCharacterCreation(page);
+
+  await canvas.click({ position: { x: 120, y: 140 } });
+  await page.keyboard.press(process.platform === "darwin" ? "Meta+A" : "Control+A");
+  await expect(canvas).toHaveAttribute("data-form-status", "invalid");
+  await expect(canvas).toHaveAttribute("data-confirm-enabled", "false");
+  await expect(canvas).toHaveAttribute("data-validation-message", "A name is required to begin.");
+
+  await canvas.click({ position: { x: 630, y: 545 } });
+  await expect(canvas).toHaveAttribute("data-scene", "character-creation");
+});

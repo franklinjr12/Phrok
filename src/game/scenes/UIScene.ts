@@ -1,111 +1,35 @@
+import { SettingsPanel } from "../ui/panels/settings/SettingsPanel";
+import { WorldMapPanel } from "../ui/panels/worldMap/WorldMapPanel";
+import { QuestLogPanel } from "../ui/panels/questLog/QuestLogPanel";
+import { HuntingBoardPanel } from "../ui/panels/huntingBoard/HuntingBoardPanel";
+import { StoragePanel } from "../ui/panels/storage/StoragePanel";
+import { AppraiserPanel } from "../ui/panels/appraiser/AppraiserPanel";
+import { ShopPanel } from "../ui/panels/shop/ShopPanel";
+import { RefinementPanel } from "../ui/panels/refinement/RefinementPanel";
+import { CraftingPanel } from "../ui/panels/crafting/CraftingPanel";
+import { BestiaryPanel } from "../ui/panels/bestiary/BestiaryPanel";
 import Phaser from "phaser";
 import { RegistryKeys } from "../constants/registryKeys";
-import {
-  compareEquipmentItems,
-  equipItem,
-  equipmentSlotLabels,
-  equipmentSlots,
-  getEquipmentStats,
-  getItemEquipmentSlot,
-  getItemRarity,
-  getItemSellValue,
-  removeEquipment,
-} from "../systems/equipment";
-import {
-  getRefinedItemName,
-  getRefineLevel,
-  getRefinementPreview,
-  isItemRefinable,
-  refineItem,
-  type RefinementPreview,
-} from "../systems/refinement";
-import {
-  allocateStatPoint,
-  baseStatKeys,
-  baseStatLabels,
-  calculateDerivedStats,
-  getStatCost,
-  getTotalBaseStats,
-  resetAllocatedStats,
-  statResetCost,
-} from "../systems/stats";
+import { compareEquipmentItems, equipmentSlots, getEquipmentStats, getItemEquipmentSlot, getItemRarity } from "../systems/equipment";
+import { getRefinedItemName, getRefineLevel, isItemRefinable } from "../systems/refinement";
+import { baseStatKeys, baseStatLabels, calculateDerivedStats, getTotalBaseStats } from "../systems/stats";
 import { writeSaveSlot } from "../systems/autosave";
-import {
-  cycleAutoPotionThreshold,
-  getAutoPotionSettingsSummary,
-  getConsumableCooldownSummary,
-  useConsumableItem,
-} from "../systems/consumables";
-import {
-  cycleSupportAutoPickupFilter,
-  getSupportSummary,
-  syncEquippedSupportFromEquipment,
-} from "../systems/supports";
-import {
-  canCraftRecipe,
-  craftRecipe,
-  getRecipeMaterialStatus,
-  getVisibleRecipes,
-  unlockRecipesForSource,
-} from "../systems/crafting";
+import { cycleAutoPotionThreshold, getAutoPotionSettingsSummary, getConsumableCooldownSummary } from "../systems/consumables";
+import { cycleSupportAutoPickupFilter, getSupportSummary, syncEquippedSupportFromEquipment } from "../systems/supports";
+import { unlockRecipesForSource } from "../systems/crafting";
 import { eventBus } from "../systems/eventBus";
-import { removeInventoryItem } from "../systems/inventory";
-import {
-  appraiseInventoryItem,
-  buyShopItem,
-  getAppraisalCost,
-  getMarketSellValue,
-  getShopBuyPrice,
-  getVisibleItemDescription,
-  getVisibleItemName,
-  isItemAppraisable,
-  isItemAppraised,
-  sellInventoryItem,
-} from "../systems/market";
-import {
-  depositStorageItem,
-  getContainerEntries,
-  getFilteredStorageEntries,
-  withdrawStorageItem,
-  type StorageCategoryFilter,
-  type StorageClassFilter,
-  type StorageLevelFilter,
-  type StorageListEntry,
-  type StorageListOptions,
-  type StorageSortDirection,
-  type StorageSortMode,
-} from "../systems/storage";
-import { allocateSkillPoint, assignHotbarAction, getLearnedSkillLevel, hotbarSlotCount } from "../systems/skills";
+import { getVisibleItemDescription, getVisibleItemName } from "../systems/market";
+import { getLearnedSkillLevel, hotbarSlotCount } from "../systems/skills";
 import { advancedClassUnlockLevel, getUnlockedSkillTreeIds, isAdvancedClassServiceAvailable } from "../systems/advancedClasses";
 import { getStatusSummary } from "../systems/statusEffects";
-import {
-  getBestiaryEntry,
-  getMonsterCombatTip,
-  getMonsterElement,
-  getMonsterFamily,
-  getVisibleBestiaryDropIds,
-  hasBestiaryMilestone,
-} from "../systems/bestiary";
-import {
-  acceptHuntingContract,
-  getHuntingBoardSummary,
-  getRegionalHuntingContracts,
-  refreshHuntingBoard,
-  turnInHuntingContract,
-  type HuntingContractDefinition,
-} from "../systems/huntingBoard";
-import {
-  acceptQuest,
-  completeQuest,
-  getQuestLogSummary,
-  getQuestObjectiveProgress,
-  getQuestStatus,
-} from "../systems/quests";
-import { audioManager } from "../systems/audioManager";
-import { applySettingsPatch, adjustFlashIntensity, adjustTextSpeed, cycleDifficulty, cycleUiScale, difficultyPresets, getReadableSettingsSummary, getSettingsSummary } from "../systems/settings";
+import { getHuntingBoardSummary, getRegionalHuntingContracts, type HuntingContractDefinition } from "../systems/huntingBoard";
+import { getQuestLogSummary, getQuestObjectiveProgress, getQuestStatus } from "../systems/quests";
+import { getSettingsSummary } from "../systems/settings";
+import { getInventoryWeight } from "../systems/inventory";
+import { TargetHudViewModel, type TargetHudSnapshot } from "../ui/viewModels/TargetHudViewModel";
 import type { DataRegistry } from "../data/dataRegistry";
-import type { ItemDefinition, ItemRarity, MonsterDefinition, QuestDefinition, RecipeDefinition, ShopDefinition, SkillDefinition } from "../types/dataDefinitions";
-import type { ActiveStatusEffect, BaseStatKey, EquipmentInstance, GameState, InventoryItem, StatModifier } from "../types/gameState";
+import type { ItemDefinition, QuestDefinition, SkillDefinition } from "../types/dataDefinitions";
+import type { ActiveStatusEffect, BaseStatKey, GameState, StatModifier } from "../types/gameState";
 import { uiTheme } from "../ui/uiTheme";
 import { UIDebugAdapter } from "../ui/debug/UIDebugAdapter";
 import { PanelHost } from "../ui/panels/PanelHost";
@@ -115,14 +39,12 @@ import { EquipmentPanel } from "../ui/panels/equipment/EquipmentPanel";
 import { CharacterPanel } from "../ui/panels/character/CharacterPanel";
 import { SkillsPanel } from "../ui/panels/skills/SkillsPanel";
 import { HotbarHud } from "../ui/hud/HotbarHud";
-import { addPanelButton as addPanelButtonPrimitive, addPanelRectangle as addPanelRectanglePrimitive, addPanelText as addPanelTextPrimitive } from "../ui/panels/panelPrimitives";
-
+import { getGameInputOwnership, type GameInputOwnership } from "../ui/input/GameInputOwnership";
+import { addPanelRectangle as addPanelRectanglePrimitive, addPanelText as addPanelTextPrimitive } from "../ui/panels/panelPrimitives";
+import { isSceneTransitioning, transitionToScene } from "./sceneTransition";
+import { SharedTooltip } from "../ui/tooltips/SharedTooltip";
+import { SceneKeys } from "../constants/sceneKeys";
 type PanelMode = "inventory" | "equipment" | "character" | "skills" | "bestiary" | "crafting" | "refinement" | "shop" | "appraiser" | "storage" | "huntingBoard" | "questLog" | "worldMap" | "settings";
-type InventoryPanelEntry = {
-  itemId: string;
-  quantity: number;
-  source: "stack" | "equipment";
-};
 type VisibleGameObject = Phaser.GameObjects.GameObject & {
   setVisible(visible: boolean): VisibleGameObject;
 };
@@ -132,10 +54,9 @@ type ActiveEffectSummary = {
   label: string;
   tooltip: string[];
   stackCount?: number;
+  remainingMs?: number;
 };
-
 const { panelDepth, hudDepth, panelFill, panelStroke } = uiTheme;
-
 export class UIScene extends Phaser.Scene {
   private state?: GameState;
   private dataRegistry?: DataRegistry;
@@ -175,6 +96,11 @@ export class UIScene extends Phaser.Scene {
   private unsubscribeStorageOpened?: () => void;
   private unsubscribeStorageChanged?: () => void;
   private unsubscribeSettingsChanged?: () => void;
+  private readonly fieldLogEntries: string[] = [];
+  private fieldLogText?: Phaser.GameObjects.Text;
+  private journeyHintText?: Phaser.GameObjects.Text;
+  private noticeText?: Phaser.GameObjects.Text;
+  private noticeTween?: Phaser.Tweens.Tween;
   private hpText?: Phaser.GameObjects.Text;
   private spText?: Phaser.GameObjects.Text;
   private levelText?: Phaser.GameObjects.Text;
@@ -191,6 +117,7 @@ export class UIScene extends Phaser.Scene {
   private targetNameText?: Phaser.GameObjects.Text;
   private targetHpText?: Phaser.GameObjects.Text;
   private targetHpBarBackground?: Phaser.GameObjects.Rectangle;
+  private targetMetaText?: Phaser.GameObjects.Text;
   private bossFrame?: Phaser.GameObjects.Rectangle;
   private bossHpBarBackground?: Phaser.GameObjects.Rectangle;
   private bossHpBarFill?: Phaser.GameObjects.Rectangle;
@@ -198,18 +125,19 @@ export class UIScene extends Phaser.Scene {
   private bossHpText?: Phaser.GameObjects.Text;
   private bossPhaseText?: Phaser.GameObjects.Text;
   private mapNameText?: Phaser.GameObjects.Text;
+  private locationTitleObjects: Phaser.GameObjects.GameObject[] = [];
+  private locationTitleTween?: Phaser.Tweens.Tween;
   private advancedClassNotificationText?: Phaser.GameObjects.Text;
   private minimapObjects: VisibleGameObject[] = [];
   private minimapPlayerMarker?: Phaser.GameObjects.Arc;
   private minimapVisible = true;
   private tooltipObjects: Phaser.GameObjects.GameObject[] = [];
+  private sharedTooltip?: SharedTooltip;
   private activeEffectObjects: Phaser.GameObjects.GameObject[] = [];
   private activeEffectSummaryKey = "";
   private activePanel: PanelMode | null = null;
   private selectedShopIndex = 0;
   private selectedMarketInventoryIndex = 0;
-  private lastMarketInventoryClickIndex = -1;
-  private lastMarketInventoryClickTime = 0;
   private selectedStorageInventoryIndex = 0;
   private selectedStorageIndex = 0;
   private selectedCraftingIndex = 0;
@@ -218,24 +146,18 @@ export class UIScene extends Phaser.Scene {
   private selectedQuestIndex = 0;
   private storageInventoryPage = 0;
   private storagePage = 0;
-  private selectedBestiaryIndex = 0;
   private activeShopId = "";
   private activeStorageNpcId = "";
   private activeCraftingNpcId = "";
   private activeRefinementNpcId = "";
-  private storageCategoryFilter: StorageCategoryFilter = "all";
-  private storageRarityFilter: ItemRarity | "all" = "all";
-  private storageClassFilter: StorageClassFilter = "all";
-  private storageLevelFilter: StorageLevelFilter = "all";
-  private storageSearchText = "";
-  private bestiarySearchText = "";
-  private storageSortMode: StorageSortMode = "name";
-  private storageSortDirection: StorageSortDirection = "asc";
   private panelObjects: Phaser.GameObjects.GameObject[] = [];
   private comparisonObjects: Phaser.GameObjects.GameObject[] = [];
   private uiDebug?: UIDebugAdapter;
   private panelHost?: PanelHost;
   private hotbarHud?: HotbarHud;
+  private inputOwnership?: GameInputOwnership;
+  private transitionInputLocked = false;
+  private readonly targetHudModel = new TargetHudViewModel();
 
   constructor() {
     super("UIScene");
@@ -247,6 +169,12 @@ export class UIScene extends Phaser.Scene {
     this.state = state;
     this.dataRegistry = dataRegistry;
     this.uiDebug = new UIDebugAdapter(this.game.canvas);
+    this.inputOwnership = getGameInputOwnership(this.registry);
+    this.sharedTooltip = new SharedTooltip(this, () => this.state?.settings.uiScale ?? 1);
+    this.transitionInputLocked = isSceneTransitioning(this);
+    if (this.transitionInputLocked) {
+      this.input.enabled = false;
+    }
     this.createPanelHost();
     syncEquippedSupportFromEquipment(state, (id) => dataRegistry.getItem(id));
 
@@ -259,6 +187,7 @@ export class UIScene extends Phaser.Scene {
     this.createHud(state, dataRegistry);
     this.createAdvancedClassNotification(state);
     this.createMapLabel(state.currentMapId, dataRegistry);
+    this.showLocationTitle(state.currentMapId, dataRegistry);
     this.syncXpBar(state, dataRegistry);
     this.createTargetFrame();
     this.createBossFrame();
@@ -268,36 +197,10 @@ export class UIScene extends Phaser.Scene {
   }
 
   private registerKeyboard(): void {
-    this.input.keyboard?.on("keydown-I", this.toggleInventoryPanel, this);
-    this.input.keyboard?.on("keydown-C", this.toggleCharacterPanel, this);
-    this.input.keyboard?.on("keydown-K", this.toggleSkillPanel, this);
-    this.input.keyboard?.on("keydown-B", this.toggleBestiaryPanel, this);
-    this.input.keyboard?.on("keydown-P", this.toggleEquipmentPanel, this);
-    this.input.keyboard?.on("keydown-R", this.toggleCraftingPanel, this);
-    this.input.keyboard?.on("keydown-H", this.toggleHuntingBoardPanel, this);
-    this.input.keyboard?.on("keydown-L", this.toggleQuestLogPanel, this);
-    this.input.keyboard?.on("keydown-M", this.toggleMinimap, this);
-    this.input.keyboard?.on("keydown-O", this.toggleWorldMapPanel, this);
-    this.input.keyboard?.on("keydown-Q", this.toggleSettingsPanel, this);
-    this.input.keyboard?.on("keydown-S", this.manualSave, this);
-    this.input.keyboard?.on("keydown-ESC", this.handleEscapeKey, this);
-    this.input.keyboard?.on("keydown", this.handleHotbarKey, this);
+    this.input.keyboard?.on("keydown", this.handleKeyboard, this);
 
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
-      this.input.keyboard?.off("keydown-I", this.toggleInventoryPanel, this);
-      this.input.keyboard?.off("keydown-C", this.toggleCharacterPanel, this);
-      this.input.keyboard?.off("keydown-K", this.toggleSkillPanel, this);
-      this.input.keyboard?.off("keydown-B", this.toggleBestiaryPanel, this);
-      this.input.keyboard?.off("keydown-P", this.toggleEquipmentPanel, this);
-      this.input.keyboard?.off("keydown-R", this.toggleCraftingPanel, this);
-      this.input.keyboard?.off("keydown-H", this.toggleHuntingBoardPanel, this);
-      this.input.keyboard?.off("keydown-L", this.toggleQuestLogPanel, this);
-      this.input.keyboard?.off("keydown-M", this.toggleMinimap, this);
-      this.input.keyboard?.off("keydown-O", this.toggleWorldMapPanel, this);
-      this.input.keyboard?.off("keydown-Q", this.toggleSettingsPanel, this);
-      this.input.keyboard?.off("keydown-S", this.manualSave, this);
-      this.input.keyboard?.off("keydown-ESC", this.handleEscapeKey, this);
-      this.input.keyboard?.off("keydown", this.handleHotbarKey, this);
+      this.input.keyboard?.off("keydown", this.handleKeyboard, this);
       this.unsubscribeHealth?.();
       this.unsubscribeSp?.();
       this.unsubscribeXp?.();
@@ -336,19 +239,31 @@ export class UIScene extends Phaser.Scene {
       this.unsubscribeSettingsChanged?.();
       this.clearTooltip();
       this.clearActiveEffectObjects();
+      this.clearLocationTitle();
       this.clearMinimap();
       this.panelHost?.destroy();
       this.hotbarHud?.destroy();
       this.panelHost = undefined;
       this.hotbarHud = undefined;
+      this.inputOwnership?.setPointerCapture(undefined);
+      this.inputOwnership = undefined;
       this.uiDebug = undefined;
     });
   }
 
   update(): void {
+    if (isSceneTransitioning(this)) {
+      this.transitionInputLocked = true;
+      this.input.enabled = false;
+    } else if (this.transitionInputLocked) {
+      this.transitionInputLocked = false;
+      this.input.enabled = true;
+    }
+
     this.updateMinimapPlayerMarker();
     if (this.state && this.dataRegistry) {
       this.syncActiveEffectTray(this.state, this.dataRegistry);
+      this.hotbarHud?.update();
     }
   }
 
@@ -361,7 +276,6 @@ export class UIScene extends Phaser.Scene {
       canvas: this.game.canvas,
       get stateScale() { return this.state.settings.uiScale ?? 1; },
       objects: this.panelObjects,
-      comparisonObjects: this.comparisonObjects,
       debug: this.uiDebug,
       rerender: () => this.panelHost?.refresh(),
       closePanel: () => this.closePanel(),
@@ -369,24 +283,35 @@ export class UIScene extends Phaser.Scene {
       clearTooltip: () => this.clearTooltip(),
       showComparison: (item) => this.showComparison(item),
       clearComparison: () => this.clearComparisonObjects(),
-      getInventoryWeight: () => this.getInventoryWeight(this.state!),
-      getWeightLimit: () => this.getWeightLimit(this.state!, this.dataRegistry!),
-      syncSupport: () => this.syncSupportDataset(this.state!, this.dataRegistry!),
-      syncSkill: () => this.syncSkillDataset(this.state!, this.dataRegistry!),
-      syncEquipment: () => this.syncEquipmentDataset(this.state!, this.dataRegistry!),
+      saveGame: () => this.manualSave(),
+      requestReturnToTitle: () => this.requestReturnToTitle(),
     };
     const panels = new Map<PanelId, UIPanel>([
       ["inventory", new InventoryPanel(context)],
       ["equipment", new EquipmentPanel(context)],
       ["character", new CharacterPanel(context)],
       ["skills", new SkillsPanel(context)],
+      ["bestiary", new BestiaryPanel(context)],
+      ["crafting", new CraftingPanel(context)],
+      ["refinement", new RefinementPanel(context)],
+      ["shop", new ShopPanel(context)],
+      ["appraiser", new AppraiserPanel(context)],
+      ["storage", new StoragePanel(context)],
+      ["huntingBoard", new HuntingBoardPanel(context)],
+      ["questLog", new QuestLogPanel(context)],
+      ["worldMap", new WorldMapPanel(context)],
+      ["settings", new SettingsPanel(context)],
     ]);
     this.panelHost = new PanelHost({
       context,
-      clearObjects: () => this.clearPanelObjects(),
       addBackdrop: () => this.addPanelBackdrop(),
-      resetDatasets: () => this.resetPanelDatasets(),
+      onWindowsChanged: (topmost) => { this.activePanel = topmost; },
+      onInputOwnerChanged: (owner) => this.inputOwnership?.setWindowOwner(owner),
     }, panels);
+    this.uiDebug.setWindowLayoutSnapshot([]);
+    this.inputOwnership?.setPointerCapture((pointer) => (
+      this.panelHost?.capturesPointer(pointer) ?? false
+    ) || (this.hotbarHud?.capturesPointer(pointer.x, pointer.y) ?? false));
   }
 
   private registerEvents(state: GameState, dataRegistry: DataRegistry): void {
@@ -402,9 +327,11 @@ export class UIScene extends Phaser.Scene {
       this.syncVitalBars();
     });
 
-    this.unsubscribeXp = eventBus.on("xpGained", ({ totalXp }) => {
+    this.unsubscribeXp = eventBus.on("xpGained", ({ amount, totalXp }) => {
       this.uiDebug?.set("playerXp", String(totalXp));
       this.syncXpBar(state, dataRegistry);
+      this.pushFieldLog(`XP +${amount} · total ${totalXp}`);
+      this.showNotice("Experience gained");
     });
 
     this.unsubscribeLevelUp = eventBus.on("levelUp", ({ level, statPoints, skillPoints, hp, maxHp, sp, maxSp }) => {
@@ -423,6 +350,8 @@ export class UIScene extends Phaser.Scene {
         this.showAdvancedClassNotification();
       }
       this.syncXpBar(state, dataRegistry);
+      this.pushFieldLog(`Level ${level} reached`);
+      this.showNotice(`Level ${level}`);
     });
 
     this.unsubscribeAdvancedClassUnlocked = eventBus.on("advancedClassUnlocked", () => {
@@ -438,8 +367,8 @@ export class UIScene extends Phaser.Scene {
     });
 
     this.unsubscribeInventory = eventBus.on("inventoryChanged", ({ inventory }) => {
-      const firstInventoryEntry = this.getInventoryPanelEntries(inventory.items, inventory.equipmentInstances)[0];
-      const firstInventoryItem = firstInventoryEntry ? dataRegistry.getItem(firstInventoryEntry.itemId) : null;
+      const firstInventoryItemId = inventory.items[0]?.id ?? inventory.equipmentInstances[0]?.itemId;
+      const firstInventoryItem = firstInventoryItemId ? dataRegistry.getItem(firstInventoryItemId) : null;
 
       this.uiDebug?.set("inventoryItem", firstInventoryItem?.id ?? "");
       this.uiDebug?.set("inventoryItemName", firstInventoryItem?.name ?? "");
@@ -489,33 +418,42 @@ export class UIScene extends Phaser.Scene {
 
     this.unsubscribeLootDropped = eventBus.on("lootDropped", ({ kind, itemId, quantity }) => {
       this.uiDebug?.set("lastLootDrop", kind === "gold" ? `gold:${quantity}` : `${itemId}:${quantity}`);
+      this.pushFieldLog(kind === "gold" ? `Gold found ×${quantity}` : `Loot: ${dataRegistry.getItem(itemId ?? "").name} ×${quantity}`);
     });
 
     this.unsubscribeLootPickedUp = eventBus.on("lootPickedUp", ({ kind, itemId, quantity }) => {
       this.uiDebug?.set("lastLootPickup", kind === "gold" ? `gold:${quantity}` : `${itemId}:${quantity}`);
+      this.pushFieldLog(kind === "gold" ? `Gold collected ×${quantity}` : `Collected: ${dataRegistry.getItem(itemId ?? "").name} ×${quantity}`);
     });
 
-    this.unsubscribeEnemyHealth = eventBus.on("enemyHealthChanged", ({ enemyId, name, hp, maxHp, boss, phase }) => {
-      if (this.game.canvas.dataset.targetEnemyId === enemyId) {
-        this.setTargetFrame(enemyId, name, hp, maxHp);
+    this.unsubscribeEnemyHealth = eventBus.on("enemyHealthChanged", ({ enemyId, name, hp, maxHp, level, elite, boss, phase, statusIcons }) => {
+      if (this.targetHudModel.targetSnapshot?.enemyId === enemyId) {
+        this.targetHudModel.setTarget(enemyId, name, hp, maxHp, level, elite, statusIcons);
+        this.setTargetFrame(this.targetHudModel.targetSnapshot);
       }
 
       if (boss) {
-        this.setBossFrame(name, hp, maxHp, phase ?? 1);
+        this.targetHudModel.setBoss(name, hp, maxHp, phase ?? 1, level, statusIcons);
+        this.setBossFrame(this.targetHudModel.bossSnapshot);
       }
     });
 
-    this.unsubscribeEnemyTarget = eventBus.on("enemyTargetChanged", ({ enemyId, name, hp, maxHp, boss, phase }) => {
+    this.unsubscribeEnemyTarget = eventBus.on("enemyTargetChanged", ({ enemyId, name, hp, maxHp, level, elite, boss, phase, statusIcons }) => {
       if (!enemyId) {
+        this.targetHudModel.clearTarget();
+        this.targetHudModel.clearBoss();
         this.clearTargetFrame();
         this.clearBossFrame();
         return;
       }
 
-      this.setTargetFrame(enemyId, name, hp, maxHp);
+      this.targetHudModel.setTarget(enemyId, name, hp, maxHp, level, elite, statusIcons);
+      this.setTargetFrame(this.targetHudModel.targetSnapshot);
       if (boss) {
-        this.setBossFrame(name, hp, maxHp, phase ?? 1);
+        this.targetHudModel.setBoss(name, hp, maxHp, phase ?? 1, level, statusIcons);
+        this.setBossFrame(this.targetHudModel.bossSnapshot);
       } else {
+        this.targetHudModel.clearBoss();
         this.clearBossFrame();
       }
     });
@@ -524,10 +462,15 @@ export class UIScene extends Phaser.Scene {
       this.updateMapMetadata(mapId, dataRegistry);
       this.refreshMinimap(state, dataRegistry);
       this.uiDebug?.set("currentMapMusicKey", musicKey);
+      this.showLocationTitle(mapId, dataRegistry);
+      this.pushFieldLog(`Entered ${dataRegistry.getMap(mapId).name}`);
+      this.updateJourneyHint(state, dataRegistry);
     });
 
     this.unsubscribeSaveCompleted = eventBus.on("saveCompleted", ({ saveSlot }) => {
       this.uiDebug?.set("lastAutosaveSlot", String(saveSlot));
+      this.pushFieldLog(`Game saved · slot ${saveSlot}`);
+      this.showNotice("Game saved");
     });
 
     this.unsubscribeSkillUsed = eventBus.on("skillUsed", () => {
@@ -577,6 +520,8 @@ export class UIScene extends Phaser.Scene {
       this.syncBestiaryDataset(state, dataRegistry);
       this.syncDerivedStatsDataset(state, dataRegistry);
       this.refreshOpenPanel();
+      this.pushFieldLog(`Bestiary unlock: ${monsterId} milestone ${milestone}`);
+      this.showNotice("Bestiary milestone unlocked");
     });
 
     this.unsubscribeStatusEffectsChanged = eventBus.on("statusEffectsChanged", ({ targetKind, targetId, statuses }) => {
@@ -595,6 +540,11 @@ export class UIScene extends Phaser.Scene {
       } else if (this.game.canvas.dataset.targetEnemyId === targetId) {
         this.uiDebug?.set("targetStatusEffects", summary);
         this.uiDebug?.set("targetEnemyStatusIcons", statuses.map((status) => dataRegistry.getStatusEffect(status.id).visualIcon).join("|"));
+        const target = this.targetHudModel.targetSnapshot;
+        if (target) {
+          this.targetHudModel.setTarget(target.enemyId!, target.name, target.hp, target.maxHp, target.level ?? undefined, target.elite, statuses.map((status) => dataRegistry.getStatusEffect(status.id).visualIcon));
+          this.setTargetFrame(this.targetHudModel.targetSnapshot);
+        }
       }
     });
 
@@ -628,10 +578,15 @@ export class UIScene extends Phaser.Scene {
       this.uiDebug?.set("lastQuestAction", `${reason}:${questId}`);
       this.syncQuestDataset(state, dataRegistry);
       this.refreshOpenPanel();
+      this.pushFieldLog(`Quest ${reason}: ${dataRegistry.getQuest(questId).name}`);
+      this.updateJourneyHint(state, dataRegistry);
+      this.showNotice(reason === "completed" ? "Quest complete" : "Quest updated");
     });
 
     this.unsubscribeRecipeUnlocked = eventBus.on("recipeUnlocked", ({ recipeId, recipeName }) => {
       this.uiDebug?.set("lastRecipeUnlock", `${recipeId}:${recipeName}`);
+      this.pushFieldLog(`Recipe unlocked: ${recipeName}`);
+      this.showNotice("Recipe unlocked");
     });
 
     this.unsubscribeRefinementOpened = eventBus.on("refinementOpened", ({ npcId }) => {
@@ -670,49 +625,59 @@ export class UIScene extends Phaser.Scene {
       this.uiDebug?.set("settingsSummary", getSettingsSummary(settings));
       this.uiDebug?.set("settingsDifficulty", settings.difficulty);
       this.uiDebug?.set("settingsUiScale", String(settings.uiScale));
+      this.uiDebug?.set("settingsVfxIntensity", settings.visualEffectsIntensity);
       this.refreshOpenPanel();
     });
   }
 
   private createHud(state: GameState, dataRegistry: DataRegistry): void {
-    this.add.rectangle(12, 12, 318, 136, 0x101820, 0.86)
+    const panel = this.add.rectangle(12, 12, 326, 124, uiTheme.colors.background, 0.96)
       .setOrigin(0)
-      .setStrokeStyle(1, 0xd6b45f, 0.65)
+      .setStrokeStyle(1, uiTheme.colors.accent, 0.9)
       .setScrollFactor(0)
       .setDepth(hudDepth);
-    this.hpText = this.addHudText(24, 22, `HP ${state.character.stats.hp}/${state.character.stats.maxHp}`, "#fca5a5");
-    this.spText = this.addHudText(24, 46, `SP ${state.character.stats.sp}/${state.character.stats.maxSp}`, "#93c5fd");
-    this.add.rectangle(82, 32, 88, 8, 0x111827, 0.95)
+    void panel;
+    this.add.rectangle(28, 28, 42, 42, uiTheme.colors.inset, 1)
+      .setStrokeStyle(2, uiTheme.colors.accent, 0.95).setScrollFactor(0).setDepth(hudDepth + 1);
+    const playerClass = dataRegistry.getClass(state.character.archetype);
+    this.add.text(49, 49, playerClass.name.slice(0, 2).toUpperCase(), {
+      color: uiTheme.text.accent, fontFamily: uiTheme.fonts.heading, fontStyle: "bold", fontSize: "15px",
+    }).setOrigin(0.5).setScrollFactor(0).setDepth(hudDepth + 2);
+    this.addHudText(84, 20, state.playerProfile.name, uiTheme.text.onDark, 16);
+    this.addHudText(84, 40, `${playerClass.name}${state.character.advancedClass ? ` · ${state.character.advancedClass.name}` : ""}`, uiTheme.text.accent, 11);
+    this.levelText = this.addHudText(250, 20, `Lv ${state.playerProfile.level}`, uiTheme.text.onDark, 14);
+    this.goldText = this.addHudText(250, 40, `Gold ${state.inventory.gold}`, "#f9e7a8", 11);
+    this.hpText = this.addHudText(84, 60, `HP ${state.character.stats.hp}/${state.character.stats.maxHp}`, uiTheme.text.onDark, 11);
+    this.spText = this.addHudText(84, 82, `SP ${state.character.stats.sp}/${state.character.stats.maxSp}`, uiTheme.text.onDark, 11);
+    this.add.rectangle(154, 64, 82, 7, uiTheme.colors.shadow, 0.95)
       .setOrigin(0, 0.5)
       .setScrollFactor(0)
       .setDepth(hudDepth);
-    this.hpBarFill = this.add.rectangle(82, 32, 1, 6, 0xef4444, 1)
+    this.hpBarFill = this.add.rectangle(154, 64, 1, 5, uiTheme.colors.hp, 1)
       .setOrigin(0, 0.5)
       .setScrollFactor(0)
       .setDepth(hudDepth + 1);
-    this.add.rectangle(82, 56, 88, 8, 0x111827, 0.95)
+    this.add.rectangle(154, 86, 82, 7, uiTheme.colors.shadow, 0.95)
       .setOrigin(0, 0.5)
       .setScrollFactor(0)
       .setDepth(hudDepth);
-    this.spBarFill = this.add.rectangle(82, 56, 1, 6, 0x3b82f6, 1)
+    this.spBarFill = this.add.rectangle(154, 86, 1, 5, uiTheme.colors.sp, 1)
       .setOrigin(0, 0.5)
       .setScrollFactor(0)
       .setDepth(hudDepth + 1);
-    this.levelText = this.addHudText(178, 22, `Lv ${state.playerProfile.level}`, "#f8fafc");
-    this.goldText = this.addHudText(178, 46, `Gold ${state.inventory.gold}`, "#fde68a");
-    this.weightText = this.addHudText(24, 92, `Weight ${this.getInventoryWeight(state)}/${this.getWeightLimit(state, dataRegistry)}`, "#cbd5e1");
-    this.attackText = this.addHudText(178, 92, "", "#bbf7d0");
-    this.statusText = this.addHudText(24, 112, this.getPlayerStatusText(state, dataRegistry), "#f9a8d4");
-    this.addHudText(24, 70, "XP", "#f8fafc");
-    this.add.rectangle(58, 80, 180, 8, 0x111827, 0.9)
+    this.weightText = this.addHudText(250, 62, `W ${this.getInventoryWeight(state)}/${this.getWeightLimit(state, dataRegistry)}`, uiTheme.text.secondary, 10);
+    this.attackText = this.addHudText(250, 82, "", uiTheme.text.positive, 10);
+    this.addHudText(28, 104, "XP", uiTheme.text.onDark, 10);
+    this.add.rectangle(52, 109, 180, 7, uiTheme.colors.shadow, 0.9)
       .setOrigin(0, 0.5)
       .setScrollFactor(0)
       .setDepth(hudDepth);
-    this.xpBarFill = this.add.rectangle(58, 80, 1, 6, 0xfacc15, 1)
+    this.xpBarFill = this.add.rectangle(52, 109, 1, 5, uiTheme.colors.xp, 1)
       .setOrigin(0, 0.5)
       .setScrollFactor(0)
       .setDepth(hudDepth + 1);
-    this.xpText = this.addHudText(246, 70, "", "#fde68a");
+    this.xpText = this.addHudText(240, 102, "", "#f9e7a8", 10);
+    this.statusText = this.addHudText(250, 102, this.getPlayerStatusText(state, dataRegistry), "#f9a8d4", 9);
     this.hotbarHud = new HotbarHud({
       scene: this,
       state,
@@ -721,6 +686,8 @@ export class UIScene extends Phaser.Scene {
       debug: this.uiDebug!,
       showTooltip: (lines, x, y) => this.showTooltip(lines, x, y),
       clearTooltip: () => this.clearTooltip(),
+      activateSlot: (slot) => this.requestHotbarAction(slot),
+      openPanel: (panel) => this.openPanel(panel),
     });
     this.hotbarHud.create();
     this.syncVitalBars();
@@ -733,6 +700,9 @@ export class UIScene extends Phaser.Scene {
     this.uiDebug?.set("hudVisible", "true");
     this.uiDebug?.set("hotbarVisible", "true");
     this.uiDebug?.set("hudLayout", "final");
+    this.uiDebug?.set("hudStyle", "draft-rpg");
+    this.uiDebug?.set("playerName", state.playerProfile.name);
+    this.uiDebug?.set("playerClassName", playerClass.name);
     this.uiDebug?.set("xpBar", "visible");
     this.uiDebug?.set("xpBarWidth", "0");
     this.uiDebug?.set("playerStatusEffects", getStatusSummary(
@@ -743,17 +713,70 @@ state.character.statusEffects,
     this.uiDebug?.set("consumableCooldowns", getConsumableCooldownSummary(state));
     this.uiDebug?.set("autoPotionSettings", getAutoPotionSettingsSummary(state));
     this.syncSettingsDataset(state);
+    this.createAmbientHud(state, dataRegistry);
     this.xpBarFill.displayWidth = state.playerProfile.xp > 0 ? 1 : 0;
   }
 
-  private addHudText(x: number, y: number, text: string, color: string): Phaser.GameObjects.Text {
+  private addHudText(x: number, y: number, text: string, color: string, fontSize = 15): Phaser.GameObjects.Text {
     return this.add.text(x, y, text, {
       color,
       fontFamily: "Arial, sans-serif",
-      fontSize: `${Math.round(15 * (this.state?.settings.uiScale ?? 1))}px`,
+      fontSize: `${Math.round(fontSize * (this.state?.settings.uiScale ?? 1))}px`,
     })
       .setScrollFactor(0)
       .setDepth(hudDepth + 1);
+  }
+
+  private createAmbientHud(state: GameState, dataRegistry: DataRegistry): void {
+    const height = Number(this.scale.height || 600);
+    this.fieldLogEntries.length = 0;
+    this.journeyHintText = this.add.text(16, height - 170, "", {
+      color: uiTheme.text.onDark, fontFamily: uiTheme.fonts.body, fontSize: "11px", lineSpacing: 3,
+      backgroundColor: "#142d25", padding: { x: 10, y: 7 },
+    }).setScrollFactor(0).setDepth(hudDepth + 2);
+    this.fieldLogText = this.add.text(Number(this.scale.width || 800) - 218, height - 166, "", {
+      color: uiTheme.text.secondary, fontFamily: uiTheme.fonts.body, fontSize: "10px", lineSpacing: 3,
+      backgroundColor: "#142d25", padding: { x: 9, y: 7 }, fixedWidth: 202,
+    }).setScrollFactor(0).setDepth(hudDepth + 2);
+    this.noticeText = this.add.text(Number(this.scale.width || 800) / 2, height - 170, "", {
+      color: uiTheme.text.onDark, fontFamily: uiTheme.fonts.heading, fontStyle: "bold", fontSize: "15px",
+      backgroundColor: "#315a4e", padding: { x: 12, y: 7 },
+    }).setOrigin(0.5).setScrollFactor(0).setDepth(hudDepth + 5).setVisible(false);
+    this.uiDebug?.set("fieldLogVisible", "true");
+    this.uiDebug?.set("fieldLog", "");
+    this.uiDebug?.set("notices", "ready");
+    this.updateJourneyHint(state, dataRegistry);
+  }
+
+  private pushFieldLog(message: string): void {
+    if (!message) return;
+    this.fieldLogEntries.unshift(message);
+    this.fieldLogEntries.splice(4);
+    this.fieldLogText?.setText(this.fieldLogEntries.join("\n"));
+    this.uiDebug?.set("fieldLog", this.fieldLogEntries.join("|"));
+  }
+
+  private showNotice(message: string): void {
+    this.noticeTween?.stop();
+    this.noticeText?.setText(message).setVisible(true).setAlpha(1);
+    this.uiDebug?.set("lastNotice", message);
+    this.noticeTween = this.tweens.add({
+      targets: this.noticeText,
+      alpha: 0,
+      delay: 1500,
+      duration: 450,
+      onComplete: () => this.noticeText?.setVisible(false),
+    });
+  }
+
+  private updateJourneyHint(state: GameState, dataRegistry: DataRegistry): void {
+    const activeQuestId = state.quests.activeQuestIds[0];
+    const quest = activeQuestId ? dataRegistry.getQuest(activeQuestId) : null;
+    const progress = quest ? state.quests.activeQuests.find((entry) => entry.questId === quest.id) : null;
+    const objective = quest?.objectives.find((entry) => (progress?.objectiveProgress[entry.id] ?? 0) < entry.targetCount);
+    const hint = objective?.description || objective?.regionHint || (quest ? quest.name : "Explore the world");
+    this.journeyHintText?.setText(`CURRENT OBJECTIVE\n${hint}`);
+    this.uiDebug?.set("journeyHint", hint);
   }
 
   private getPlayerStatusText(state: GameState, dataRegistry: DataRegistry): string {
@@ -786,8 +809,8 @@ state.character.statusEffects,
       return;
     }
 
-    if (this.activePanel === "inventory") {
-      this.closePanel();
+    if (this.panelHost?.isOpen("inventory")) {
+      this.panelHost.close("inventory");
       return;
     }
 
@@ -803,8 +826,8 @@ state.character.statusEffects,
       return;
     }
 
-    if (this.activePanel === "equipment") {
-      this.closePanel();
+    if (this.panelHost?.isOpen("equipment")) {
+      this.panelHost.close("equipment");
       return;
     }
 
@@ -820,8 +843,8 @@ state.character.statusEffects,
       return;
     }
 
-    if (this.activePanel === "character") {
-      this.closePanel();
+    if (this.panelHost?.isOpen("character")) {
+      this.panelHost.close("character");
       return;
     }
 
@@ -837,8 +860,8 @@ state.character.statusEffects,
       return;
     }
 
-    if (this.activePanel === "skills") {
-      this.closePanel();
+    if (this.panelHost?.isOpen("skills")) {
+      this.panelHost.close("skills");
       return;
     }
 
@@ -850,8 +873,8 @@ state.character.statusEffects,
       return;
     }
 
-    if (this.activePanel === "bestiary") {
-      this.closePanel();
+    if (this.panelHost?.isOpen("bestiary")) {
+      this.panelHost.close("bestiary");
       return;
     }
 
@@ -867,8 +890,8 @@ state.character.statusEffects,
       return;
     }
 
-    if (this.activePanel === "crafting") {
-      this.closePanel();
+    if (this.panelHost?.isOpen("crafting")) {
+      this.panelHost.close("crafting");
       return;
     }
 
@@ -886,8 +909,8 @@ state.character.statusEffects,
       return;
     }
 
-    if (this.activePanel === "huntingBoard") {
-      this.closePanel();
+    if (this.panelHost?.isOpen("huntingBoard")) {
+      this.panelHost.close("huntingBoard");
       return;
     }
 
@@ -899,8 +922,8 @@ state.character.statusEffects,
       return;
     }
 
-    if (this.activePanel === "questLog") {
-      this.closePanel();
+    if (this.panelHost?.isOpen("questLog")) {
+      this.panelHost.close("questLog");
       return;
     }
 
@@ -916,8 +939,8 @@ state.character.statusEffects,
       return;
     }
 
-    if (this.activePanel === "worldMap") {
-      this.closePanel();
+    if (this.panelHost?.isOpen("worldMap")) {
+      this.panelHost.close("worldMap");
       return;
     }
 
@@ -925,8 +948,8 @@ state.character.statusEffects,
   }
 
   private toggleSettingsPanel(): void {
-    if (this.activePanel === "settings") {
-      this.closePanel();
+    if (this.panelHost?.isOpen("settings")) {
+      this.panelHost.close("settings");
       return;
     }
 
@@ -948,12 +971,8 @@ state.character.statusEffects,
   }
 
   private openPanel(mode: PanelMode): void {
-    if (this.panelHost?.activePanel && !this.isExtractedPanel(mode)) {
-      this.panelHost.close();
-    }
-    this.activePanel = mode;
     if (this.panelHost && this.isExtractedPanel(mode)) {
-      this.panelHost.open(mode);
+      this.panelHost.open(mode, { selectedHuntingContractIndex: this.selectedHuntingContractIndex, selectedQuestIndex: this.selectedQuestIndex, activeCraftingNpcId: this.activeCraftingNpcId, selectedCraftingIndex: this.selectedCraftingIndex, activeRefinementNpcId: this.activeRefinementNpcId, selectedRefinementIndex: this.selectedRefinementIndex, activeShopId: this.activeShopId, selectedShopIndex: this.selectedShopIndex, selectedMarketInventoryIndex: this.selectedMarketInventoryIndex, activeStorageNpcId: this.activeStorageNpcId, selectedStorageInventoryIndex: this.selectedStorageInventoryIndex, selectedStorageIndex: this.selectedStorageIndex, storageInventoryPage: this.storageInventoryPage, storagePage: this.storagePage });
       return;
     }
     this.uiDebug?.set("uiPanel", mode);
@@ -977,10 +996,11 @@ state.character.statusEffects,
   }
 
   private handleEscapeKey(): void {
-    if (this.activePanel) {
-      this.closePanel();
+    if (this.panelHost?.closeTopmostClosable()) {
       return;
     }
+
+    if (this.panelHost?.hasOpenWindows) return;
 
     this.openPanel("settings");
   }
@@ -989,10 +1009,7 @@ state.character.statusEffects,
     const keys = ["inventoryPanel", "equipmentPanel", "characterPanel", "skillPanel", "shopPanel", "appraiserPanel", "storagePanel", "craftingPanel", "refinementPanel", "supportPanel", "bestiaryPanel", "huntingBoardPanel", "questLogPanel", "worldMapPanel", "settingsPanel"];
     for (const key of keys) this.uiDebug?.set(key, "hidden");
   }
-
-  private isExtractedPanel(mode: PanelMode): mode is PanelId {
-    return mode === "inventory" || mode === "equipment" || mode === "character" || mode === "skills";
-  }
+  private isExtractedPanel(mode: PanelMode): mode is PanelId { return true; }
 
   private manualSave(): void {
     if (this.activePanel === "storage") {
@@ -1014,80 +1031,51 @@ state.character.statusEffects,
   }
 
   private requestHotbarAction(slot: number): void {
-    if (this.game.canvas.dataset.gameplayInputBlocked === "true") {
+    if (!this.inputOwnership?.allowsGameplayKeyboard()) {
       return;
     }
 
     eventBus.emit("hotbarActionRequested", { slot });
   }
-
-  private handleHotbarKey(event: KeyboardEvent): void {
-    if (this.panelHost?.handleKey(event)) {
+  private handleKeyboard(event: KeyboardEvent): void {
+    if (this.isTextEntryEvent(event)) {
+      this.inputOwnership?.set("text-entry");
       return;
     }
-
-    if (this.activePanel === "storage" && this.handleStorageSearchKey(event)) {
+    if (this.inputOwnership?.current === "text-entry") {
+      this.inputOwnership.restoreWindowOwner();
+    }
+    if (this.panelHost?.handleKey(event)) return;
+    if (event.code === "Escape") {
+      this.handleEscapeKey();
       return;
     }
-
-    if (this.activePanel === "bestiary" && this.handleBestiarySearchKey(event)) {
-      return;
-    }
-
-    const slot = Number(event.key);
-
-    if (Number.isInteger(slot) && slot >= 1 && slot <= hotbarSlotCount) {
-      this.requestHotbarAction(slot);
+    if (this.inputOwnership && !this.inputOwnership.allowsGameplayKeyboard()) return;
+    switch (event.code) {
+      case "KeyI": this.toggleInventoryPanel(); return;
+      case "KeyC": this.toggleCharacterPanel(); return;
+      case "KeyK": this.toggleSkillPanel(); return;
+      case "KeyB": this.toggleBestiaryPanel(); return;
+      case "KeyP": this.toggleEquipmentPanel(); return;
+      case "KeyR": this.toggleCraftingPanel(); return;
+      case "KeyH": this.toggleHuntingBoardPanel(); return;
+      case "KeyL": this.toggleQuestLogPanel(); return;
+      case "KeyM": this.toggleMinimap(); return;
+      case "KeyO": this.toggleWorldMapPanel(); return;
+      case "KeyQ": this.toggleSettingsPanel(); return;
+      case "KeyS": this.manualSave(); return;
+      default: {
+        const slot = Number(event.key);
+        if (Number.isInteger(slot) && slot >= 1 && slot <= hotbarSlotCount) this.requestHotbarAction(slot);
+      }
     }
   }
 
-  private handleBestiarySearchKey(event: KeyboardEvent): boolean {
-    if (event.ctrlKey || event.metaKey || event.altKey) {
-      return false;
-    }
-
-    if (event.code === "KeyB" && this.bestiarySearchText.length === 0) {
-      event.preventDefault();
-      return true;
-    }
-
-    if (event.key === "Backspace") {
-      this.bestiarySearchText = this.bestiarySearchText.slice(0, -1);
-    } else if (event.key === "Delete") {
-      this.bestiarySearchText = "";
-    } else if (event.key.length === 1) {
-      this.bestiarySearchText = `${this.bestiarySearchText}${event.key}`.slice(0, 24);
-    } else {
-      return false;
-    }
-
-    event.preventDefault();
-    this.selectedBestiaryIndex = 0;
-    this.uiDebug?.set("bestiarySearch", this.bestiarySearchText);
-    this.renderPanel();
-    return true;
-  }
-
-  private handleStorageSearchKey(event: KeyboardEvent): boolean {
-    if (event.ctrlKey || event.metaKey || event.altKey) {
-      return false;
-    }
-
-    if (event.key === "Backspace") {
-      this.storageSearchText = this.storageSearchText.slice(0, -1);
-    } else if (event.key === "Delete") {
-      this.storageSearchText = "";
-    } else if (event.key.length === 1) {
-      this.storageSearchText = `${this.storageSearchText}${event.key}`.slice(0, 24);
-    } else {
-      return false;
-    }
-
-    event.preventDefault();
-    this.resetStorageSelections();
-    this.uiDebug?.set("storageSearch", this.storageSearchText);
-    this.renderPanel();
-    return true;
+  private isTextEntryEvent(event: KeyboardEvent): boolean {
+    const target = event.target;
+    return target instanceof HTMLInputElement
+      || target instanceof HTMLTextAreaElement
+      || (target instanceof HTMLElement && target.isContentEditable);
   }
 
   private refreshOpenPanel(): void {
@@ -1099,691 +1087,7 @@ state.character.statusEffects,
       this.renderPanel();
     }
   }
-
-  private renderPanel(): void {
-    if (this.panelHost?.activePanel) {
-      this.panelHost.refresh();
-      return;
-    }
-    this.clearPanelObjects();
-
-    if (!this.state || !this.dataRegistry || !this.activePanel) {
-      return;
-    }
-
-    this.addPanelBackdrop();
-
-    if (this.activePanel === "bestiary") {
-      this.renderBestiaryPanel(this.state, this.dataRegistry);
-    } else if (this.activePanel === "crafting") {
-      this.renderCraftingPanel(this.state, this.dataRegistry);
-    } else if (this.activePanel === "refinement") {
-      this.renderRefinementPanel(this.state, this.dataRegistry);
-    } else if (this.activePanel === "shop") {
-      this.renderShopPanel(this.state, this.dataRegistry);
-    } else if (this.activePanel === "appraiser") {
-      this.renderAppraiserPanel(this.state, this.dataRegistry);
-    } else if (this.activePanel === "storage") {
-      this.renderStoragePanel(this.state, this.dataRegistry);
-    } else if (this.activePanel === "questLog") {
-      this.renderQuestLogPanel(this.state, this.dataRegistry);
-    } else if (this.activePanel === "worldMap") {
-      this.renderWorldMapPanel(this.state, this.dataRegistry);
-    } else if (this.activePanel === "settings") {
-      this.renderSettingsPanel(this.state);
-    } else {
-      this.renderHuntingBoardPanel(this.state, this.dataRegistry);
-    }
-  }
-
-  private renderSettingsPanel(state: GameState): void {
-    const settings = state.settings;
-    const preset = difficultyPresets[settings.difficulty];
-
-    this.addPanelRectangle(58, 46, 684, 514, panelFill, 0.97)
-      .setOrigin(0)
-      .setStrokeStyle(2, panelStroke, 0.9);
-    this.addPanelText(86, 72, "Settings", 24, "#f8fafc");
-    this.addPanelText(86, 108, getReadableSettingsSummary(settings), 14, "#fde68a", 560);
-    this.addPanelText(86, 144, "Audio", 15, "#94a3b8");
-    this.addPanelButton(86, 172, 116, 30, `Music ${Math.round(settings.musicVolume * 100)}%`, () => this.changeMusicVolume());
-    this.addPanelButton(214, 172, 116, 30, `SFX ${Math.round(settings.sfxVolume * 100)}%`, () => this.changeSfxVolume());
-    this.addPanelButton(342, 172, 116, 30, `M ${settings.musicMuted ? "Off" : "On"}`, () => this.toggleMusicSetting());
-    this.addPanelButton(470, 172, 116, 30, `S ${settings.sfxMuted ? "Off" : "On"}`, () => this.toggleSfxSetting());
-
-    this.addPanelText(86, 224, "Accessibility", 15, "#94a3b8");
-    this.addPanelButton(86, 252, 124, 30, `UI ${Math.round(settings.uiScale * 100)}%`, () => this.changeUiScale());
-    this.addPanelButton(222, 252, 148, 30, `Damage ${settings.damageNumbersEnabled ? "On" : "Off"}`, () => this.toggleDamageNumberSetting());
-    this.addPanelButton(382, 252, 124, 30, `Shake ${settings.screenShakeEnabled ? "On" : "Off"}`, () => this.toggleScreenShakeSetting());
-    this.addPanelButton(518, 252, 124, 30, `Flash ${Math.round(settings.flashIntensity * 100)}%`, () => this.changeFlashIntensity());
-    this.addPanelText(86, 296, "Rarity labels, status icons, element labels, and warning text stay visible.", 13, "#cbd5e1");
-
-    this.addPanelText(86, 342, "Gameplay", 15, "#94a3b8");
-    this.addPanelButton(86, 370, 148, 30, `Potion ${settings.autoPotionEnabled ? "On" : "Off"}`, () => this.toggleAutoPotionSetting());
-    this.addPanelButton(246, 370, 148, 30, settings.difficulty, () => this.changeDifficulty());
-    this.addPanelButton(406, 370, 148, 30, `Text ${settings.textSpeed.toFixed(2)}x`, () => this.changeTextSpeed());
-    this.addPanelText(
-      86,
-      414,
-      `Difficulty ${settings.difficulty}: enemy HP x${preset.enemyHpMultiplier} damage x${preset.enemyDamageMultiplier} mitigation x${preset.playerMitigationMultiplier}`,
-      13,
-      "#bbf7d0",
-      560,
-    );
-    this.addPanelButton(606, 506, 92, 30, "Close", () => this.closePanel());
-    this.syncSettingsDataset(state);
-  }
-
-  private renderWorldMapPanel(state: GameState, dataRegistry: DataRegistry): void {
-    const currentMap = dataRegistry.getMap(state.currentMapId);
-    const currentRegion = dataRegistry.getRegion(currentMap.regionId);
-    const maps = dataRegistry.getMaps();
-    const discoveredMaps = this.getDiscoveredMaps(state, dataRegistry);
-    const fastTravelMaps = maps.filter((map) => map.type === "town" && discoveredMaps.some((entry) => entry.id === map.id));
-
-    this.addPanelRectangle(58, 46, 684, 514, panelFill, 0.97)
-      .setOrigin(0)
-      .setStrokeStyle(2, panelStroke, 0.9);
-    this.addPanelText(86, 72, "World Map", 24, "#f8fafc");
-    this.addPanelText(86, 108, `${currentRegion.name} | Current ${currentMap.name}`, 14, "#fde68a");
-
-    dataRegistry.getRegions().slice(0, 7).forEach((region, index) => {
-      const x = 96 + (index % 4) * 150;
-      const y = 152 + Math.floor(index / 4) * 126;
-      const isCurrent = region.id === currentRegion.id;
-      const regionMaps = maps.filter((map) => map.regionId === region.id);
-      const discoveredCount = regionMaps.filter((map) => discoveredMaps.some((entry) => entry.id === map.id)).length;
-      const box = this.addPanelRectangle(x, y, 128, 88, isCurrent ? 0x24364a : 0x17212b, 0.95)
-        .setOrigin(0)
-        .setStrokeStyle(2, isCurrent ? 0xfacc15 : 0x334155, 0.9)
-        .setInteractive({ useHandCursor: true });
-      box.on("pointerover", () => this.showTooltip(
-        [region.name, `Lv ${region.levelRange.min}-${region.levelRange.max}`, `${discoveredCount}/${regionMaps.length} maps`],
-        x + 14,
-        y - 74,
-      ));
-      box.on("pointerout", () => this.clearTooltip());
-      this.addPanelText(x + 12, y + 12, this.truncateText(region.name, 14), 14, "#f8fafc");
-      this.addPanelText(x + 12, y + 38, `Lv ${region.levelRange.min}-${region.levelRange.max}`, 12, "#93c5fd");
-      this.addPanelText(x + 12, y + 62, isCurrent ? "Current" : `Maps ${discoveredCount}`, 12, isCurrent ? "#fde68a" : "#cbd5e1");
-    });
-
-    this.addPanelRectangle(86, 420, 400, 92, 0x17212b, 0.95)
-      .setOrigin(0)
-      .setStrokeStyle(1, 0x334155, 0.9);
-    this.addPanelText(104, 438, "Discovered", 14, "#94a3b8");
-    this.addPanelText(104, 464, this.wrapText(discoveredMaps.map((map) => `${map.name} Lv ${map.levelRange.min}-${map.levelRange.max}`).join(" | "), 48), 12, "#f8fafc");
-    this.addPanelText(514, 438, "Fast Travel", 14, "#94a3b8");
-    this.addPanelText(514, 464, this.wrapText(fastTravelMaps.map((map) => map.name).join(" | ") || "None unlocked", 22), 12, "#bbf7d0");
-    this.addPanelButton(606, 514, 92, 28, "Close", () => this.closePanel());
-
-    this.uiDebug?.set("worldMapPanel", "visible");
-    this.uiDebug?.set("worldMapRegions", dataRegistry.getRegions().map((region) => `${region.id}:${region.levelRange.min}-${region.levelRange.max}`).join("|"));
-    this.uiDebug?.set("worldMapCurrentLocation", currentMap.id);
-    this.uiDebug?.set("worldMapDiscoveredMaps", discoveredMaps.map((map) => map.id).join("|"));
-    this.uiDebug?.set("worldMapFastTravel", fastTravelMaps.map((map) => map.id).join("|"));
-    this.uiDebug?.set("worldMapButtons", "Close");
-  }
-
-  private renderQuestLogPanel(state: GameState, dataRegistry: DataRegistry): void {
-    const quests = dataRegistry.getQuests();
-    const selectedQuest = quests[this.clampSelectedQuestIndex(quests)] ?? null;
-    const selectedProgress = selectedQuest
-      ? state.quests.activeQuests.find((entry) => entry.questId === selectedQuest.id) ?? null
-      : null;
-    const selectedStatus = selectedQuest ? getQuestStatus(state, selectedQuest) : "";
-
-    this.addPanelRectangle(64, 54, 672, 500, panelFill, 0.96)
-      .setOrigin(0)
-      .setStrokeStyle(2, panelStroke, 0.9);
-    this.addPanelText(92, 78, "Quest Log", 23, "#f8fafc");
-    this.addPanelText(92, 112, `Active ${state.quests.activeQuestIds.length}   Completed ${state.quests.completedQuestIds.length}`, 14, "#fde68a");
-    this.addPanelText(92, 146, "Campaign", 14, "#94a3b8");
-
-    quests.slice(0, 10).forEach((quest, index) => {
-      const y = 174 + index * 28;
-      const status = getQuestStatus(state, quest);
-      const row = this.addPanelRectangle(92, y - 6, 360, 26, index === this.selectedQuestIndex ? 0x293548 : 0x18222c, 0.94)
-        .setOrigin(0)
-        .setInteractive({ useHandCursor: true });
-      row.on("pointerdown", () => {
-        this.selectedQuestIndex = index;
-        this.renderPanel();
-      });
-      this.addPanelText(104, y, this.truncateText(quest.name, 28), 13, "#f8fafc");
-      this.addPanelText(344, y, quest.type, 12, "#93c5fd");
-      this.addPanelText(398, y, status, 12, this.getQuestStatusColor(status));
-    });
-
-    this.addPanelRectangle(482, 146, 220, 286, 0x17212b, 0.95)
-      .setOrigin(0)
-      .setStrokeStyle(1, 0x334155, 0.9);
-
-    if (selectedQuest) {
-      const markers = selectedQuest.mapMarkers.map((marker) => `${marker.label || marker.mapId}`).join(", ");
-      const rewardItems = selectedQuest.rewards.items
-        .map((item) => `${dataRegistry.getItem(item.itemId).name} x${item.quantity}`)
-        .join(", ");
-      this.addPanelText(502, 168, this.truncateText(selectedQuest.name, 22), 16, "#f8fafc");
-      this.addPanelText(502, 198, `Status ${selectedStatus}`, 13, this.getQuestStatusColor(selectedStatus));
-      this.addPanelText(502, 224, this.clampWrappedText(selectedQuest.description, 25, 4), 12, "#cbd5e1");
-      this.addPanelText(502, 304, this.clampWrappedText(selectedQuest.objectives.map((objective) => {
-        const progress = selectedProgress?.objectiveProgress[objective.id] ?? 0;
-        return `${objective.description} ${progress}/${objective.targetCount}`;
-      }).join(" | "), 24, 3), 12, "#f8fafc");
-      this.addPanelText(502, 366, this.clampWrappedText(`Hints ${markers || selectedQuest.mapMarkers.map((marker) => marker.mapId).join(", ") || "None"}`, 24, 2), 12, "#93c5fd");
-      this.addPanelText(502, 404, this.clampWrappedText(`Rewards XP ${selectedQuest.rewards.xp} Gold ${selectedQuest.rewards.gold} ${rewardItems}`, 24, 2), 12, "#fde68a");
-    } else {
-      this.addPanelText(502, 184, "No quests", 15, "#94a3b8");
-    }
-
-    this.addPanelButton(482, 450, 92, 34, "Accept", () => this.acceptSelectedQuest());
-    this.addPanelButton(584, 450, 92, 34, "Complete", () => this.completeSelectedQuest());
-    this.addPanelButton(606, 496, 92, 30, "Close", () => this.closePanel());
-    this.syncQuestDataset(state, dataRegistry, selectedQuest);
-  }
-
-  private renderHuntingBoardPanel(state: GameState, dataRegistry: DataRegistry): void {
-    const map = dataRegistry.getMap(state.currentMapId);
-    const region = dataRegistry.getRegion(map.regionId);
-    const contracts = getRegionalHuntingContracts(state, dataRegistry, region.id);
-    const selectedContract = contracts[this.clampSelectedHuntingContractIndex(contracts)] ?? null;
-
-    this.addPanelRectangle(64, 54, 672, 500, panelFill, 0.96)
-      .setOrigin(0)
-      .setStrokeStyle(2, panelStroke, 0.9);
-    this.addPanelText(92, 78, "Hunting Board", 23, "#f8fafc");
-    this.addPanelText(92, 112, `${region.name}   Refresh ${state.huntingBoard.refreshCount} ${state.huntingBoard.lastRefreshReason}`, 14, "#fde68a");
-    this.addPanelText(92, 146, "Contracts", 14, "#94a3b8");
-
-    contracts.slice(0, 9).forEach((contract, index) => {
-      const y = 174 + index * 30;
-      const status = this.getHuntingContractStatus(state, contract);
-      const row = this.addPanelRectangle(92, y - 6, 360, 28, index === this.selectedHuntingContractIndex ? 0x293548 : 0x18222c, 0.94)
-        .setOrigin(0)
-        .setInteractive({ useHandCursor: true });
-      row.on("pointerdown", () => {
-        this.selectedHuntingContractIndex = index;
-        this.renderPanel();
-      });
-      this.addPanelText(104, y, this.truncateText(contract.name, 28), 13, contract.locked ? "#94a3b8" : "#f8fafc");
-      this.addPanelText(326, y, contract.rank, 12, contract.rank === "boss" ? "#fca5a5" : contract.rank === "elite" ? "#fde68a" : "#cbd5e1");
-      this.addPanelText(386, y, status, 12, this.getHuntingStatusColor(status));
-    });
-
-    this.addPanelRectangle(482, 146, 220, 286, 0x17212b, 0.95)
-      .setOrigin(0)
-      .setStrokeStyle(1, 0x334155, 0.9);
-
-    if (selectedContract) {
-      const target = dataRegistry.getMonster(selectedContract.targetMonsterId);
-      const progress = state.huntingBoard.progress[selectedContract.id] ?? 0;
-      const rewardItems = selectedContract.rewardItems
-        .map((entry) => `${dataRegistry.getItem(entry.itemId).name} x${entry.quantity}`)
-        .join(", ");
-      const status = this.getHuntingContractStatus(state, selectedContract);
-
-      this.addPanelText(502, 168, this.truncateText(selectedContract.name, 22), 16, "#f8fafc");
-      this.addPanelText(502, 198, `${target.name} ${progress}/${selectedContract.targetCount}`, 13, "#cbd5e1");
-      this.addPanelText(502, 224, `Lv ${selectedContract.recommendedLevel}   ${selectedContract.rank}`, 12, "#93c5fd");
-      this.addPanelText(502, 250, `XP ${selectedContract.rewardXp}   Gold ${selectedContract.rewardGold}`, 12, "#fde68a");
-      this.addPanelText(502, 276, this.wrapText(`Items ${rewardItems || "None"}`, 24), 12, "#cbd5e1");
-      this.addPanelText(502, 342, status === "locked" ? selectedContract.lockReason : `Status ${status}`, 13, this.getHuntingStatusColor(status));
-      this.addPanelText(502, 372, this.wrapText("Refresh uses map clear, boss kill, or rest. Active contracts block refresh.", 24), 12, "#94a3b8");
-    } else {
-      this.addPanelText(502, 184, "No contracts", 15, "#94a3b8");
-    }
-
-    this.addPanelButton(482, 450, 92, 34, "Accept", () => this.acceptSelectedHuntingContract());
-    this.addPanelButton(584, 450, 92, 34, "Turn In", () => this.turnInSelectedHuntingContract());
-    this.addPanelButton(482, 496, 92, 30, "Rest", () => this.restRefreshHuntingBoard());
-    this.addPanelButton(606, 496, 92, 30, "Close", () => this.closePanel());
-    this.syncHuntingBoardDataset(state, dataRegistry, selectedContract);
-  }
-
-  private renderBestiaryPanel(state: GameState, dataRegistry: DataRegistry): void {
-    const entries = this.getVisibleBestiaryEntries(state, dataRegistry);
-    const selectedEntry = entries[this.clampSelectedBestiaryIndex(entries)] ?? null;
-    const selectedMonster = selectedEntry ? selectedEntry.monster : null;
-    const selectedState = selectedMonster ? getBestiaryEntry(state, selectedMonster.id) : null;
-    const selectedRegion = selectedMonster ? this.getMonsterRegion(selectedMonster, dataRegistry) : undefined;
-    const selectedDropTable = selectedMonster ? dataRegistry.getDropTable(selectedMonster.dropTableId) : null;
-    const selectedDropIds = selectedDropTable ? getVisibleBestiaryDropIds(selectedState, selectedDropTable) : [];
-
-    this.addPanelRectangle(70, 60, 660, 470, panelFill, 0.95)
-      .setOrigin(0)
-      .setStrokeStyle(2, panelStroke, 0.92);
-    this.addPanelText(96, 84, "Bestiary", 24, "#f8fafc");
-    this.addPanelText(96, 120, `Search ${this.bestiarySearchText || "-"}   Known ${state.bestiary.discoveredEnemyIds.length}/${dataRegistry.getMonsters().length}`, 15, "#fde68a");
-    this.addPanelText(96, 148, "Monster", 13, "#94a3b8");
-    this.addPanelText(292, 148, "Family", 13, "#94a3b8");
-    this.addPanelText(376, 148, "Kills", 13, "#94a3b8");
-
-    this.uiDebug?.set("bestiaryPanel", "visible");
-    this.uiDebug?.set("bestiarySearch", this.bestiarySearchText);
-    this.uiDebug?.set("bestiaryEntryCount", String(entries.length));
-    this.uiDebug?.set("bestiaryGroups", entries
-.map((entry) => `${entry.region.id}/${getMonsterFamily(entry.monster)}`)
-.filter((group, index, groups) => groups.indexOf(group) === index)
-.join("|"));
-
-    entries.slice(0, 9).forEach((entry, index) => {
-      const monsterState = getBestiaryEntry(state, entry.monster.id);
-      const kills = monsterState?.kills ?? 0;
-      const known = hasBestiaryMilestone(monsterState, 1);
-      const familyKnown = hasBestiaryMilestone(monsterState, 5);
-      const y = 176 + index * 34;
-      const row = this.addPanelRectangle(96, y, 330, 28, index === this.selectedBestiaryIndex ? 0x293548 : 0x18222c, 0.94)
-        .setOrigin(0)
-        .setStrokeStyle(1, index === this.selectedBestiaryIndex ? 0xfacc15 : 0x334155, 0.9)
-        .setInteractive({ useHandCursor: true });
-      row.on("pointerdown", () => {
-        this.selectedBestiaryIndex = index;
-        this.renderPanel();
-      });
-      row.on("pointerover", () => this.showTooltip([
-        known ? entry.monster.name : "Unknown monster",
-        familyKnown ? `${getMonsterFamily(entry.monster)} ${getMonsterElement(entry.monster, entry.region)}` : "Traits locked",
-        `Kills ${kills}`,
-      ], 438, y - 8));
-      row.on("pointerout", () => this.clearTooltip());
-      this.addPanelText(110, y + 5, known ? entry.monster.name : "Unknown monster", 13, known ? "#f8fafc" : "#94a3b8");
-      this.addPanelText(292, y + 5, familyKnown ? getMonsterFamily(entry.monster) : "???", 12, familyKnown ? "#cbd5e1" : "#64748b");
-      this.addPanelText(376, y + 5, String(kills), 12, "#fde68a");
-    });
-
-    if (selectedMonster && selectedDropTable) {
-      const kills = selectedState?.kills ?? 0;
-      const element = getMonsterElement(selectedMonster, selectedRegion);
-      const family = getMonsterFamily(selectedMonster);
-      const name = hasBestiaryMilestone(selectedState, 1) ? selectedMonster.name : "Unknown monster";
-      const levelText = hasBestiaryMilestone(selectedState, 1) ? `Lv ${selectedMonster.level}` : "Lv ?";
-      const familyText = hasBestiaryMilestone(selectedState, 5) ? `${family} / ${element} / ${selectedMonster.behavior}` : "???";
-      const dropsText = selectedDropIds.length > 0
-        ? selectedDropIds.map((itemId) => dataRegistry.getItem(itemId).name).join(", ")
-        : "Undiscovered";
-      const tipText = hasBestiaryMilestone(selectedState, 50) ? getMonsterCombatTip(selectedMonster) : "???";
-      const bonusText = hasBestiaryMilestone(selectedState, 100)
-        ? `+${state.bestiary.familyDamageBonuses[family] ?? 0} vs ${family}`
-        : "Locked";
-
-      this.addPanelRectangle(456, 158, 230, 292, 0x17212b, 0.95)
-        .setOrigin(0)
-        .setStrokeStyle(1, 0x475569, 0.86);
-      this.addPanelText(476, 178, name, 17, "#f8fafc");
-      this.addPanelText(476, 208, `${levelText}   Kills ${kills}`, 13, "#cbd5e1");
-      this.addPanelText(476, 236, `Region ${selectedRegion?.name ?? "Unknown"}`, 12, "#93c5fd");
-      this.addPanelText(476, 262, `Traits ${familyText}`, 12, "#fde68a");
-      this.addPanelText(476, 296, this.wrapText(`Drops ${dropsText}`, 25), 12, "#cbd5e1");
-      this.addPanelText(476, 356, this.wrapText(`Tip ${tipText}`, 25), 12, "#bbf7d0");
-      this.addPanelText(476, 412, `Bonus ${bonusText}`, 12, "#fef3c7");
-
-      this.uiDebug?.set("selectedBestiaryMonster", selectedMonster.id);
-      this.uiDebug?.set("selectedBestiaryMonsterName", name);
-      this.uiDebug?.set("selectedBestiaryKills", String(kills));
-      this.uiDebug?.set("selectedBestiaryLevel", hasBestiaryMilestone(selectedState, 1) ? String(selectedMonster.level) : "");
-      this.uiDebug?.set("selectedBestiaryElement", hasBestiaryMilestone(selectedState, 5) ? element : "");
-      this.uiDebug?.set("selectedBestiaryFamily", hasBestiaryMilestone(selectedState, 5) ? family : "");
-      this.uiDebug?.set("selectedBestiaryBehavior", hasBestiaryMilestone(selectedState, 5) ? selectedMonster.behavior : "");
-      this.uiDebug?.set("selectedBestiaryDrops", selectedDropIds.join("|"));
-      this.uiDebug?.set("selectedBestiaryTip", hasBestiaryMilestone(selectedState, 50) ? getMonsterCombatTip(selectedMonster) : "");
-      this.uiDebug?.set("selectedBestiaryBonus", hasBestiaryMilestone(selectedState, 100) ? `${family}:${state.bestiary.familyDamageBonuses[family] ?? 0}` : "");
-      this.uiDebug?.set("selectedBestiaryMilestones", selectedState?.unlockedMilestones.join("|") ?? "");
-    }
-
-    this.addPanelButton(628, 476, 86, 28, "Close", () => this.closePanel());
-    this.uiDebug?.set("bestiaryButtons", "Close");
-    this.syncBestiaryDataset(state, dataRegistry);
-  }
-
-  private renderCraftingPanel(state: GameState, dataRegistry: DataRegistry): void {
-    const recipes = getVisibleRecipes(state, dataRegistry.getRecipes())
-      .sort((left, right) => left.requiredLevel - right.requiredLevel || left.name.localeCompare(right.name));
-    const selected = this.clampSelectedCraftingIndex(recipes);
-    const selectedRecipe = recipes[selected] ?? null;
-    const outputItem = selectedRecipe ? dataRegistry.getItem(selectedRecipe.outputItemId) : null;
-    const craftFailure = selectedRecipe ? canCraftRecipe(state, selectedRecipe, this.getCraftingContext(state, dataRegistry)) : null;
-
-    this.addPanelRectangle(64, 54, 672, 500, panelFill, 0.96)
-      .setOrigin(0)
-      .setStrokeStyle(2, panelStroke, 0.92);
-    this.addPanelText(92, 78, "Crafting", 23, "#f8fafc");
-    this.addPanelText(92, 112, `Gold ${state.inventory.gold}   Known ${recipes.filter((recipe) => this.isCraftingRecipeUnlocked(state, recipe)).length}/${dataRegistry.getRecipes().length}`, 14, "#fde68a");
-    this.addPanelText(92, 146, "Recipes", 14, "#94a3b8");
-
-    recipes.slice(0, 9).forEach((recipe, index) => {
-      const rowItem = dataRegistry.getItem(recipe.outputItemId);
-      const locked = !this.isCraftingRecipeUnlocked(state, recipe);
-      const y = 176 + index * 34;
-      const row = this.addPanelRectangle(92, y - 6, 360, 28, index === selected ? 0x293548 : 0x18222c, 0.94)
-        .setOrigin(0)
-        .setStrokeStyle(1, index === selected ? 0xfacc15 : 0x334155, 0.9)
-        .setInteractive({ useHandCursor: true });
-      row.on("pointerdown", () => {
-        this.selectedCraftingIndex = index;
-        this.renderPanel();
-      });
-      this.addPanelText(104, y, this.truncateText(locked ? "Locked Recipe" : recipe.name, 26), 13, locked ? "#94a3b8" : "#f8fafc");
-      this.addPanelText(306, y, `Lv ${recipe.requiredLevel}`, 12, state.playerProfile.level >= recipe.requiredLevel ? "#bbf7d0" : "#fca5a5");
-      this.addPanelText(362, y, rowItem.type, 12, "#cbd5e1");
-    });
-
-    this.addPanelRectangle(482, 146, 220, 286, 0x17212b, 0.95)
-      .setOrigin(0)
-      .setStrokeStyle(1, 0x475569, 0.86);
-
-    if (selectedRecipe && outputItem) {
-      const locked = !this.isCraftingRecipeUnlocked(state, selectedRecipe);
-      const materialText = getRecipeMaterialStatus(state.inventory, selectedRecipe)
-        .map((material) => {
-          const item = dataRegistry.getItem(material.itemId);
-          return `${item.name} ${material.owned}/${material.required}`;
-        })
-        .join("; ");
-      const statusText = craftFailure
-        ? `Blocked: ${craftFailure.reason}`
-        : "Ready";
-
-      this.addPanelText(502, 168, this.truncateText(locked ? "Locked Recipe" : selectedRecipe.name, 22), 16, "#f8fafc");
-      this.addPanelText(502, 198, `${outputItem.name} x${selectedRecipe.outputQuantity}`, 13, this.getRarityColor(outputItem));
-      this.addPanelText(502, 224, `Gold ${selectedRecipe.requiredGold}   Region ${selectedRecipe.requiredRegionId ?? "Any"}`, 12, "#fde68a");
-      this.addPanelText(502, 250, this.wrapText(materialText || "No materials", 25), 12, craftFailure?.reason === "missing-materials" ? "#fca5a5" : "#cbd5e1");
-      this.addPanelText(502, 342, this.wrapText(statusText, 24), 13, craftFailure ? "#fca5a5" : "#bbf7d0");
-      this.addPanelText(502, 372, this.wrapText(this.getRecipeUnlockText(selectedRecipe), 24), 12, locked ? "#94a3b8" : "#bbf7d0");
-    } else {
-      this.addPanelText(502, 184, "No recipe selected", 15, "#94a3b8");
-    }
-
-    this.addPanelButton(482, 450, 92, 34, "Craft", () => this.craftSelectedRecipe());
-    this.addPanelButton(606, 502, 92, 28, "Close", () => this.closePanel());
-    this.syncCraftingDataset(state, dataRegistry, recipes, selectedRecipe, outputItem, craftFailure);
-  }
-
-  private renderRefinementPanel(state: GameState, dataRegistry: DataRegistry): void {
-    const entries = this.getInventoryPanelEntries(state.inventory.items, state.inventory.equipmentInstances)
-      .filter((entry) => isItemRefinable(dataRegistry.getItem(entry.itemId)));
-    const selected = this.clampSelectedRefinementIndex(entries);
-    const selectedEntry = entries[selected] ?? null;
-    const selectedItem = selectedEntry ? dataRegistry.getItem(selectedEntry.itemId) : null;
-    const preview = getRefinementPreview(state, selectedItem);
-
-    this.addPanelRectangle(76, 62, 648, 470, panelFill, 0.96)
-      .setOrigin(0)
-      .setStrokeStyle(2, panelStroke, 0.92);
-    this.addPanelText(104, 86, "Refinement", 23, "#f8fafc");
-    this.addPanelText(104, 120, `Gold ${state.inventory.gold}`, 15, "#fde68a");
-    this.addPanelText(104, 154, "Gear", 14, "#94a3b8");
-
-    entries.slice(0, 8).forEach((entry, index) => {
-      const item = dataRegistry.getItem(entry.itemId);
-      const level = getRefineLevel(state.inventory, item.id);
-      const y = 184 + index * 34;
-      const row = this.addPanelRectangle(104, y - 6, 338, 28, index === selected ? 0x293548 : 0x18222c, 0.94)
-        .setOrigin(0)
-        .setStrokeStyle(1, index === selected ? 0xfacc15 : 0x334155, 0.9)
-        .setInteractive({ useHandCursor: true });
-      row.on("pointerdown", () => {
-        this.selectedRefinementIndex = index;
-        this.renderPanel();
-      });
-      this.addPanelText(116, y, this.truncateText(getRefinedItemName(state.inventory, item), 25), 13, "#f8fafc");
-      this.addPanelText(326, y, `+${level}`, 13, level > 0 ? "#fde68a" : "#94a3b8");
-      this.addPanelText(374, y, entry.source, 12, "#cbd5e1");
-    });
-
-    this.addPanelRectangle(472, 154, 220, 254, 0x17212b, 0.95)
-      .setOrigin(0)
-      .setStrokeStyle(1, 0x475569, 0.86);
-
-    if (selectedItem) {
-      const materialText = preview.materials
-        .map((material) => `${dataRegistry.getItem(material.itemId).name} ${material.owned}/${material.required}`)
-        .join("; ");
-      const statusText = preview.canRefine ? "Ready" : `Blocked: ${preview.blockReason}`;
-
-      this.addPanelText(492, 176, this.truncateText(getRefinedItemName(state.inventory, selectedItem), 22), 16, "#f8fafc");
-      this.addPanelText(492, 206, `Target +${preview.targetLevel}   Chance ${Math.round(preview.successChance * 100)}%`, 13, "#bbf7d0");
-      this.addPanelText(492, 232, `Cost ${preview.goldCost}g`, 13, "#fde68a");
-      this.addPanelText(492, 260, this.wrapText(materialText || "No materials", 25), 12, preview.blockReason === "missing-materials" ? "#fca5a5" : "#cbd5e1");
-      this.addPanelText(492, 334, this.wrapText(preview.failureResult, 25), 12, "#fbbf24");
-      this.addPanelText(492, 372, statusText, 13, preview.canRefine ? "#bbf7d0" : "#fca5a5");
-    } else {
-      this.addPanelText(492, 190, "No refinable item", 15, "#94a3b8");
-    }
-
-    this.addPanelButton(472, 430, 92, 34, "Refine", () => this.refineSelectedItem());
-    this.addPanelButton(600, 478, 92, 28, "Close", () => this.closePanel());
-    this.syncRefinementDataset(state, entries, selectedItem, preview);
-  }
-
-  private renderShopPanel(state: GameState, dataRegistry: DataRegistry): void {
-    const shop = this.getActiveShop(dataRegistry);
-    const inventoryEntries = this.getInventoryPanelEntries(state.inventory.items, state.inventory.equipmentInstances);
-    const selectedStockIndex = this.clampSelectedShopIndex(shop.stock);
-    const selectedStock = shop.stock[selectedStockIndex] ?? null;
-    const selectedStockItem = selectedStock ? dataRegistry.getItem(selectedStock.itemId) : null;
-    const selectedInventory = inventoryEntries[this.clampSelectedMarketInventoryIndex(inventoryEntries)] ?? null;
-    const selectedInventoryItem = selectedInventory ? dataRegistry.getItem(selectedInventory.itemId) : null;
-
-    this.addPanelRectangle(64, 54, 672, 500, panelFill, 0.96)
-      .setOrigin(0)
-      .setStrokeStyle(2, panelStroke, 0.92);
-    this.addPanelText(92, 78, shop.name, 23, "#f8fafc");
-    this.addPanelText(92, 112, `Gold ${state.inventory.gold}`, 15, "#fde68a");
-    this.addPanelText(92, 146, "Stock", 14, "#94a3b8");
-    this.addPanelText(392, 146, "Inventory Sell", 14, "#94a3b8");
-
-    shop.stock.forEach((stock, index) => {
-      const item = dataRegistry.getItem(stock.itemId);
-      const y = 176 + index * 34;
-      const row = this.addPanelRectangle(92, y - 6, 268, 28, index === selectedStockIndex ? 0x293548 : 0x18222c, 0.94)
-        .setOrigin(0)
-        .setStrokeStyle(1, index === selectedStockIndex ? 0xfacc15 : 0x334155, 0.9)
-        .setInteractive({ useHandCursor: true });
-      row.on("pointerdown", () => {
-        this.selectedShopIndex = index;
-        this.renderPanel();
-      });
-      this.addPanelText(104, y, item.name, 13, "#f8fafc");
-      this.addPanelText(282, y, `${getShopBuyPrice(item, stock)}g`, 13, "#fde68a");
-      this.addPanelText(326, y, `x${stock.quantity}`, 12, "#cbd5e1");
-    });
-
-    inventoryEntries.slice(0, 7).forEach((entry, index) => {
-      const item = dataRegistry.getItem(entry.itemId);
-      const y = 176 + index * 34;
-      const row = this.addPanelRectangle(392, y - 6, 268, 28, index === this.selectedMarketInventoryIndex ? 0x293548 : 0x18222c, 0.94)
-        .setOrigin(0)
-        .setStrokeStyle(1, index === this.selectedMarketInventoryIndex ? 0xfacc15 : 0x334155, 0.9)
-        .setInteractive({ useHandCursor: true });
-      row.on("pointerdown", () => {
-        const isDoubleClick = this.lastMarketInventoryClickIndex === index
-          && this.time.now - this.lastMarketInventoryClickTime <= 700;
-        this.selectedMarketInventoryIndex = index;
-        this.lastMarketInventoryClickIndex = index;
-        this.lastMarketInventoryClickTime = this.time.now;
-
-        if (isDoubleClick) {
-          this.sellSelectedMarketItem();
-        } else {
-          this.renderPanel();
-        }
-      });
-      this.addPanelText(404, y, getVisibleItemName(state.inventory, item), 13, "#f8fafc");
-      this.addPanelText(582, y, `${getMarketSellValue(item)}g`, 13, "#fde68a");
-      this.addPanelText(626, y, `x${entry.quantity}`, 12, "#cbd5e1");
-    });
-
-    this.renderMarketDetails(92, 432, "Buy", selectedStockItem, selectedStock ? getShopBuyPrice(selectedStockItem!, selectedStock) : 0, () => this.buySelectedShopItem());
-    this.renderMarketDetails(392, 432, "Sell", selectedInventoryItem, selectedInventoryItem ? getMarketSellValue(selectedInventoryItem) : 0, () => this.sellSelectedMarketItem());
-    this.addPanelButton(626, 490, 90, 28, "Sell All", () => this.sellSelectedMarketItem(1, true));
-    this.addPanelButton(636, 512, 78, 28, "Close", () => this.closePanel());
-    this.syncShopDataset(shop, selectedStockItem, selectedInventoryItem, state.inventory.gold);
-  }
-
-  private renderAppraiserPanel(state: GameState, dataRegistry: DataRegistry): void {
-    const shop = this.getActiveShop(dataRegistry);
-    const inventoryEntries = this.getInventoryPanelEntries(state.inventory.items, state.inventory.equipmentInstances);
-    const selected = inventoryEntries[this.clampSelectedMarketInventoryIndex(inventoryEntries)] ?? null;
-    const item = selected ? dataRegistry.getItem(selected.itemId) : null;
-    const appraiser = shop.appraiser;
-    const improvedSellMultiplier = appraiser?.improvedSellMultiplier ?? 1.25;
-    const appraisalCost = item ? getAppraisalCost(item, appraiser) : 0;
-    const improvedSellValue = item ? getMarketSellValue(item, improvedSellMultiplier) : 0;
-
-    this.addPanelRectangle(70, 60, 660, 470, panelFill, 0.96)
-      .setOrigin(0)
-      .setStrokeStyle(2, panelStroke, 0.92);
-    this.addPanelText(96, 84, shop.name, 23, "#f8fafc");
-    this.addPanelText(96, 118, `Gold ${state.inventory.gold}   Appraisal from ${appraisalCost}g   Sell bonus x${improvedSellMultiplier}`, 14, "#fde68a");
-    this.addPanelText(96, 152, "Inventory", 14, "#94a3b8");
-
-    inventoryEntries.slice(0, 8).forEach((entry, index) => {
-      const rowItem = dataRegistry.getItem(entry.itemId);
-      const y = 182 + index * 34;
-      const row = this.addPanelRectangle(96, y - 6, 352, 28, index === this.selectedMarketInventoryIndex ? 0x293548 : 0x18222c, 0.94)
-        .setOrigin(0)
-        .setStrokeStyle(1, index === this.selectedMarketInventoryIndex ? 0xfacc15 : 0x334155, 0.9)
-        .setInteractive({ useHandCursor: true });
-      row.on("pointerdown", () => {
-        this.selectedMarketInventoryIndex = index;
-        this.renderPanel();
-      });
-      this.addPanelText(108, y, getVisibleItemName(state.inventory, rowItem), 13, "#f8fafc");
-      this.addPanelText(318, y, isItemAppraised(state.inventory, rowItem) ? "Known" : "Unknown", 12, isItemAppraised(state.inventory, rowItem) ? "#bbf7d0" : "#fca5a5");
-      this.addPanelText(386, y, `${getMarketSellValue(rowItem, improvedSellMultiplier)}g`, 13, "#fde68a");
-    });
-
-    this.addPanelRectangle(476, 158, 210, 250, 0x17212b, 0.95)
-      .setOrigin(0)
-      .setStrokeStyle(1, 0x475569, 0.86);
-    if (item) {
-      const known = isItemAppraised(state.inventory, item);
-      this.addPanelText(496, 180, getVisibleItemName(state.inventory, item), 16, "#f8fafc");
-      this.addPanelText(496, 212, `${getItemRarity(item)} ${item.type}`, 13, this.getRarityColor(item));
-      this.addPanelText(496, 240, this.wrapText(getVisibleItemDescription(state.inventory, item), 24), 12, "#cbd5e1");
-      this.addPanelText(496, 318, `Appraise ${known ? "Done" : `${appraisalCost}g`}`, 13, known ? "#bbf7d0" : "#fde68a");
-      this.addPanelText(496, 346, `Sell+ ${improvedSellValue}g`, 13, "#fde68a");
-    } else {
-      this.addPanelText(496, 212, "No item selected", 15, "#94a3b8");
-    }
-
-    this.addPanelButton(476, 426, 90, 34, "Appraise", () => this.appraiseSelectedMarketItem());
-    this.addPanelButton(576, 426, 74, 34, "Sell+", () => this.sellSelectedMarketItem(improvedSellMultiplier));
-    this.addPanelButton(596, 484, 90, 28, "Close", () => this.closePanel());
-    this.syncAppraiserDataset(shop, item, state.inventory.gold, appraisalCost, improvedSellValue);
-  }
-
-  private renderStoragePanel(state: GameState, dataRegistry: DataRegistry): void {
-    const entries = this.getFilteredStoragePanelEntries(state, dataRegistry);
-    const inventoryEntries = entries.inventoryEntries;
-    const storageEntries = entries.storageEntries;
-    const selectedInventory = inventoryEntries[this.clampStorageInventoryIndex(inventoryEntries)] ?? null;
-    const selectedStorage = storageEntries[this.clampStorageIndex(storageEntries)] ?? null;
-    const selectedInventoryItem = selectedInventory ? dataRegistry.getItem(selectedInventory.itemId) : null;
-    const selectedStorageItem = selectedStorage ? dataRegistry.getItem(selectedStorage.itemId) : null;
-    const inventoryRows = this.getPagedStorageRows(inventoryEntries, this.storageInventoryPage);
-    const storageRows = this.getPagedStorageRows(storageEntries, this.storagePage);
-
-    this.addPanelRectangle(44, 48, 712, 506, panelFill, 0.96)
-      .setOrigin(0)
-      .setStrokeStyle(2, panelStroke, 0.92);
-    this.addPanelText(72, 72, "Storage", 24, "#f8fafc");
-    this.addPanelText(72, 106, `Gold ${state.inventory.gold}   Search ${this.storageSearchText || "*"}`, 14, "#fde68a");
-
-    this.addPanelButton(72, 132, 104, 30, `Type ${this.storageCategoryFilter}`, () => this.cycleStorageCategoryFilter());
-    this.addPanelButton(184, 132, 112, 30, `Rarity ${this.storageRarityFilter}`, () => this.cycleStorageRarityFilter());
-    this.addPanelButton(304, 132, 104, 30, `Class ${this.storageClassFilter}`, () => this.cycleStorageClassFilter());
-    this.addPanelButton(416, 132, 104, 30, `Level ${this.storageLevelFilter}`, () => this.cycleStorageLevelFilter());
-    this.addPanelButton(528, 132, 104, 30, `Sort ${this.storageSortMode}`, () => this.cycleStorageSortMode());
-    this.addPanelButton(640, 132, 76, 30, "Clear", () => this.clearStorageSearch());
-
-    this.addPanelText(72, 178, `Inventory ${inventoryEntries.length}`, 14, "#94a3b8");
-    this.addPanelText(416, 178, `Stored ${storageEntries.length}`, 14, "#94a3b8");
-    this.renderStorageEntryRows(72, 204, inventoryRows, this.storageInventoryPage, this.selectedStorageInventoryIndex, state, dataRegistry, (index) => {
-      this.selectedStorageInventoryIndex = index;
-      this.renderPanel();
-    });
-    this.renderStorageEntryRows(416, 204, storageRows, this.storagePage, this.selectedStorageIndex, state, dataRegistry, (index) => {
-      this.selectedStorageIndex = index;
-      this.renderPanel();
-    });
-
-    this.addPanelButton(72, 450, 68, 30, "Prev", () => this.changeStorageInventoryPage(-1, inventoryEntries.length));
-    this.addPanelButton(148, 450, 68, 30, "Next", () => this.changeStorageInventoryPage(1, inventoryEntries.length));
-    this.addPanelButton(260, 450, 86, 34, "Deposit", () => this.depositSelectedStorageItem());
-    this.addPanelButton(416, 450, 68, 30, "Prev", () => this.changeStoragePage(-1, storageEntries.length));
-    this.addPanelButton(492, 450, 68, 30, "Next", () => this.changeStoragePage(1, storageEntries.length));
-    this.addPanelButton(604, 450, 92, 34, "Withdraw", () => this.withdrawSelectedStorageItem());
-    this.addPanelButton(604, 502, 92, 28, "Close", () => this.closePanel());
-
-    this.renderStorageDetails(72, 492, "Inventory", selectedInventoryItem, selectedInventory);
-    this.renderStorageDetails(416, 492, "Stored", selectedStorageItem, selectedStorage);
-    this.syncStorageDataset(state, dataRegistry, inventoryEntries, storageEntries, selectedInventoryItem, selectedStorageItem);
-  }
-
-  private renderStorageEntryRows(
-    x: number,
-    y: number,
-    rows: Array<{ entry: StorageListEntry; index: number }>,
-    page: number,
-    selectedIndex: number,
-    state: GameState,
-    dataRegistry: DataRegistry,
-    select: (index: number) => void,
-  ): void {
-    rows.forEach(({ entry, index }, rowIndex) => {
-      const item = dataRegistry.getItem(entry.itemId);
-      const rowY = y + rowIndex * 36;
-      const selected = index === selectedIndex;
-      const row = this.addPanelRectangle(x, rowY - 5, 300, 30, selected ? 0x293548 : 0x18222c, 0.94)
-        .setOrigin(0)
-        .setStrokeStyle(1, selected ? 0xfacc15 : 0x334155, 0.9)
-        .setInteractive({ useHandCursor: true });
-      row.on("pointerdown", () => select(index));
-      row.on("pointerover", () => this.showComparison(item));
-      this.addPanelRectangle(x + 10, rowY + 2, 16, 16, this.getItemIconColor(item), 0.94)
-        .setOrigin(0)
-        .setStrokeStyle(1, 0xf8fafc, 0.58);
-      this.addPanelText(x + 34, rowY, this.truncateText(getVisibleItemName(state.inventory, item), 22), 13, "#f8fafc");
-      this.addPanelText(x + 214, rowY, `x${entry.quantity}`, 12, "#cbd5e1");
-      this.addPanelText(x + 250, rowY, getItemRarity(item), 12, this.getRarityColor(item));
-    });
-
-    if (rows.length === 0) {
-      this.addPanelText(x + 10, y + 34, page > 0 ? "No entries on page" : "No items", 13, "#64748b");
-    }
-  }
-
-  private renderStorageDetails(
-    x: number,
-    y: number,
-    label: string,
-    item: ItemDefinition | null,
-    entry: StorageListEntry | null,
-  ): void {
-    const text = item && entry
-      ? `${label}: ${this.truncateText(item.name, 19)} x${entry.quantity}`
-      : `${label}: Empty`;
-
-    this.addPanelText(x, y, text, 12, item ? "#cbd5e1" : "#64748b");
-  }
-
-  private renderMarketDetails(
-    x: number,
-    y: number,
-    actionLabel: string,
-    item: ItemDefinition | null,
-    price: number,
-    callback: () => void,
-  ): void {
-    this.addPanelRectangle(x, y, 268, 64, 0x17212b, 0.95)
-      .setOrigin(0)
-      .setStrokeStyle(1, 0x475569, 0.86);
-    this.addPanelText(x + 14, y + 12, item ? item.name : "No item selected", 14, item ? "#f8fafc" : "#94a3b8");
-    this.addPanelText(x + 14, y + 36, item ? `${getItemRarity(item)}   ${price}g` : "", 12, item ? this.getRarityColor(item) : "#94a3b8");
-    this.addPanelButton(x + 174, y + 16, 72, 32, actionLabel, callback);
-  }
+  private renderPanel(): void { this.panelHost?.refresh(); }
 
   private renderComparisonFrame(): void {
     this.addPanelRectangle(520, 346, 170, 138, 0x17212b, 0.95)
@@ -1839,427 +1143,6 @@ state.character.statusEffects,
     }
   }
 
-  private buySelectedShopItem(): void {
-    if (!this.state || !this.dataRegistry) {
-      return;
-    }
-
-    const shop = this.getActiveShop(this.dataRegistry);
-    const stock = shop.stock[this.clampSelectedShopIndex(shop.stock)];
-    const result = buyShopItem(
-      this.state,
-      shop,
-      stock,
-      (id) => this.dataRegistry!.getItem(id),
-    );
-
-    this.uiDebug?.set("lastShopAction", result.success
-? `buy:${result.itemId}:${result.price}:${result.gold}`
-: `buy-failed:${result.reason}:${result.itemId}:${result.price}:${result.gold}`);
-    this.refreshOpenPanel();
-  }
-
-  private sellSelectedMarketItem(sellMultiplier = 1, sellAll = false): void {
-    if (!this.state || !this.dataRegistry) {
-      return;
-    }
-
-    const entries = this.getInventoryPanelEntries(this.state.inventory.items, this.state.inventory.equipmentInstances);
-    const entry = entries[this.clampSelectedMarketInventoryIndex(entries)];
-    const item = entry ? this.dataRegistry.getItem(entry.itemId) : undefined;
-    const quantity = sellAll ? entry?.quantity ?? 1 : 1;
-    const result = sellInventoryItem(this.state, item, quantity, sellMultiplier);
-
-    this.uiDebug?.set("lastShopAction", result.success
-? `sell:${result.itemId}:${result.price}:${result.gold}`
-: `sell-failed:${result.reason}:${result.itemId}:${result.price}:${result.gold}`);
-    this.uiDebug?.set("lastShopSellQuantity", String(result.quantity));
-    this.refreshOpenPanel();
-  }
-
-  private appraiseSelectedMarketItem(): void {
-    if (!this.state || !this.dataRegistry) {
-      return;
-    }
-
-    const shop = this.getActiveShop(this.dataRegistry);
-    const entries = this.getInventoryPanelEntries(this.state.inventory.items, this.state.inventory.equipmentInstances);
-    const entry = entries[this.clampSelectedMarketInventoryIndex(entries)];
-    const item = entry ? this.dataRegistry.getItem(entry.itemId) : undefined;
-    const result = appraiseInventoryItem(this.state, item, shop.appraiser);
-
-    this.uiDebug?.set("lastAppraiserAction", result.success
-? `appraise:${result.itemId}:${result.price}:${result.gold}`
-: `appraise-failed:${result.reason}:${result.itemId}:${result.price}:${result.gold}`);
-    this.refreshOpenPanel();
-  }
-
-  private craftSelectedRecipe(): void {
-    if (!this.state || !this.dataRegistry) {
-      return;
-    }
-
-    const recipes = getVisibleRecipes(this.state, this.dataRegistry.getRecipes())
-      .sort((left, right) => left.requiredLevel - right.requiredLevel || left.name.localeCompare(right.name));
-    const recipe = recipes[this.clampSelectedCraftingIndex(recipes)];
-
-    if (!recipe) {
-      this.uiDebug?.set("lastCraftingAction", "craft-failed:no-recipe");
-      return;
-    }
-
-    const result = craftRecipe(
-      this.state,
-      recipe,
-      (id) => this.dataRegistry!.getItem(id),
-      this.getCraftingContext(this.state, this.dataRegistry),
-    );
-
-    this.uiDebug?.set("lastCraftingAction", result.success
-? `craft:${result.recipeId}:${result.itemId}:${result.quantity}:${result.gold}`
-: `craft-failed:${result.reason}:${result.recipeId}`);
-    this.refreshOpenPanel();
-  }
-
-  private refineSelectedItem(): void {
-    if (!this.state || !this.dataRegistry) {
-      return;
-    }
-
-    const entries = this.getInventoryPanelEntries(this.state.inventory.items, this.state.inventory.equipmentInstances)
-      .filter((entry) => isItemRefinable(this.dataRegistry!.getItem(entry.itemId)));
-    const entry = entries[this.clampSelectedRefinementIndex(entries)];
-    const item = entry ? this.dataRegistry.getItem(entry.itemId) : null;
-    const result = refineItem(this.state, item);
-
-    this.uiDebug?.set("lastRefinementAction", result.success
-? `success:${result.itemId}:${result.previousLevel}->${result.nextLevel}:${result.consumedGold}`
-: `failed:${result.reason}:${result.itemId}:${result.previousLevel}->${result.nextLevel}:${result.consumedGold}`);
-    eventBus.emit("refinementAttempted", {
-      itemId: result.itemId,
-      success: result.success,
-      previousLevel: result.previousLevel,
-      nextLevel: result.nextLevel,
-      consumedGold: result.consumedGold,
-    });
-    this.syncDerivedStatsDataset(this.state, this.dataRegistry);
-    this.refreshOpenPanel();
-  }
-
-  private depositSelectedStorageItem(): void {
-    if (!this.state || !this.dataRegistry) {
-      return;
-    }
-
-    const { inventoryEntries } = this.getFilteredStoragePanelEntries(this.state, this.dataRegistry);
-    const entry = inventoryEntries[this.clampStorageInventoryIndex(inventoryEntries)];
-    const item = entry ? this.dataRegistry.getItem(entry.itemId) : undefined;
-    const result = depositStorageItem(this.state, item, 1);
-
-    this.uiDebug?.set("lastStorageAction", result.success
-? `deposit:${result.itemId}:${result.quantity}:${result.storageQuantity}:${result.gold}`
-: `deposit-failed:${result.reason}:${result.itemId}:${result.gold}`);
-    this.refreshOpenPanel();
-  }
-
-  private withdrawSelectedStorageItem(): void {
-    if (!this.state || !this.dataRegistry) {
-      return;
-    }
-
-    const { storageEntries } = this.getFilteredStoragePanelEntries(this.state, this.dataRegistry);
-    const entry = storageEntries[this.clampStorageIndex(storageEntries)];
-    const item = entry ? this.dataRegistry.getItem(entry.itemId) : undefined;
-    const result = withdrawStorageItem(this.state, item, 1);
-
-    this.uiDebug?.set("lastStorageAction", result.success
-? `withdraw:${result.itemId}:${result.quantity}:${result.inventoryQuantity}:${result.gold}`
-: `withdraw-failed:${result.reason}:${result.itemId}:${result.gold}`);
-    this.refreshOpenPanel();
-  }
-
-  private cycleStorageCategoryFilter(): void {
-    const filters: StorageCategoryFilter[] = ["all", "equipment", "consumable", "material"];
-    this.storageCategoryFilter = this.getNextValue(filters, this.storageCategoryFilter);
-    this.resetStorageSelections();
-    this.renderPanel();
-  }
-
-  private cycleStorageRarityFilter(): void {
-    const filters: Array<ItemRarity | "all"> = ["all", "Common", "Uncommon", "Rare", "Epic", "Legendary", "Mythic"];
-    this.storageRarityFilter = this.getNextValue(filters, this.storageRarityFilter);
-    this.resetStorageSelections();
-    this.renderPanel();
-  }
-
-  private cycleStorageClassFilter(): void {
-    const filters: StorageClassFilter[] = ["all", "current"];
-    this.storageClassFilter = this.getNextValue(filters, this.storageClassFilter);
-    this.resetStorageSelections();
-    this.renderPanel();
-  }
-
-  private cycleStorageLevelFilter(): void {
-    const filters: StorageLevelFilter[] = ["all", "usable"];
-    this.storageLevelFilter = this.getNextValue(filters, this.storageLevelFilter);
-    this.resetStorageSelections();
-    this.renderPanel();
-  }
-
-  private cycleStorageSortMode(): void {
-    const modes: StorageSortMode[] = ["name", "level", "rarity", "quantity"];
-    if (this.storageSortMode === "quantity" && this.storageSortDirection === "asc") {
-      this.storageSortDirection = "desc";
-    } else if (this.storageSortMode === "quantity") {
-      this.storageSortMode = "name";
-      this.storageSortDirection = "asc";
-    } else {
-      this.storageSortMode = this.getNextValue(modes, this.storageSortMode);
-      this.storageSortDirection = "asc";
-    }
-    this.resetStorageSelections();
-    this.renderPanel();
-  }
-
-  private clearStorageSearch(): void {
-    this.storageSearchText = "";
-    this.storageCategoryFilter = "all";
-    this.storageRarityFilter = "all";
-    this.storageClassFilter = "all";
-    this.storageLevelFilter = "all";
-    this.resetStorageSelections();
-    this.renderPanel();
-  }
-
-  private changeStorageInventoryPage(delta: number, entryCount: number): void {
-    this.storageInventoryPage = this.clampStoragePage(this.storageInventoryPage + delta, entryCount);
-    this.selectedStorageInventoryIndex = Math.min(this.selectedStorageInventoryIndex, Math.max(0, entryCount - 1));
-    this.renderPanel();
-  }
-
-  private changeStoragePage(delta: number, entryCount: number): void {
-    this.storagePage = this.clampStoragePage(this.storagePage + delta, entryCount);
-    this.selectedStorageIndex = Math.min(this.selectedStorageIndex, Math.max(0, entryCount - 1));
-    this.renderPanel();
-  }
-
-  private getFilteredStoragePanelEntries(
-    state: GameState,
-    dataRegistry: DataRegistry,
-  ): { inventoryEntries: StorageListEntry[]; storageEntries: StorageListEntry[] } {
-    const options = this.getStorageListOptions(state);
-    const getItem = (id: string) => dataRegistry.getItem(id);
-
-    return {
-      inventoryEntries: getFilteredStorageEntries(
-        getContainerEntries(state.inventory.items, state.inventory.equipmentInstances),
-        options,
-        getItem,
-      ),
-      storageEntries: getFilteredStorageEntries(
-        getContainerEntries(state.storage.items, state.storage.equipmentInstances),
-        options,
-        getItem,
-      ),
-    };
-  }
-
-  private getStorageListOptions(state: GameState): StorageListOptions {
-    return {
-      category: this.storageCategoryFilter,
-      rarity: this.storageRarityFilter,
-      classFilter: this.storageClassFilter,
-      levelFilter: this.storageLevelFilter,
-      classId: state.character.archetype,
-      playerLevel: state.playerProfile.level,
-      nameSearch: this.storageSearchText,
-      sortMode: this.storageSortMode,
-      sortDirection: this.storageSortDirection,
-    };
-  }
-
-  private getPagedStorageRows(
-    entries: StorageListEntry[],
-    page: number,
-  ): Array<{ entry: StorageListEntry; index: number }> {
-    const pageSize = this.getStoragePageSize();
-    const safePage = this.clampStoragePage(page, entries.length);
-
-    return entries
-      .slice(safePage * pageSize, safePage * pageSize + pageSize)
-      .map((entry, index) => ({
-        entry,
-        index: safePage * pageSize + index,
-      }));
-  }
-
-  private clampStorageInventoryIndex(entries: StorageListEntry[]): number {
-    this.selectedStorageInventoryIndex = Phaser.Math.Clamp(
-      this.selectedStorageInventoryIndex,
-      0,
-      Math.max(0, entries.length - 1),
-    );
-    return this.selectedStorageInventoryIndex;
-  }
-
-  private clampStorageIndex(entries: StorageListEntry[]): number {
-    this.selectedStorageIndex = Phaser.Math.Clamp(
-      this.selectedStorageIndex,
-      0,
-      Math.max(0, entries.length - 1),
-    );
-    return this.selectedStorageIndex;
-  }
-
-  private clampStoragePage(page: number, entryCount: number): number {
-    const maxPage = Math.max(0, Math.ceil(entryCount / this.getStoragePageSize()) - 1);
-    return Phaser.Math.Clamp(page, 0, maxPage);
-  }
-
-  private getStoragePageSize(): number {
-    return 6;
-  }
-
-  private resetStorageSelections(): void {
-    this.selectedStorageInventoryIndex = 0;
-    this.selectedStorageIndex = 0;
-    this.storageInventoryPage = 0;
-    this.storagePage = 0;
-  }
-
-  private syncStorageDataset(
-    state: GameState,
-    dataRegistry: DataRegistry,
-    inventoryEntries: StorageListEntry[],
-    storageEntries: StorageListEntry[],
-    selectedInventoryItem: ItemDefinition | null,
-    selectedStorageItem: ItemDefinition | null,
-  ): void {
-    this.uiDebug?.set("shopPanel", "hidden");
-    this.uiDebug?.set("appraiserPanel", "hidden");
-    this.uiDebug?.set("storagePanel", "visible");
-    this.uiDebug?.set("activeStorageNpc", this.activeStorageNpcId);
-    this.uiDebug?.set("storageFilterCategory", this.storageCategoryFilter);
-    this.uiDebug?.set("storageFilterRarity", this.storageRarityFilter);
-    this.uiDebug?.set("storageFilterClass", this.storageClassFilter);
-    this.uiDebug?.set("storageFilterLevel", this.storageLevelFilter);
-    this.uiDebug?.set("storageSearch", this.storageSearchText);
-    this.uiDebug?.set("storageSort", `${this.storageSortMode}:${this.storageSortDirection}`);
-    this.uiDebug?.set("storageInventoryItemCount", String(inventoryEntries.length));
-    this.uiDebug?.set("storageItemCount", String(storageEntries.length));
-    this.uiDebug?.set("storageStackCount", String(state.storage.items.length));
-    this.uiDebug?.set("storageEquipmentInstanceCount", String(state.storage.equipmentInstances.length));
-    this.uiDebug?.set("storageVisibleInventoryItems", inventoryEntries.map((entry) => entry.itemId).join("|"));
-    this.uiDebug?.set("storageVisibleItems", storageEntries.map((entry) => entry.itemId).join("|"));
-    this.uiDebug?.set("storageInventoryPage", String(this.storageInventoryPage));
-    this.uiDebug?.set("storagePage", String(this.storagePage));
-    this.uiDebug?.set("selectedStorageInventoryItem", selectedInventoryItem?.id ?? "");
-    this.uiDebug?.set("selectedStorageInventoryItemName", selectedInventoryItem ? getVisibleItemName(state.inventory, selectedInventoryItem) : "");
-    this.uiDebug?.set("selectedStorageItem", selectedStorageItem?.id ?? "");
-    this.uiDebug?.set("selectedStorageItemName", selectedStorageItem ? getVisibleItemName(state.inventory, selectedStorageItem) : "");
-    this.uiDebug?.set("storageButtons", "Deposit|Withdraw|Close");
-    this.uiDebug?.set("inventoryGold", String(state.inventory.gold));
-    this.uiDebug?.set("playerGold", String(state.inventory.gold));
-    this.uiDebug?.set("storageClassFilteredItems", inventoryEntries
-      .concat(storageEntries)
-      .filter((entry) => {
-        const item = dataRegistry.getItem(entry.itemId);
-        return (item.allowedClassIds ?? []).includes(state.character.archetype);
-      })
-      .map((entry) => entry.itemId)
-      .join("|"));
-  }
-
-  private syncCraftingDataset(
-    state: GameState,
-    dataRegistry: DataRegistry,
-    recipes: RecipeDefinition[],
-    selectedRecipe: RecipeDefinition | null,
-    outputItem: ItemDefinition | null,
-    craftFailure: ReturnType<typeof canCraftRecipe>,
-  ): void {
-    this.uiDebug?.set("shopPanel", "hidden");
-    this.uiDebug?.set("appraiserPanel", "hidden");
-    this.uiDebug?.set("storagePanel", "hidden");
-    this.uiDebug?.set("craftingPanel", "visible");
-    this.uiDebug?.set("activeCraftingNpc", this.activeCraftingNpcId);
-    this.uiDebug?.set("craftingRecipeCount", String(recipes.length));
-    this.uiDebug?.set("visibleRecipes", recipes.map((recipe) => recipe.id).join("|"));
-    this.uiDebug?.set("lockedRecipes", recipes
-.filter((recipe) => !this.isCraftingRecipeUnlocked(state, recipe))
-.map((recipe) => recipe.id)
-.join("|"));
-    this.uiDebug?.set("unlockedRecipes", state.crafting.unlockedRecipeIds.join("|"));
-    this.uiDebug?.set("recipeUnlockNotifications", state.crafting.unlockNotifications.join("|"));
-    this.uiDebug?.set("selectedRecipe", selectedRecipe?.id ?? "");
-    this.uiDebug?.set("selectedRecipeName", selectedRecipe?.name ?? "");
-    this.uiDebug?.set("selectedRecipeOutput", outputItem?.id ?? "");
-    this.uiDebug?.set("selectedRecipeOutputName", outputItem?.name ?? "");
-    this.uiDebug?.set("selectedRecipeCanCraft", String(Boolean(selectedRecipe && !craftFailure)));
-    this.uiDebug?.set("selectedRecipeBlockReason", craftFailure?.reason ?? "");
-    this.uiDebug?.set("selectedRecipeMissingMaterials", selectedRecipe
-? getRecipeMaterialStatus(state.inventory, selectedRecipe)
-.filter((material) => material.missing > 0)
-.map((material) => `${material.itemId}:${material.missing}`)
-.join("|")
-: "");
-    this.uiDebug?.set("craftingButtons", "Craft|Close");
-    this.uiDebug?.set("inventoryGold", String(state.inventory.gold));
-    this.uiDebug?.set("playerGold", String(state.inventory.gold));
-  }
-
-  private syncRefinementDataset(
-    state: GameState,
-    entries: InventoryPanelEntry[],
-    selectedItem: ItemDefinition | null,
-    preview: RefinementPreview,
-  ): void {
-    this.uiDebug?.set("shopPanel", "hidden");
-    this.uiDebug?.set("appraiserPanel", "hidden");
-    this.uiDebug?.set("storagePanel", "hidden");
-    this.uiDebug?.set("craftingPanel", "hidden");
-    this.uiDebug?.set("refinementPanel", "visible");
-    this.uiDebug?.set("activeRefinementNpc", this.activeRefinementNpcId);
-    this.uiDebug?.set("refinableItems", entries.map((entry) => entry.itemId).join("|"));
-    this.uiDebug?.set("selectedRefinementItem", selectedItem?.id ?? "");
-    this.uiDebug?.set("selectedRefinementItemName", selectedItem ? getRefinedItemName(state.inventory, selectedItem) : "");
-    this.uiDebug?.set("selectedRefinementLevel", selectedItem ? String(getRefineLevel(state.inventory, selectedItem.id)) : "");
-    this.uiDebug?.set("selectedRefinementTargetLevel", selectedItem ? String(preview.targetLevel) : "");
-    this.uiDebug?.set("selectedRefinementCost", selectedItem ? String(preview.goldCost) : "");
-    this.uiDebug?.set("selectedRefinementMaterials", preview.materials
-.map((material) => `${material.itemId}:${material.owned}/${material.required}`)
-.join("|"));
-    this.uiDebug?.set("selectedRefinementSuccessChance", selectedItem ? String(preview.successChance) : "");
-    this.uiDebug?.set("selectedRefinementFailureResult", selectedItem ? preview.failureResult : "");
-    this.uiDebug?.set("selectedRefinementCanRefine", String(Boolean(selectedItem && preview.canRefine)));
-    this.uiDebug?.set("selectedRefinementBlockReason", selectedItem ? preview.blockReason : "no-item");
-    this.uiDebug?.set("refinementButtons", "Refine|Close");
-    this.uiDebug?.set("inventoryGold", String(state.inventory.gold));
-    this.uiDebug?.set("playerGold", String(state.inventory.gold));
-  }
-
-  private getNextValue<T>(values: T[], current: T): T {
-    const index = values.indexOf(current);
-    return values[(index + 1) % values.length];
-  }
-
-  private getActiveShop(dataRegistry: DataRegistry): ShopDefinition {
-    const shop = this.activeShopId ? dataRegistry.getShop(this.activeShopId) : dataRegistry.getShops()[0];
-
-    if (!shop) {
-      throw new Error("No shop data is available.");
-    }
-
-    return shop;
-  }
-
-  private getCraftingContext(state: GameState, dataRegistry: DataRegistry): { regionId?: string; npcId?: string } {
-    return {
-      regionId: dataRegistry.getMap(state.currentMapId).regionId,
-      npcId: this.activeCraftingNpcId || undefined,
-    };
-  }
-
   private getDefaultCraftingNpcId(): string {
     if (!this.state || !this.dataRegistry) {
       return "";
@@ -2279,165 +1162,6 @@ state.character.statusEffects,
     return crafterByRegion[regionId] ?? "";
   }
 
-  private isCraftingRecipeUnlocked(state: GameState, recipe: RecipeDefinition): boolean {
-    return recipe.unlockCondition.type === "default" || state.crafting.unlockedRecipeIds.includes(recipe.id);
-  }
-
-  private getRecipeUnlockText(recipe: RecipeDefinition): string {
-    const condition = recipe.unlockCondition;
-
-    if (condition.type === "default") {
-      return "Known by default";
-    }
-
-    if (condition.type === "npc") {
-      return `Unlocked by ${condition.npcId}`;
-    }
-
-    if (condition.type === "bossDrop") {
-      return `Boss drop ${condition.bossId}`;
-    }
-
-    if (condition.type === "quest") {
-      return `Quest ${condition.questId}`;
-    }
-
-    if (condition.type === "huntingBoard") {
-      return `Board ${condition.boardId}`;
-    }
-
-    if (condition.type === "exploration") {
-      return `Explore ${condition.regionId}`;
-    }
-
-    return `Bestiary ${condition.enemyId} x${condition.defeatCount}`;
-  }
-
-  private syncShopDataset(
-    shop: ShopDefinition,
-    selectedStockItem: ItemDefinition | null,
-    selectedInventoryItem: ItemDefinition | null,
-    gold: number,
-  ): void {
-    this.uiDebug?.set("shopPanel", "visible");
-    this.uiDebug?.set("appraiserPanel", "hidden");
-    this.uiDebug?.set("activeShop", shop.id);
-    this.uiDebug?.set("activeShopName", shop.name);
-    this.uiDebug?.set("activeShopRegion", shop.regionId);
-    this.uiDebug?.set("shopStock", shop.stock.map((stock) => stock.itemId).join("|"));
-    this.uiDebug?.set("shopStockPrices", shop.stock
-.map((stock) => getShopBuyPrice(this.dataRegistry!.getItem(stock.itemId), stock))
-.join("|"));
-    this.uiDebug?.set("shopButtons", "Buy|Sell|Sell All|Close");
-    this.uiDebug?.set("selectedShopItem", selectedStockItem?.id ?? "");
-    this.uiDebug?.set("selectedShopItemName", selectedStockItem?.name ?? "");
-    this.uiDebug?.set("selectedShopSellItem", selectedInventoryItem?.id ?? "");
-    this.uiDebug?.set("selectedShopSellValue", selectedInventoryItem ? String(getMarketSellValue(selectedInventoryItem)) : "");
-    this.uiDebug?.set("inventoryGold", String(gold));
-    this.uiDebug?.set("playerGold", String(gold));
-  }
-
-  private syncAppraiserDataset(
-    shop: ShopDefinition,
-    item: ItemDefinition | null,
-    gold: number,
-    appraisalCost: number,
-    improvedSellValue: number,
-  ): void {
-    this.uiDebug?.set("shopPanel", "hidden");
-    this.uiDebug?.set("appraiserPanel", "visible");
-    this.uiDebug?.set("activeShop", shop.id);
-    this.uiDebug?.set("activeShopName", shop.name);
-    this.uiDebug?.set("activeShopRegion", shop.regionId);
-    this.uiDebug?.set("appraiserIdentifyCost", item ? String(appraisalCost) : "");
-    this.uiDebug?.set("appraiserImprovedSellValue", item ? String(improvedSellValue) : "");
-    this.uiDebug?.set("selectedAppraiserItem", item?.id ?? "");
-    this.uiDebug?.set("selectedAppraiserItemName", item ? getVisibleItemName(this.state!.inventory, item) : "");
-    this.uiDebug?.set("selectedAppraiserItemKnown", item ? String(isItemAppraised(this.state!.inventory, item)) : "");
-    this.uiDebug?.set("selectedAppraiserItemDescription", item ? getVisibleItemDescription(this.state!.inventory, item) : "");
-    this.uiDebug?.set("appraisedItems", this.state?.inventory.appraisedItemIds.join("|") ?? "");
-    this.uiDebug?.set("inventoryGold", String(gold));
-    this.uiDebug?.set("playerGold", String(gold));
-  }
-
-  private changeMusicVolume(): void {
-    if (!this.state) {
-      return;
-    }
-
-    applySettingsPatch(this.state, { musicVolume: this.state.settings.musicVolume >= 1 ? 0 : this.state.settings.musicVolume + 0.1 });
-    audioManager.adjustMusicVolume(0);
-  }
-
-  private changeSfxVolume(): void {
-    if (!this.state) {
-      return;
-    }
-
-    applySettingsPatch(this.state, { sfxVolume: this.state.settings.sfxVolume >= 1 ? 0 : this.state.settings.sfxVolume + 0.1 });
-    audioManager.adjustSfxVolume(0);
-  }
-
-  private toggleMusicSetting(): void {
-    if (!this.state) {
-      return;
-    }
-
-    audioManager.toggleMusicMute();
-    eventBus.emit("settingsChanged", { settings: this.state.settings });
-  }
-
-  private toggleSfxSetting(): void {
-    if (!this.state) {
-      return;
-    }
-
-    audioManager.toggleSfxMute();
-    eventBus.emit("settingsChanged", { settings: this.state.settings });
-  }
-
-  private changeUiScale(): void {
-    if (this.state) {
-      cycleUiScale(this.state);
-    }
-  }
-
-  private toggleDamageNumberSetting(): void {
-    if (this.state) {
-      applySettingsPatch(this.state, { damageNumbersEnabled: !this.state.settings.damageNumbersEnabled });
-    }
-  }
-
-  private toggleScreenShakeSetting(): void {
-    if (this.state) {
-      applySettingsPatch(this.state, { screenShakeEnabled: !this.state.settings.screenShakeEnabled });
-    }
-  }
-
-  private changeFlashIntensity(): void {
-    if (this.state) {
-      adjustFlashIntensity(this.state, this.state.settings.flashIntensity >= 1 ? -1 : 0.25);
-    }
-  }
-
-  private toggleAutoPotionSetting(): void {
-    if (this.state) {
-      applySettingsPatch(this.state, { autoPotionEnabled: !this.state.settings.autoPotionEnabled });
-    }
-  }
-
-  private changeDifficulty(): void {
-    if (this.state) {
-      cycleDifficulty(this.state);
-    }
-  }
-
-  private changeTextSpeed(): void {
-    if (this.state) {
-      adjustTextSpeed(this.state, this.state.settings.textSpeed >= 2 ? -1.5 : 0.25);
-    }
-  }
-
   private syncSettingsDataset(state: GameState): void {
     const settings = state.settings;
 
@@ -2447,6 +1171,9 @@ state.character.statusEffects,
     this.uiDebug?.set("settingsUiScale", String(settings.uiScale));
     this.uiDebug?.set("settingsMusicVolume", settings.musicVolume.toFixed(1));
     this.uiDebug?.set("settingsSfxVolume", settings.sfxVolume.toFixed(1));
+    this.uiDebug?.set("settingsMusicMuted", String(settings.musicMuted));
+    this.uiDebug?.set("settingsSfxMuted", String(settings.sfxMuted));
+    this.uiDebug?.set("settingsVfxIntensity", settings.visualEffectsIntensity);
     this.uiDebug?.set("settingsDamageNumbers", String(settings.damageNumbersEnabled));
     this.uiDebug?.set("settingsScreenShake", String(settings.screenShakeEnabled));
     this.uiDebug?.set("settingsFlashIntensity", settings.flashIntensity.toFixed(2));
@@ -2457,10 +1184,6 @@ state.character.statusEffects,
     this.uiDebug?.set("elementReadableMode", "label+icon");
     this.uiDebug?.set("warningReadableMode", "shape+text");
     this.uiDebug?.set("uiContrast", "acceptable");
-  }
-
-  private addPanelButton(x: number, y: number, width: number, height: number, label: string, callback: () => void): void {
-    addPanelButtonPrimitive({ scene: this, stateScale: this.state?.settings.uiScale ?? 1, objects: this.panelObjects }, x, y, width, height, label, callback);
   }
 
   private addPanelBackdrop(): void {
@@ -2539,9 +1262,9 @@ state.character.statusEffects,
     const x = Number(this.scale.width || 800) - 172;
     const y = 20;
 
-    const frame = this.add.rectangle(x, y, 152, 104, 0x101820, 0.86)
+    const frame = this.add.rectangle(x, y, 152, 104, uiTheme.colors.background, 0.96)
       .setOrigin(0)
-      .setStrokeStyle(1, 0xd6b45f, 0.72)
+      .setStrokeStyle(1, uiTheme.colors.accent, 0.9)
       .setScrollFactor(0)
       .setDepth(hudDepth)
       .setVisible(this.minimapVisible)
@@ -2550,10 +1273,10 @@ state.character.statusEffects,
     frame.on("pointerout", () => this.clearTooltip());
     this.minimapObjects.push(frame);
 
-    this.addMinimapText(x + 12, y + 10, this.truncateText(map.name, 18), "#f8fafc");
-    const shape = this.add.rectangle(x + 16, y + 34, 120, 52, 0x1f2937, 0.95)
+    this.addMinimapText(x + 12, y + 10, this.truncateText(map.name, 18), uiTheme.text.onDark);
+    const shape = this.add.rectangle(x + 16, y + 34, 120, 52, uiTheme.colors.inset, 0.95)
       .setOrigin(0)
-      .setStrokeStyle(1, 0x64748b, 0.9)
+      .setStrokeStyle(1, uiTheme.colors.border, 0.9)
       .setScrollFactor(0)
       .setDepth(hudDepth + 1)
       .setVisible(this.minimapVisible);
@@ -2674,11 +1397,14 @@ state.character.statusEffects,
   private syncActiveEffectTray(state: GameState, dataRegistry: DataRegistry): void {
     const effects = this.getActiveEffectSummaries(state, dataRegistry);
     const nextKey = effects
-      .map((effect) => `${effect.id}:${effect.label}:${effect.stackCount ?? 1}:${effect.tooltip.join("/")}`)
+      .map((effect) => `${effect.id}:${effect.label}:${effect.stackCount ?? 1}:${Math.ceil((effect.remainingMs ?? 0) / 1000)}:${effect.tooltip.join("/")}`)
       .join("|");
 
     this.uiDebug?.set("activeEffectIcons", effects.map((effect) => effect.id).join("|"));
+    this.uiDebug?.set("activeEffectVisualIcons", effects.map((effect) => effect.icon).join("|"));
     this.uiDebug?.set("activeEffectLabels", effects.map((effect) => effect.label).join("|"));
+    this.uiDebug?.set("activeEffectTimers", effects.map((effect) => effect.remainingMs === undefined ? "toggle" : this.formatEffectTime(effect.remainingMs)).join("|"));
+    this.uiDebug?.set("activeEffectTooltips", effects.map((effect) => effect.tooltip.join("/")).join("|"));
     this.uiDebug?.set("activeEffectCount", String(effects.length));
 
     if (nextKey === this.activeEffectSummaryKey) {
@@ -2716,8 +1442,9 @@ state.character.statusEffects,
     return {
       id: skill.id,
       icon: skill.icon,
-      label: this.getHotbarIconLabel("skill", skill.id),
-      tooltip: [skill.name, `${skill.type} ${skill.targetingMode}`, stateText, this.getSkillEffectText(skill)],
+      label: this.getIconLabel(skill.icon),
+      remainingMs: remaining === null ? undefined : remaining,
+      tooltip: [skill.name, `Effect: ${this.getSkillEffectText(skill)}`, `Duration: ${stateText}`, `Modifier: ${this.getModifierSummary(modifier)}`],
     };
   }
 
@@ -2725,13 +1452,32 @@ state.character.statusEffects,
     const status = dataRegistry.getStatusEffect(effect.id);
     const remaining = Math.max(0, effect.expiresAt - Date.now());
 
+    const modifierText = this.getModifierSummary(status.statModifiers);
     return {
       id: status.id,
       icon: status.visualIcon,
-      label: this.getHotbarIconLabel("skill", status.id),
+      label: this.getIconLabel(status.visualIcon),
       stackCount: effect.stacks,
-      tooltip: [status.name, status.type, `Remaining ${Math.ceil(remaining / 1000)}s`, status.description],
+      remainingMs: remaining,
+      tooltip: [status.name, `Effect: ${status.description}`, `Duration: ${Math.ceil(remaining / 1000)}s`, `Modifier: ${modifierText}`],
     };
+  }
+
+  private getModifierSummary(modifier: { baseStats?: Partial<Record<string, number>>; derivedStats?: Partial<Record<string, number>> }): string {
+    const values = [
+      ...Object.entries(modifier?.baseStats ?? {}).flatMap(([key, value]) => typeof value === "number" ? `${baseStatLabels[key as BaseStatKey] ?? key} ${value > 0 ? "+" : ""}${value}` : []),
+      ...Object.entries(modifier?.derivedStats ?? {}).flatMap(([key, value]) => typeof value === "number" ? `${key} ${value > 0 ? "+" : ""}${value}` : []),
+    ];
+    return values.length > 0 ? values.join(", ") : "None";
+  }
+
+  private getIconLabel(icon: string): string {
+    return icon.replace(/^icon-/, "").split("-").map((part) => part[0]?.toUpperCase() ?? "").join("").slice(0, 3) || "FX";
+  }
+
+  private formatEffectTime(remainingMs: number): string {
+    if (remainingMs <= 0) return "0s";
+    return remainingMs >= 10000 ? `${Math.ceil(remainingMs / 1000)}s` : `${(remainingMs / 1000).toFixed(1)}s`;
   }
 
   private renderActiveEffectTray(effects: ActiveEffectSummary[]): void {
@@ -2742,7 +1488,7 @@ state.character.statusEffects,
     effects.forEach((effect, index) => {
       const y = startY + index * 42;
       const box = this.add.rectangle(startX, y, 34, 34, 0x111827, 0.94)
-        .setStrokeStyle(2, effect.id === effect.icon ? 0x93c5fd : 0xfacc15, 0.92)
+        .setStrokeStyle(2, 0xfacc15, 0.92)
         .setScrollFactor(0)
         .setDepth(hudDepth + 6)
         .setInteractive({ useHandCursor: true });
@@ -2758,6 +1504,15 @@ state.character.statusEffects,
       box.on("pointerover", () => this.showTooltip(effect.tooltip, startX - 260, y - 24));
       box.on("pointerout", () => this.clearTooltip());
       this.activeEffectObjects.push(box, label);
+
+      const timer = this.add.text(startX, y + 24, effect.remainingMs === undefined ? "∞" : this.formatEffectTime(effect.remainingMs), {
+        color: "#fef3c7",
+        fontFamily: uiTheme.fonts.body,
+        fontSize: "9px",
+        stroke: "#0a1712",
+        strokeThickness: 2,
+      }).setOrigin(0.5).setScrollFactor(0).setDepth(hudDepth + 8);
+      this.activeEffectObjects.push(timer);
 
       if (effect.stackCount && effect.stackCount > 1) {
         const stackLabel = this.add.text(startX + 9, y + 8, String(effect.stackCount), {
@@ -2783,27 +1538,12 @@ state.character.statusEffects,
 
   private showTooltip(lines: string[], x: number, y: number): void {
     this.clearTooltip();
-    const width = 238;
-    const height = Math.max(52, 22 + lines.length * 18);
-    const clampedX = Phaser.Math.Clamp(x, 8, Number(this.scale.width || 800) - width - 8);
-    const clampedY = Phaser.Math.Clamp(y, 8, Number(this.scale.height || 600) - height - 8);
-    const box = this.add.rectangle(clampedX, clampedY, width, height, 0x0f172a, 0.96)
-      .setOrigin(0)
-      .setStrokeStyle(1, 0xfacc15, 0.9)
-      .setScrollFactor(0)
-      .setDepth(panelDepth + 20);
-    const text = this.add.text(clampedX + 12, clampedY + 10, lines.join("\n"), {
-      color: "#f8fafc",
-      fontFamily: "Arial, sans-serif",
-      fontSize: "12px",
-      lineSpacing: 4,
-    })
-      .setScrollFactor(0)
-      .setDepth(panelDepth + 21);
-    this.tooltipObjects.push(box, text);
+    const bounds = this.sharedTooltip?.show(lines, x, y);
+    if (!bounds) return;
+    this.tooltipObjects = [];
     this.uiDebug?.set("tooltip", "visible");
     this.uiDebug?.set("tooltipText", lines.join("|"));
-    this.uiDebug?.set("tooltipBounds", `${Math.round(clampedX)},${Math.round(clampedY)},${width},${height}`);
+    this.uiDebug?.set("tooltipBounds", `${bounds.x},${bounds.y},${bounds.width},${bounds.height}`);
   }
 
   private clearTooltip(): void {
@@ -2812,9 +1552,18 @@ state.character.statusEffects,
     }
 
     this.tooltipObjects = [];
+    this.sharedTooltip?.clear();
     this.uiDebug?.set("tooltip", "hidden");
     this.uiDebug?.set("tooltipText", "");
     this.uiDebug?.set("tooltipBounds", "");
+  }
+
+  private requestReturnToTitle(): void {
+    if (!this.state) return;
+    this.manualSave();
+    this.scene.stop(SceneKeys.Dialogue);
+    this.scene.stop(SceneKeys.World);
+    transitionToScene(this, SceneKeys.MainMenu);
   }
 
   private getHotbarIconLabel(type: "skill" | "item", id: string): string {
@@ -2834,43 +1583,34 @@ state.character.statusEffects,
       .flatMap((questId) => this.dataRegistry!.getQuest(questId).mapMarkers);
   }
 
-  private getDiscoveredMaps(state: GameState, dataRegistry: DataRegistry): ReturnType<DataRegistry["getMap"]>[] {
-    const currentMap = dataRegistry.getMap(state.currentMapId);
-    const currentRegion = dataRegistry.getRegion(currentMap.regionId);
-    const maps = dataRegistry.getMaps()
-      .filter((map) => map.regionId === currentRegion.id || state.worldFlags[`map:${map.id}:discovered`]);
-
-    return maps.length > 0 ? maps : [currentMap];
-  }
-
   private createTargetFrame(): void {
-    this.targetFrame = this.add.rectangle(400, 44, 250, 48, 0x111827, 0.78)
-      .setStrokeStyle(2, 0xfacc15, 0.95)
+    this.targetFrame = this.add.rectangle(400, 48, 280, 62, uiTheme.colors.background, 0.96)
+      .setStrokeStyle(2, uiTheme.colors.accent, 0.95)
       .setScrollFactor(0)
       .setDepth(hudDepth)
       .setVisible(false);
-    this.targetNameText = this.add.text(292, 28, "", {
-      color: "#f8fafc",
-      fontFamily: "Arial, sans-serif",
-      fontSize: "16px",
+    this.targetNameText = this.add.text(264, 25, "", {
+      color: uiTheme.text.onDark, fontFamily: uiTheme.fonts.heading, fontSize: "15px",
     })
       .setScrollFactor(0)
       .setDepth(hudDepth + 1)
       .setVisible(false);
-    this.targetHpText = this.add.text(292, 48, "", {
-      color: "#bbf7d0",
-      fontFamily: "Arial, sans-serif",
-      fontSize: "13px",
+    this.targetMetaText = this.add.text(264, 45, "", {
+      color: uiTheme.text.accent, fontFamily: uiTheme.fonts.body, fontSize: "10px",
+    })
+      .setScrollFactor(0).setDepth(hudDepth + 1).setVisible(false);
+    this.targetHpText = this.add.text(264, 62, "", {
+      color: uiTheme.text.positive, fontFamily: uiTheme.fonts.body, fontSize: "11px",
     })
       .setScrollFactor(0)
       .setDepth(hudDepth + 1)
       .setVisible(false);
-    this.targetHpBarBackground = this.add.rectangle(398, 58, 126, 8, 0x111827, 0.95)
+    this.targetHpBarBackground = this.add.rectangle(390, 76, 146, 7, uiTheme.colors.shadow, 0.95)
       .setOrigin(0, 0.5)
       .setScrollFactor(0)
       .setDepth(hudDepth + 1)
       .setVisible(false);
-    this.targetHpBarFill = this.add.rectangle(398, 58, 1, 6, 0xef4444, 1)
+    this.targetHpBarFill = this.add.rectangle(390, 76, 1, 5, uiTheme.colors.hp, 1)
       .setOrigin(0, 0.5)
       .setScrollFactor(0)
       .setDepth(hudDepth + 2)
@@ -2936,6 +1676,63 @@ state.character.statusEffects,
     this.updateMapMetadata(mapId, dataRegistry);
   }
 
+  private showLocationTitle(mapId: string, dataRegistry: DataRegistry): void {
+    this.clearLocationTitle();
+
+    const map = dataRegistry.getMap(mapId);
+    const region = dataRegistry.getRegion(map.regionId);
+    const centerX = this.scale.width / 2;
+    const titleY = 132;
+    const panelWidth = Math.min(360, this.scale.width - 48);
+    const panel = this.add.rectangle(centerX, titleY, panelWidth, 62, uiTheme.colors.background, 0.94)
+      .setStrokeStyle(1, uiTheme.colors.accent, 0.85)
+      .setScrollFactor(0)
+      .setDepth(hudDepth + 3);
+    const regionText = this.add.text(centerX, titleY - 17, region.name.toUpperCase(), {
+      color: uiTheme.text.accent,
+      fontFamily: uiTheme.fonts.body,
+      fontSize: "10px",
+      letterSpacing: 2,
+    })
+      .setOrigin(0.5)
+      .setScrollFactor(0)
+      .setDepth(hudDepth + 4);
+    const mapText = this.add.text(centerX, titleY + 9, map.name, {
+      color: uiTheme.text.onDark,
+      fontFamily: uiTheme.fonts.heading,
+      fontStyle: "bold",
+      fontSize: "22px",
+    })
+      .setOrigin(0.5)
+      .setScrollFactor(0)
+      .setDepth(hudDepth + 4);
+
+    this.locationTitleObjects = [panel, regionText, mapText];
+    this.game.canvas.dataset.locationTitle = `${region.name}|${map.name}`;
+    this.game.canvas.dataset.locationTitleState = "visible";
+    this.locationTitleTween = this.tweens.add({
+      targets: this.locationTitleObjects,
+      alpha: { from: 0, to: 1 },
+      duration: 180,
+      hold: 820,
+      yoyo: true,
+      ease: "Sine.inOut",
+      onComplete: () => {
+        this.game.canvas.dataset.locationTitleState = "hidden";
+        this.clearLocationTitle();
+      },
+    });
+  }
+
+  private clearLocationTitle(): void {
+    this.locationTitleTween?.stop();
+    this.locationTitleTween = undefined;
+    for (const object of this.locationTitleObjects) {
+      object.destroy();
+    }
+    this.locationTitleObjects = [];
+  }
+
   private updateMapMetadata(mapId: string, dataRegistry: DataRegistry): void {
     const map = dataRegistry.getMap(mapId);
     const region = dataRegistry.getRegion(map.regionId);
@@ -2961,10 +1758,15 @@ state.character.statusEffects,
     return `${map.name} | ${region.name} Lv ${map.levelRange.min}-${map.levelRange.max}`;
   }
 
-  private setTargetFrame(enemyId: string, name: string, hp: number, maxHp: number): void {
-    const hpWidth = Math.round(126 * (hp / maxHp));
+  private setTargetFrame(snapshot: TargetHudSnapshot | null): void {
+    if (!snapshot || !snapshot.enemyId) {
+      this.clearTargetFrame();
+      return;
+    }
+    const { enemyId, name, hp, maxHp, hpBarWidth: hpWidth, level, elite, boss, statusIcons } = snapshot;
     this.targetFrame?.setVisible(true);
     this.targetNameText?.setText(name).setVisible(true);
+    this.targetMetaText?.setText(`${boss ? "BOSS" : elite ? "ELITE" : "TARGET"}${level === null ? "" : ` · Lv ${level}`}${statusIcons.length ? ` · ${statusIcons.join(" ")}` : ""}`).setVisible(true);
     this.targetHpText?.setText(`HP ${hp}/${maxHp}`).setVisible(true);
     this.targetHpBarBackground?.setVisible(true);
     this.targetHpBarFill?.setDisplaySize(Math.max(0, hpWidth), 6).setVisible(true);
@@ -2973,13 +1775,18 @@ state.character.statusEffects,
     this.uiDebug?.set("targetEnemyName", name);
     this.uiDebug?.set("targetEnemyHp", `${hp}/${maxHp}`);
     this.uiDebug?.set("targetEnemyHpBarWidth", String(hpWidth));
+    this.uiDebug?.set("targetEnemyHpPercent", `${Math.round((hp / Math.max(1, maxHp)) * 100)}%`);
+    this.uiDebug?.set("targetEnemyLevel", level === null ? "" : String(level));
+    this.uiDebug?.set("targetEnemyElite", String(elite));
+    this.uiDebug?.set("targetEnemyBoss", String(boss));
     this.uiDebug?.set("targetEnemyStatusEffects", this.game.canvas.dataset.targetEnemyStatusEffects ?? "");
-    this.uiDebug?.set("targetEnemyStatusIcons", this.game.canvas.dataset.targetEnemyStatusIcons ?? "");
+    this.uiDebug?.set("targetEnemyStatusIcons", statusIcons.join("|"));
   }
 
   private clearTargetFrame(): void {
     this.targetFrame?.setVisible(false);
     this.targetNameText?.setVisible(false);
+    this.targetMetaText?.setVisible(false);
     this.targetHpText?.setVisible(false);
     this.targetHpBarBackground?.setVisible(false);
     this.targetHpBarFill?.setVisible(false);
@@ -2987,13 +1794,21 @@ state.character.statusEffects,
     this.uiDebug?.set("targetEnemyId", "");
     this.uiDebug?.set("targetEnemyName", "");
     this.uiDebug?.set("targetEnemyHp", "");
+    this.uiDebug?.set("targetEnemyHpPercent", "");
+    this.uiDebug?.set("targetEnemyLevel", "");
+    this.uiDebug?.set("targetEnemyElite", "");
+    this.uiDebug?.set("targetEnemyBoss", "");
     this.uiDebug?.set("targetEnemyHpBarWidth", "");
     this.uiDebug?.set("targetEnemyStatusEffects", "");
     this.uiDebug?.set("targetEnemyStatusIcons", "");
   }
 
-  private setBossFrame(name: string, hp: number, maxHp: number, phase: number): void {
-    const width = Math.max(0, Math.round(408 * (hp / maxHp)));
+  private setBossFrame(snapshot: TargetHudSnapshot | null): void {
+    if (!snapshot) {
+      this.clearBossFrame();
+      return;
+    }
+    const { name, hp, maxHp, phase, hpBarWidth: width } = snapshot;
 
     this.bossFrame?.setVisible(true);
     this.bossNameText?.setText(name).setVisible(true);
@@ -3024,8 +1839,8 @@ state.character.statusEffects,
 
   private syncPlayerStats(state: GameState, dataRegistry: DataRegistry): void {
     const playerClass = dataRegistry.getClass(state.character.archetype);
-    const firstInventoryEntry = this.getInventoryPanelEntries(state.inventory.items, state.inventory.equipmentInstances)[0];
-    const firstInventoryItem = firstInventoryEntry ? dataRegistry.getItem(firstInventoryEntry.itemId) : null;
+    const firstInventoryItemId = state.inventory.items[0]?.id ?? state.inventory.equipmentInstances[0]?.itemId;
+    const firstInventoryItem = firstInventoryItemId ? dataRegistry.getItem(firstInventoryItemId) : null;
     const firstSkillId = state.character.skillIds[0] ?? playerClass.startingSkillIds[0];
     const firstSkill = firstSkillId ? dataRegistry.getSkill(firstSkillId) : null;
 
@@ -3213,70 +2028,6 @@ state.character.statusEffects,
     this.refreshOpenPanel();
   }
 
-  private acceptSelectedHuntingContract(): void {
-    if (!this.state || !this.dataRegistry) {
-      return;
-    }
-
-    const contract = this.getSelectedHuntingContract(this.state, this.dataRegistry);
-    const accepted = contract ? acceptHuntingContract(this.state, contract) : false;
-
-    this.uiDebug?.set("lastHuntingBoardAction", accepted && contract ? `accept:${contract.id}` : "accept-failed");
-    this.syncHuntingBoardDataset(this.state, this.dataRegistry, contract);
-    this.refreshOpenPanel();
-  }
-
-  private turnInSelectedHuntingContract(): void {
-    if (!this.state || !this.dataRegistry) {
-      return;
-    }
-
-    const contract = this.getSelectedHuntingContract(this.state, this.dataRegistry);
-    const turnedIn = contract ? turnInHuntingContract(this.state, this.dataRegistry, contract.id) : false;
-
-    this.uiDebug?.set("lastHuntingBoardAction", turnedIn && contract ? `turn-in:${contract.id}` : "turn-in-failed");
-    this.syncHuntingBoardDataset(this.state, this.dataRegistry, contract);
-    this.refreshOpenPanel();
-  }
-
-  private acceptSelectedQuest(): void {
-    if (!this.state || !this.dataRegistry) {
-      return;
-    }
-
-    const quest = this.dataRegistry.getQuests()[this.selectedQuestIndex];
-    const accepted = quest ? acceptQuest(this.state, quest) : null;
-
-    this.uiDebug?.set("lastQuestAction", accepted && quest ? `accepted:${quest.id}` : "accept-failed");
-    this.syncQuestDataset(this.state, this.dataRegistry, quest);
-    this.refreshOpenPanel();
-  }
-
-  private completeSelectedQuest(): void {
-    if (!this.state || !this.dataRegistry) {
-      return;
-    }
-
-    const quest = this.dataRegistry.getQuests()[this.selectedQuestIndex];
-    const completed = quest ? completeQuest(this.state, this.dataRegistry, quest.id) : false;
-
-    this.uiDebug?.set("lastQuestAction", completed && quest ? `completed:${quest.id}` : "complete-failed");
-    this.syncQuestDataset(this.state, this.dataRegistry, quest);
-    this.refreshOpenPanel();
-  }
-
-  private restRefreshHuntingBoard(): void {
-    if (!this.state || !this.dataRegistry) {
-      return;
-    }
-
-    const refreshed = refreshHuntingBoard(this.state, "rest");
-
-    this.uiDebug?.set("lastHuntingBoardAction", refreshed ? "refresh:rest" : "refresh-failed:active-contract");
-    this.syncHuntingBoardDataset(this.state, this.dataRegistry);
-    this.refreshOpenPanel();
-  }
-
   private syncVitalsDataset(state: GameState): void {
     this.uiDebug?.set("playerHp", `${state.character.stats.hp}/${state.character.stats.maxHp}`);
     this.uiDebug?.set("playerSp", `${state.character.stats.sp}/${state.character.stats.maxSp}`);
@@ -3415,61 +2166,8 @@ state.character.statusEffects,
     this.uiDebug?.set("advancedClassNotification", "hidden");
   }
 
-  private getVisibleBestiaryEntries(
-    state: GameState,
-    dataRegistry: DataRegistry,
-  ): Array<{ monster: MonsterDefinition; region: ReturnType<DataRegistry["getRegion"]> }> {
-    const query = this.bestiarySearchText.trim().toLowerCase();
-
-    return dataRegistry.getMonsters()
-      .map((monster) => ({
-        monster,
-        region: this.getMonsterRegion(monster, dataRegistry) ?? dataRegistry.getRegions()[0],
-      }))
-      .filter((entry) => {
-        if (!query) {
-          return true;
-        }
-
-        const bestiaryEntry = getBestiaryEntry(state, entry.monster.id);
-        const searchable = [
-          entry.monster.id,
-          hasBestiaryMilestone(bestiaryEntry, 1) ? entry.monster.name : "",
-          hasBestiaryMilestone(bestiaryEntry, 5) ? getMonsterFamily(entry.monster) : "",
-          entry.region.name,
-        ].join(" ").toLowerCase();
-
-        return searchable.includes(query);
-      })
-      .sort((left, right) => {
-        const regionCompare = left.region.name.localeCompare(right.region.name);
-        if (regionCompare !== 0) {
-          return regionCompare;
-        }
-
-        const familyCompare = getMonsterFamily(left.monster).localeCompare(getMonsterFamily(right.monster));
-        return familyCompare !== 0 ? familyCompare : left.monster.level - right.monster.level;
-      });
-  }
-
-  private getMonsterRegion(monster: MonsterDefinition, dataRegistry: DataRegistry): ReturnType<DataRegistry["getRegion"]> | undefined {
-    return dataRegistry.getRegions().find((region) => (
-      region.monsterIds.includes(monster.id) || region.bossIds.includes(monster.id)
-    ));
-  }
-
   private getVisibleSkillTreeSkills(state: GameState, dataRegistry: DataRegistry): SkillDefinition[] {
     return getUnlockedSkillTreeIds(state).flatMap((classId) => dataRegistry.getSkillsByClass(classId));
-  }
-
-  private syncSelectedInventoryDataset(item: ItemDefinition | null, quantity: number | null, source: string | null): void {
-    this.uiDebug?.set("selectedInventoryItem", item?.id ?? "");
-    this.uiDebug?.set("selectedInventoryItemName", item && this.state && isItemRefinable(item) ? getRefinedItemName(this.state.inventory, item) : item && this.state ? getVisibleItemName(this.state.inventory, item) : item?.name ?? "");
-    this.uiDebug?.set("selectedInventoryItemRefineLevel", item && this.state && isItemRefinable(item) ? String(getRefineLevel(this.state.inventory, item.id)) : "");
-    this.uiDebug?.set("selectedInventoryItemQuantity", quantity ? String(quantity) : "");
-    this.uiDebug?.set("selectedInventoryItemRarity", item ? getItemRarity(item) : "");
-    this.uiDebug?.set("selectedInventoryItemDescription", item && this.state ? getVisibleItemDescription(this.state.inventory, item) : item?.description ?? "");
-    this.uiDebug?.set("selectedInventoryItemSource", source ?? "");
   }
 
   private getSkillEffectText(skill: SkillDefinition): string {
@@ -3587,36 +2285,6 @@ state.character.statusEffects,
     return value > 0 ? `+${value}` : String(value);
   }
 
-  private clampSelectedBestiaryIndex(entries: unknown[]): number {
-    if (entries.length === 0) {
-      this.selectedBestiaryIndex = 0;
-      return 0;
-    }
-
-    this.selectedBestiaryIndex = Phaser.Math.Clamp(this.selectedBestiaryIndex, 0, Math.min(entries.length - 1, 8));
-    return this.selectedBestiaryIndex;
-  }
-
-  private clampSelectedCraftingIndex(recipes: RecipeDefinition[]): number {
-    if (recipes.length === 0) {
-      this.selectedCraftingIndex = 0;
-      return 0;
-    }
-
-    this.selectedCraftingIndex = Phaser.Math.Clamp(this.selectedCraftingIndex, 0, recipes.length - 1);
-    return this.selectedCraftingIndex;
-  }
-
-  private clampSelectedRefinementIndex(items: InventoryPanelEntry[]): number {
-    if (items.length === 0) {
-      this.selectedRefinementIndex = 0;
-      return 0;
-    }
-
-    this.selectedRefinementIndex = Phaser.Math.Clamp(this.selectedRefinementIndex, 0, items.length - 1);
-    return this.selectedRefinementIndex;
-  }
-
   private clampSelectedHuntingContractIndex(contracts: HuntingContractDefinition[]): number {
     if (contracts.length === 0) {
       this.selectedHuntingContractIndex = 0;
@@ -3664,42 +2332,6 @@ state.character.statusEffects,
     return "available";
   }
 
-  private getHuntingStatusColor(status: string): string {
-    if (status === "locked") {
-      return "#94a3b8";
-    }
-
-    if (status === "ready" || status === "completed") {
-      return "#bbf7d0";
-    }
-
-    if (status === "active") {
-      return "#93c5fd";
-    }
-
-    return "#fde68a";
-  }
-
-  private getQuestStatusColor(status: string): string {
-    if (status === "completed") {
-      return "#bbf7d0";
-    }
-
-    if (status === "ready") {
-      return "#fde68a";
-    }
-
-    if (status === "active") {
-      return "#93c5fd";
-    }
-
-    if (status === "locked") {
-      return "#94a3b8";
-    }
-
-    return "#f8fafc";
-  }
-
   private isSkillUnlocked(state: GameState, skill: SkillDefinition): boolean {
     return state.playerProfile.level >= skill.requiredLevel
       && getLearnedSkillLevel(state, skill.id) >= skill.requiredSkillLevel;
@@ -3716,8 +2348,7 @@ state.character.statusEffects,
   }
 
   private getInventoryWeight(state: GameState): number {
-    const stackWeight = state.inventory.items.reduce((total, item) => total + item.quantity, 0);
-    return stackWeight + state.inventory.equipmentInstances.length;
+    return getInventoryWeight(state.inventory);
   }
 
   private getWeightLimit(state: GameState, dataRegistry: DataRegistry): number {
@@ -3728,87 +2359,6 @@ state.character.statusEffects,
       (id) => dataRegistry.getStatusEffect(id),
       (id) => dataRegistry.getSupport(id),
     ).weightLimit;
-  }
-
-  private clampSelectedShopIndex(stock: ShopDefinition["stock"]): number {
-    if (stock.length === 0) {
-      this.selectedShopIndex = 0;
-      return 0;
-    }
-
-    this.selectedShopIndex = Phaser.Math.Clamp(this.selectedShopIndex, 0, stock.length - 1);
-    return this.selectedShopIndex;
-  }
-
-  private clampSelectedMarketInventoryIndex(items: InventoryPanelEntry[]): number {
-    if (items.length === 0) {
-      this.selectedMarketInventoryIndex = 0;
-      return 0;
-    }
-
-    this.selectedMarketInventoryIndex = Phaser.Math.Clamp(this.selectedMarketInventoryIndex, 0, items.length - 1);
-    return this.selectedMarketInventoryIndex;
-  }
-
-  private getInventoryPanelEntries(
-    stacks: InventoryItem[],
-    equipmentInstances: EquipmentInstance[],
-  ): InventoryPanelEntry[] {
-    return [
-      ...stacks.map((stack) => ({
-        itemId: stack.id,
-        quantity: stack.quantity,
-        source: "stack" as const,
-      })),
-      ...equipmentInstances.map((instance) => ({
-        itemId: instance.itemId,
-        quantity: 1,
-        source: "equipment" as const,
-      })),
-    ];
-  }
-
-  private getItemIconColor(item: ItemDefinition): number {
-    if (item.type === "weapon") {
-      return 0xb45309;
-    }
-
-    if (item.type === "armor") {
-      return 0x475569;
-    }
-
-    if (item.type === "accessory") {
-      return 0xa16207;
-    }
-
-    if (item.type === "sigil") {
-      return 0x7c3aed;
-    }
-
-    if (item.type === "support") {
-      return 0x0891b2;
-    }
-
-    if (item.type === "consumable") {
-      return 0xdc2626;
-    }
-
-    return 0x0f766e;
-  }
-
-  private getRarityColor(item: ItemDefinition): string {
-    const rarity = getItemRarity(item);
-
-    const colors = {
-      Common: "#cbd5e1",
-      Uncommon: "#86efac",
-      Rare: "#93c5fd",
-      Epic: "#c4b5fd",
-      Legendary: "#fde68a",
-      Mythic: "#f9a8d4",
-    };
-
-    return colors[rarity];
   }
 
   private formatDelta(value: number): string {
@@ -3840,17 +2390,5 @@ state.character.statusEffects,
     }
 
     return lines.join("\n");
-  }
-
-  private clampWrappedText(text: string, lineLength: number, maxLines: number): string {
-    const lines = this.wrapText(text, lineLength).split("\n");
-
-    if (lines.length <= maxLines) {
-      return lines.join("\n");
-    }
-
-    const visible = lines.slice(0, maxLines);
-    visible[maxLines - 1] = this.truncateText(visible[maxLines - 1] ?? "", Math.max(4, lineLength - 2));
-    return visible.join("\n");
   }
 }

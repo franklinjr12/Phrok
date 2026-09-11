@@ -36,8 +36,8 @@ export interface GameEventMap {
   };
   enemyKilled: { enemyId: string };
   bestiaryMilestoneUnlocked: { monsterId: string; milestone: number; family: string };
-  enemyHealthChanged: { enemyId: string; name: string; hp: number; maxHp: number; boss?: boolean; phase?: number };
-  enemyTargetChanged: { enemyId: string | null; name: string; hp: number; maxHp: number; boss?: boolean; phase?: number };
+  enemyHealthChanged: { enemyId: string; name: string; hp: number; maxHp: number; level?: number; elite?: boolean; boss?: boolean; phase?: number; statusIcons?: string[] };
+  enemyTargetChanged: { enemyId: string | null; name: string; hp: number; maxHp: number; level?: number; elite?: boolean; boss?: boolean; phase?: number; statusIcons?: string[] };
   lootDropped: { kind: "item" | "gold"; itemId?: string; quantity: number };
   lootPickedUp: { kind: "item" | "gold"; itemId?: string; quantity: number };
   mapChanged: { mapId: string; musicKey: string };

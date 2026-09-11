@@ -85,7 +85,9 @@ import type { DialogueSceneData } from "./DialogueScene";
 import type { MapDefinition, MonsterDefinition, RegionDefinition } from "../types/dataDefinitions";
 import type { GameState } from "../types/gameState";
 import { WorldDebugAdapter } from "../world/debug/WorldDebugAdapter";
+import { getGameInputOwnership } from "../ui/input/GameInputOwnership";
 import type { DroppedLootObject, EnemyRuntime, PortalObject, SpawnZoneRuntime, WorldSceneData } from "../world/worldTypes";
+import { enterScene, isSceneTransitioning, transitionToScene } from "./sceneTransition";
 
 const mapKeysById: Record<string, string> = {
   "crownfield-town": "map-crownfield-town",
@@ -105,8 +107,6 @@ const enemyAttackCooldownMs = 1250;
 const enemyCastWindupMs = 700;
 const playerAttackKnockbackDistance = 18;
 const meleeLungeDistance = 12;
-const meleeLungeOutMs = 55;
-const meleeLungeBackMs = 80;
 const bossRewardGold = 25;
 const monsterSpawnMinimumDistance = 44;
 const monsterSpawnPlacementAttempts = 32;
@@ -144,10 +144,6 @@ export class WorldScene extends Phaser.Scene {
   private unsubscribeLevelUp?: () => void;
   private unsubscribeSettingsChanged?: () => void;
   private vfxManager?: VfxManager;
-  private meleeLungeTweens = new WeakMap<
-    Phaser.Physics.Arcade.Sprite,
-    { tween: Phaser.Tweens.Tween; originX: number; originY: number }
-  >();
   private playerAttackTimerMs = playerAttackCooldownMs;
   private isCameraFollowingPlayer = false;
   private isTransitioning = false;
@@ -190,6 +186,8 @@ export class WorldScene extends Phaser.Scene {
     this.vfxManager = new VfxManager(this, dataRegistry.getVfxDefinitions(), this.game.canvas, {
       damageNumbersEnabled: state.settings.damageNumbersEnabled,
       intensity: state.settings.visualEffectsIntensity,
+      screenShakeEnabled: state.settings.screenShakeEnabled,
+      flashIntensity: state.settings.flashIntensity,
     });
     this.assistDebugGraphics = undefined;
     this.assistDebugVisible = false;
@@ -313,6 +311,8 @@ export class WorldScene extends Phaser.Scene {
       this.vfxManager?.setOptions({
         damageNumbersEnabled: settings.damageNumbersEnabled,
         intensity: settings.visualEffectsIntensity,
+        screenShakeEnabled: settings.screenShakeEnabled,
+        flashIntensity: settings.flashIntensity,
       });
       this.worldDebug?.set("settingsSummary", getSettingsSummary(settings));
       this.worldDebug?.set("settingsDifficulty", settings.difficulty);
@@ -473,17 +473,23 @@ tiledLayerNames.objects,
     this.worldDebug?.set("playerHasCollisionBody", String(Boolean(this.player.sprite.body)));
     this.worldDebug?.set("wasdMovement", "disabled");
     this.worldDebug?.set("movementMarker", "hidden");
+    this.worldDebug?.set("invalidInteractionFeedback", "hidden");
     this.syncPlayerDataset();
     this.syncSupportDataset();
     this.persistTransitionSpawn();
     this.syncEnemyDataset();
 
+    enterScene(this, "world");
     this.scene.launch(SceneKeys.UI);
     eventBus.emit("mapChanged", { mapId: state.currentMapId, musicKey: map.musicKey });
     this.recordQuestEvent("visitMap", state.currentMapId);
   }
 
   update(_time: number, delta: number): void {
+    if (isSceneTransitioning(this)) {
+      return;
+    }
+
     if (this.state) {
       expireSkillBuffs(this.state);
       this.updateAutoPotion();
@@ -494,6 +500,7 @@ tiledLayerNames.objects,
     this.updatePlayerAttackCooldown(delta);
     this.updateNpcInteraction();
     this.updateEnemyAi(delta);
+    this.enemies.forEach((enemy) => enemy.updatePresentation(delta));
     this.updateCombat(delta);
     this.renderAssistDebugOverlay();
     this.updateSpawnZones(delta);
@@ -506,9 +513,10 @@ tiledLayerNames.objects,
   private handlePointerDown(pointer: Phaser.Input.Pointer): void {
     if (
       !this.player
+      || isSceneTransitioning(this)
       || pointer.button !== 0
       || this.isDialogueOpen
-      || this.game.canvas.dataset.gameplayInputBlocked === "true"
+      || !getGameInputOwnership(this.registry).allowsWorldPointer(pointer)
     ) {
       return;
     }
@@ -553,11 +561,13 @@ tiledLayerNames.objects,
 
     if (!this.isWalkable(destination.x, destination.y)) {
       this.worldDebug?.set("lastMovementClickValid", "false");
+      this.showInvalidInteractionFeedback(destination.x, destination.y);
       return;
     }
 
     if (!this.collisionMap) {
       this.worldDebug?.set("lastMovementClickValid", "false");
+      this.showInvalidInteractionFeedback(destination.x, destination.y);
       return;
     }
 
@@ -565,6 +575,7 @@ tiledLayerNames.objects,
 
     if (path.length === 0) {
       this.worldDebug?.set("lastMovementClickValid", "false");
+      this.showInvalidInteractionFeedback(destination.x, destination.y);
       return;
     }
 
@@ -586,21 +597,55 @@ tiledLayerNames.objects,
 
   private showClickMarker(x: number, y: number): void {
     this.clickMarker?.destroy();
-    this.clickMarker = this.add.circle(x, y, 18, 0xfacc15, 0.22)
+    const marker = this.add.circle(x, y, 18, 0xfacc15, 0.22)
       .setStrokeStyle(2, 0xfef08a, 0.85)
+      .setScale(0.45)
       .setDepth(10);
+    this.clickMarker = marker;
     this.worldDebug?.set("movementMarker", "visible");
 
     this.tweens.add({
-      targets: this.clickMarker,
+      targets: marker,
+      alpha: 0.5,
+      scale: 1.05,
+      duration: 110,
+      ease: "Back.easeOut",
+      onComplete: () => {
+        if (this.clickMarker !== marker) return;
+        this.tweens.add({
+          targets: marker,
+          alpha: 0,
+          scale: 1.7,
+          duration: 340,
+          ease: "Sine.easeOut",
+          onComplete: () => {
+            if (this.clickMarker === marker) {
+              marker.destroy();
+              this.clickMarker = undefined;
+              this.worldDebug?.set("movementMarker", "hidden");
+            } else {
+              marker.destroy();
+            }
+          },
+        });
+      },
+    });
+  }
+
+  private showInvalidInteractionFeedback(x: number, y: number): void {
+    const marker = this.add.circle(x, y, 14, 0xef4444, 0.08)
+      .setStrokeStyle(2, 0xfca5a5, 0.9)
+      .setDepth(10);
+    this.worldDebug?.set("invalidInteractionFeedback", "visible");
+    this.tweens.add({
+      targets: marker,
       alpha: 0,
-      scale: 1.7,
-      duration: 450,
+      scale: 1.35,
+      duration: 240,
       ease: "Sine.easeOut",
       onComplete: () => {
-        this.clickMarker?.destroy();
-        this.clickMarker = undefined;
-        this.worldDebug?.set("movementMarker", "hidden");
+        marker.destroy();
+        this.worldDebug?.set("invalidInteractionFeedback", "hidden");
       },
     });
   }
@@ -620,8 +665,11 @@ tiledLayerNames.objects,
       name: enemy.name,
       hp: enemy.hp,
       maxHp: enemy.maxHp,
+      level: enemy.level,
+      elite: enemy.elite,
       boss: enemy.bossProtocolEnabled,
       phase: enemy.bossPhase,
+      statusIcons: enemy.statusEffects.map((status) => this.dataRegistry?.getStatusEffect(status.id).visualIcon ?? status.id),
     });
     this.syncBossProtocolDataset(enemy);
   }
@@ -641,6 +689,7 @@ tiledLayerNames.objects,
   }
 
   private interactWithNpc(npc: NpcEntity): void {
+    npc.pulseInteraction();
     this.clearTarget();
     this.pendingPortalInteraction = undefined;
     this.worldDebug?.set("pendingPortalInteraction", "");
@@ -937,6 +986,7 @@ tiledLayerNames.objects,
     });
 
     if (this.player) {
+      this.player.playAttack();
       this.playMeleeLunge(this.player.sprite, enemy.sprite, `player:${enemy.id}`);
     }
     this.damageEnemy(enemy, result.finalDamage);
@@ -947,8 +997,11 @@ tiledLayerNames.objects,
       name: enemy.name,
       hp: enemy.hp,
       maxHp: enemy.maxHp,
+      level: enemy.level,
+      elite: enemy.elite,
       boss: enemy.bossProtocolEnabled,
       phase: enemy.bossPhase,
+      statusIcons: enemy.statusEffects.map((status) => this.dataRegistry?.getStatusEffect(status.id).visualIcon ?? status.id),
     });
 
     if (!enemy.isAlive) {
@@ -966,7 +1019,13 @@ tiledLayerNames.objects,
   }
 
   private useHotbarSlot(slot: number): void {
-    if (!this.state || !this.dataRegistry || this.isDialogueOpen) {
+    if (
+      isSceneTransitioning(this)
+      || !this.state
+      || !this.dataRegistry
+      || this.isDialogueOpen
+      || !getGameInputOwnership(this.registry).allowsGameplayKeyboard()
+    ) {
       return;
     }
 
@@ -1008,8 +1067,11 @@ tiledLayerNames.objects,
         name: this.attackTarget.name,
         hp: this.attackTarget.hp,
         maxHp: this.attackTarget.maxHp,
+        level: this.attackTarget.level,
+        elite: this.attackTarget.elite,
         boss: this.attackTarget.bossProtocolEnabled,
         phase: this.attackTarget.bossPhase,
+        statusIcons: this.attackTarget.statusEffects.map((status) => this.dataRegistry?.getStatusEffect(status.id).visualIcon ?? status.id),
       });
 
       if (!this.attackTarget.isAlive) {
@@ -1089,6 +1151,13 @@ tiledLayerNames.objects,
   }
 
   private handleWorldKeydown = (event: KeyboardEvent): void => {
+    if (isSceneTransitioning(this)) return;
+
+    if (event.code === "Escape" && getGameInputOwnership(this.registry).cancelSkillTargeting()) {
+      event.preventDefault();
+      return;
+    }
+    if (!getGameInputOwnership(this.registry).allowsGameplayKeyboard()) return;
     if (event.code === "KeyU") {
       this.toggleVfxIntensity();
     }
@@ -1102,6 +1171,8 @@ tiledLayerNames.objects,
     this.vfxManager?.setOptions({
       damageNumbersEnabled: this.state.settings.damageNumbersEnabled,
       intensity: this.state.settings.visualEffectsIntensity,
+      screenShakeEnabled: this.state.settings.screenShakeEnabled,
+      flashIntensity: this.state.settings.flashIntensity,
     });
     this.worldDebug?.set("damageNumbersEnabled", String(this.state.settings.damageNumbersEnabled));
     this.worldDebug?.set("vfxIntensity", this.state.settings.visualEffectsIntensity);
@@ -1252,8 +1323,11 @@ this.state.character.statusEffects,
           name: enemy.name,
           hp: enemy.hp,
           maxHp: enemy.maxHp,
+          level: enemy.level,
+          elite: enemy.elite,
           boss: enemy.bossProtocolEnabled,
           phase: enemy.bossPhase,
+          statusIcons: enemy.statusEffects.map((status) => this.dataRegistry?.getStatusEffect(status.id).visualIcon ?? status.id),
         });
       }
 
@@ -1558,7 +1632,8 @@ phase.attackIds.join(","),
     const markerColor = drop.kind === "gold" ? 0xfacc15 : 0x38bdf8;
     const marker = this.add.rectangle(x, y, 22, 18, markerColor, 0.9)
       .setStrokeStyle(2, 0xf8fafc, 0.9)
-      .setDepth(16);
+      .setDepth(16)
+      .setInteractive({ useHandCursor: true });
     const label = this.add.text(x, y - 24, this.getLootLabel(drop), {
       color: "#f8fafc",
       fontFamily: "Arial, sans-serif",
@@ -1566,6 +1641,15 @@ phase.attackIds.join(","),
     })
       .setOrigin(0.5)
       .setDepth(17);
+
+    marker.on(Phaser.Input.Events.POINTER_OVER, () => {
+      marker.setScale(1.18).setStrokeStyle(3, 0xffffff, 1);
+      label.setColor("#fef08a");
+    });
+    marker.on(Phaser.Input.Events.POINTER_OUT, () => {
+      marker.setScale(1).setStrokeStyle(2, 0xf8fafc, 0.9);
+      label.setColor("#f8fafc");
+    });
 
     if (drop.kind === "item") {
       const rarity = getItemRarity(this.dataRegistry!.getItem(drop.itemId));
@@ -1680,15 +1764,26 @@ phase.attackIds.join(","),
       : 0;
 
     if (this.player && enemy.behavior !== "caster") {
+      enemy.playAttack();
       this.playMeleeLunge(enemy.sprite, this.player.sprite, `${enemy.id}:player`);
     }
     state.character.stats.hp = Math.max(0, state.character.stats.hp - finalDamage);
-    this.vfxManager?.spawnCombatText(
-      result.hit ? "damage" : "miss",
-      finalDamage,
-      this.player?.sprite.x ?? enemy.sprite.x,
-      (this.player?.sprite.y ?? enemy.sprite.y) - 34,
-    );
+    const playerX = this.player?.sprite.x ?? enemy.sprite.x;
+    const playerY = this.player?.sprite.y ?? enemy.sprite.y;
+    this.vfxManager?.spawnCombatFeedback({
+      attackerX: enemy.sprite.x,
+      attackerY: enemy.sprite.y,
+      targetX: playerX,
+      targetY: playerY,
+      damage: finalDamage,
+      hit: result.hit,
+      critical: result.critical,
+      onImpact: () => {
+        if (result.hit && state.character.stats.hp > 0) {
+          this.player?.playHurt();
+        }
+      },
+    });
     eventBus.emit("playerHealthChanged", {
       hp: state.character.stats.hp,
       maxHp: state.character.stats.maxHp,
@@ -1712,6 +1807,7 @@ phase.attackIds.join(","),
     this.worldDebug?.set("respawnTargetMap", this.getRespawnTownId());
     this.worldDebug?.set("respawnTargetName", this.getRespawnTownName());
     this.player?.clearDestination();
+    this.player?.playDeath();
     this.attackTarget = undefined;
 
     for (const runtime of this.enemyRuntimes) {
@@ -1917,6 +2013,7 @@ phase.attackIds.join(","),
         return;
       }
 
+      if (runtime.castWindupMs === null) enemy.playCast();
       enemy.behaviorMode = "casting";
       runtime.castWindupMs = (runtime.castWindupMs ?? 0) + deltaMs;
       enemy.setCastProgress(runtime.castWindupMs / enemyCastWindupMs);
@@ -2254,13 +2351,6 @@ phase.attackIds.join(","),
     targetSprite: Phaser.Physics.Arcade.Sprite,
     label: string,
   ): void {
-    const activeLunge = this.meleeLungeTweens.get(attackerSprite);
-
-    if (activeLunge) {
-      activeLunge.tween.stop();
-      this.resetMeleeLungeSprite(attackerSprite, activeLunge.originX, activeLunge.originY);
-    }
-
     const originX = attackerSprite.x;
     const originY = attackerSprite.y;
     const direction = new Phaser.Math.Vector2(targetSprite.x - originX, targetSprite.y - originY);
@@ -2272,86 +2362,45 @@ phase.attackIds.join(","),
     direction.normalize();
     const deltaX = direction.x * meleeLungeDistance;
     const deltaY = direction.y * meleeLungeDistance;
-    const targetX = originX + deltaX;
-    const targetY = originY + deltaY;
-
     if (label.startsWith("player:")) {
       this.worldDebug?.set("lastMeleeLunge", `${label}:${deltaX.toFixed(1)},${deltaY.toFixed(1)}`);
     } else {
       this.worldDebug?.set("lastEnemyMeleeLunge", `${label}:${deltaX.toFixed(1)},${deltaY.toFixed(1)}`);
     }
 
-    const lungeOut = this.tweens.add({
-      targets: attackerSprite,
-      x: targetX,
-      y: targetY,
-      duration: meleeLungeOutMs,
-      ease: "Sine.easeOut",
-      onUpdate: () => this.syncLungingSprite(attackerSprite),
-      onComplete: () => {
-        const lungeBack = this.tweens.add({
-          targets: attackerSprite,
-          x: originX,
-          y: originY,
-          duration: meleeLungeBackMs,
-          ease: "Sine.easeIn",
-          onUpdate: () => this.syncLungingSprite(attackerSprite),
-          onComplete: () => {
-            this.resetMeleeLungeSprite(attackerSprite, originX, originY);
-            this.meleeLungeTweens.delete(attackerSprite);
-          },
-        });
-
-        this.meleeLungeTweens.set(attackerSprite, { tween: lungeBack, originX, originY });
-      },
-    });
-
-    this.meleeLungeTweens.set(attackerSprite, { tween: lungeOut, originX, originY });
-  }
-
-  private resetMeleeLungeSprite(sprite: Phaser.Physics.Arcade.Sprite, x: number, y: number): void {
-    const body = sprite.body as Phaser.Physics.Arcade.Body | null;
-
-    body?.reset(x, y);
-    sprite.setPosition(x, y);
-    this.syncLungingSprite(sprite);
-  }
-
-  private syncLungingSprite(sprite: Phaser.Physics.Arcade.Sprite): void {
-    const body = sprite.body as Phaser.Physics.Arcade.Body | null;
-
-    body?.reset(sprite.x, sprite.y);
-    this.enemies.find((enemy) => enemy.sprite === sprite)?.updateVisuals();
+    const player = this.player?.sprite === attackerSprite ? this.player : undefined;
+    const enemy = this.enemies.find((entry) => entry.sprite === attackerSprite);
+    player?.playLunge(deltaX, deltaY);
+    enemy?.playLunge(deltaX, deltaY);
   }
 
   private spawnHitVfx(enemy: EnemyEntity, damage: number, hit: boolean, critical: boolean): void {
-    if (!hit) {
-      this.vfxManager?.spawnCombatText("miss", 0, enemy.sprite.x, enemy.sprite.y - 38);
-      return;
-    }
-
-    const hitVfxId = critical ? "critical-hit" : "weapon-hit";
-    this.vfxManager?.spawn(hitVfxId, enemy.sprite.x, enemy.sprite.y);
-    this.vfxManager?.spawnCombatText(critical ? "critical" : "damage", damage, enemy.sprite.x, enemy.sprite.y - 38);
+    const hitVfxId = hit ? (critical ? "critical-hit" : "weapon-hit") : "miss";
+    const playerX = this.player?.sprite.x ?? enemy.sprite.x;
+    const playerY = this.player?.sprite.y ?? enemy.sprite.y;
+    this.vfxManager?.spawnCombatFeedback({
+      attackerX: playerX,
+      attackerY: playerY,
+      targetX: enemy.sprite.x,
+      targetY: enemy.sprite.y,
+      damage,
+      hit,
+      critical,
+      onImpact: () => {
+        if (hit && enemy.isAlive) {
+          enemy.playHurt();
+        }
+      },
+    });
     this.worldDebug?.set("lastHitVfx", hitVfxId);
     this.worldDebug?.set("lastHitReaction", `${enemy.id}:${critical ? "critical" : "hit"}:${damage}`);
-
-    if (enemy.isAlive) {
-      this.tweens.add({
-        targets: enemy.sprite,
-        scaleX: 1.08,
-        scaleY: 0.92,
-        yoyo: true,
-        duration: 70,
-        ease: "Sine.easeOut",
-      });
-    }
   }
 
   private spawnSkillVfx(damage: number): void {
     const target = this.attackTarget;
 
     if (this.player) {
+      this.player.playCast();
       this.vfxManager?.spawn("skill-cast", this.player.sprite.x, this.player.sprite.y + 8);
       this.worldDebug?.set("lastPlayerAnimation", `cast:${this.player.direction}`);
     }
@@ -2410,12 +2459,12 @@ phase.attackIds.join(","),
     this.worldDebug?.set("lastAutosaveSlot", String(savedSlot));
     this.worldDebug?.set("lastAutosaveMap", saveData.gameState.currentMapId);
     eventBus.emit("saveCompleted", { saveSlot: savedSlot });
-    this.scene.restart({
+    transitionToScene(this, SceneKeys.World, {
       spawnName: portal.targetSpawnName,
       lastAutosaveMap: saveData.gameState.currentMapId,
       lastAutosaveSlot: String(savedSlot),
       lastTransition: `${portal.name}:${portal.targetMapId}:${portal.targetSpawnName}`,
-    });
+    }, { restart: true });
   }
 
   private persistTransitionSpawn(): void {
@@ -2722,6 +2771,7 @@ phase.attackIds.join(","),
       ...monster,
       respawnMs,
     }, spawnPoint);
+    enemy.playSpawn();
 
     if (collisionLayer) {
       this.physics.add.collider(enemy.sprite, collisionLayer);
@@ -2843,10 +2893,31 @@ phase.attackIds.join(","),
   private createPortalMarker(object: Phaser.Types.Tilemaps.TiledObject): void {
     const x = (object.x ?? 0) + (object.width ?? 32) / 2;
     const y = (object.y ?? 0) + (object.height ?? 32) / 2;
+    const targetMapId = this.getObjectStringProperty(object, "targetMapId", "unknown destination");
 
-    this.add.rectangle(x, y, object.width ?? 32, object.height ?? 32, 0x38bdf8, 0.28)
+    const marker = this.add.rectangle(x, y, object.width ?? 32, object.height ?? 32, 0x38bdf8, 0.28)
       .setStrokeStyle(2, 0xbae6fd, 0.8)
-      .setDepth(12);
+      .setDepth(12)
+      .setInteractive({ useHandCursor: true })
+      .setData("portalDestination", targetMapId);
+    const label = this.add.text(x, y - (object.height ?? 32) / 2 - 12, `→ ${targetMapId}`, {
+      color: "#bae6fd",
+      fontFamily: "Arial, sans-serif",
+      fontSize: "10px",
+      backgroundColor: "#0f172acc",
+      padding: { x: 4, y: 2 },
+    })
+      .setOrigin(0.5)
+      .setDepth(13)
+      .setVisible(false);
+    marker.on(Phaser.Input.Events.POINTER_OVER, () => {
+      marker.setAlpha(0.56).setStrokeStyle(3, 0xffffff, 1);
+      label.setVisible(true);
+    });
+    marker.on(Phaser.Input.Events.POINTER_OUT, () => {
+      marker.setAlpha(0.28).setStrokeStyle(2, 0xbae6fd, 0.8);
+      label.setVisible(false);
+    });
   }
 
   private createSpotMarker(object: Phaser.Types.Tilemaps.TiledObject): void {

@@ -89,6 +89,12 @@ export function readSaveSlot(slot: number, storage: Storage = window.localStorag
   return serialized ? readSerializedSave(serialized) : null;
 }
 
+/** Remove one manual save slot without changing the save format or other slots. */
+export function deleteSaveSlot(slot: number, storage: Storage = window.localStorage): void {
+  assertManualSaveSlot(slot);
+  storage.removeItem(getSaveSlotStorageKey(slot));
+}
+
 export function readSaveSlots(storage: Storage = window.localStorage): Array<SaveData | null> {
   return Array.from({ length: manualSaveSlotCount }, (_, index) => readSaveSlot(index + 1, storage));
 }

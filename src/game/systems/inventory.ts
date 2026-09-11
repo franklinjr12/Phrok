@@ -94,6 +94,12 @@ export function getFirstInventoryStack(inventory: InventoryState): InventoryItem
   return inventory.items[0] ?? null;
 }
 
+/** Returns the gameplay inventory weight used by UI presentation and capacity checks. */
+export function getInventoryWeight(inventory: InventoryState): number {
+  const stackWeight = inventory.items.reduce((total, item) => total + item.quantity, 0);
+  return stackWeight + inventory.equipmentInstances.length;
+}
+
 function isStackableItem(item: ItemDefinition): boolean {
   return item.type === "consumable" || item.type === "material" || item.type === "key";
 }

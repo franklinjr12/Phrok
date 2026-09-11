@@ -1,7 +1,7 @@
 import { expect, test } from "@playwright/test";
 import { confirmDefaultCharacter, startApp } from "./helpers";
 
-test("world ui hotkeys show inventory, equipment, comparison, and block gameplay clicks", async ({ page }) => {
+test("world ui hotkeys support overlapping ordinary windows without blocking gameplay", async ({ page }) => {
   await startApp(page);
 
   const canvas = await confirmDefaultCharacter(page);
@@ -9,7 +9,7 @@ test("world ui hotkeys show inventory, equipment, comparison, and block gameplay
 
   await page.keyboard.press("KeyI");
   await expect(canvas).toHaveAttribute("data-ui-panel", "inventory");
-  await expect(canvas).toHaveAttribute("data-gameplay-input-blocked", "true");
+  await expect(canvas).toHaveAttribute("data-gameplay-input-blocked", "false");
   await expect(canvas).toHaveAttribute("data-inventory-panel", "visible");
   await expect(canvas).toHaveAttribute("data-inventory-item-count", "1");
   await expect(canvas).toHaveAttribute("data-selected-inventory-item", "training-sword");
@@ -47,6 +47,7 @@ test("world ui hotkeys show inventory, equipment, comparison, and block gameplay
 
   await page.keyboard.press("KeyP");
   await expect(canvas).toHaveAttribute("data-ui-panel", "equipment");
+  await expect(canvas).toHaveAttribute("data-character-panel", "visible");
   await expect(canvas).toHaveAttribute("data-equipment-panel", "visible");
   await expect(canvas).toHaveAttribute(
     "data-equipment-slots-visible",
@@ -54,13 +55,18 @@ test("world ui hotkeys show inventory, equipment, comparison, and block gameplay
   );
   await expect(canvas).toHaveAttribute("data-player-attack-stat", "29");
 
-  await canvas.click({ position: { x: 140, y: 466 } });
+  await page.keyboard.press("KeyC");
+  await expect(canvas).toHaveAttribute("data-ui-panel", "equipment");
+  await expect(canvas).toHaveAttribute("data-character-panel", "hidden");
+
+  await canvas.click({ position: { x: 164, y: 486 } });
   await expect(canvas).toHaveAttribute("data-last-equipment-action", "remove:weapon");
   await expect(canvas).toHaveAttribute("data-equipment-weapon", "");
   await expect(canvas).toHaveAttribute("data-player-attack-stat", "27");
 
   await page.keyboard.press("KeyI");
   await expect(canvas).toHaveAttribute("data-ui-panel", "inventory");
+  await expect(canvas).toHaveAttribute("data-equipment-panel", "visible");
   await canvas.click({ position: { x: 540, y: 446 } });
   await expect(canvas).toHaveAttribute("data-last-inventory-action", "equip:training-sword");
   await expect(canvas).toHaveAttribute("data-equipment-weapon", "training-sword");

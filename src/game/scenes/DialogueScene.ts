@@ -6,6 +6,8 @@ import { eventBus } from "../systems/eventBus";
 import type { DataRegistry } from "../data/dataRegistry";
 import type { DialogueChoiceDefinition } from "../types/dataDefinitions";
 import type { GameState } from "../types/gameState";
+import { getGameInputOwnership } from "../ui/input/GameInputOwnership";
+import { getNpcTextureKey, NpcTextureKeys } from "../entities/NpcEntity";
 
 export type DialogueSceneData = {
   npcId: string;
@@ -21,9 +23,15 @@ export class DialogueScene extends Phaser.Scene {
   private dialogueData?: DialogueSceneData;
   private lineIndex = 0;
   private nameText?: Phaser.GameObjects.Text;
+  private roleText?: Phaser.GameObjects.Text;
   private bodyText?: Phaser.GameObjects.Text;
+  private portrait?: Phaser.GameObjects.Sprite;
   private nextButton?: Phaser.GameObjects.Text;
   private confirmButton?: Phaser.GameObjects.Text;
+  private confirmationBackdrop?: Phaser.GameObjects.Rectangle;
+  private confirmationCard?: Phaser.GameObjects.Rectangle;
+  private confirmationText?: Phaser.GameObjects.Text;
+  private cancelConfirmationButton?: Phaser.GameObjects.Text;
   private selectedAdvancedClass?: AdvancedClassDefinition;
 
   constructor() {
@@ -43,6 +51,7 @@ export class DialogueScene extends Phaser.Scene {
     if (!this.dialogueData) {
       return;
     }
+    getGameInputOwnership(this.registry).set("dialogue");
 
     const width = this.scale.width;
     const height = this.scale.height;
@@ -53,19 +62,31 @@ export class DialogueScene extends Phaser.Scene {
       .setStrokeStyle(2, 0xfacc15, 0.95)
       .setScrollFactor(0)
       .setDepth(200);
-    this.nameText = this.add.text(48, boxY + 20, this.dialogueData.npcName, {
+    const portraitKey = this.getPortraitTextureKey();
+    this.portrait = this.add.sprite(84, boxY + 72, portraitKey)
+      .setDisplaySize(64, 72)
+      .setScrollFactor(0)
+      .setDepth(201);
+    this.nameText = this.add.text(150, boxY + 18, this.dialogueData.npcName, {
       color: "#facc15",
       fontFamily: "Arial, sans-serif",
       fontSize: "18px",
     })
       .setScrollFactor(0)
       .setDepth(201);
-    this.bodyText = this.add.text(48, boxY + 52, "", {
+    this.roleText = this.add.text(150, boxY + 43, this.getRoleLabel(), {
+      color: "#93c5fd",
+      fontFamily: "Arial, sans-serif",
+      fontSize: "12px",
+    })
+      .setScrollFactor(0)
+      .setDepth(201);
+    this.bodyText = this.add.text(150, boxY + 64, "", {
       color: "#f8fafc",
       fontFamily: "Arial, sans-serif",
       fontSize: "16px",
       lineSpacing: 6,
-      wordWrap: { width: Math.min(width - 96, 704) },
+      wordWrap: { width: Math.min(width - 190, 610) },
     })
       .setScrollFactor(0)
       .setDepth(201);
@@ -132,6 +153,7 @@ export class DialogueScene extends Phaser.Scene {
 
       this.selectedAdvancedClass = selectedDefinition;
       this.game.canvas.dataset.advancedClassConfirmation = `pending:${selectedDefinition.id}`;
+      this.showAdvancedClassConfirmation();
       this.renderLine();
     }
   }
@@ -207,6 +229,7 @@ export class DialogueScene extends Phaser.Scene {
     const dialogueId = this.dialogueData?.dialogueId ?? "";
 
     this.selectedAdvancedClass = undefined;
+    getGameInputOwnership(this.registry).restoreWindowOwner();
     this.syncDataset("closed");
     eventBus.emit("dialogueClosed", { dialogueId });
     this.scene.stop();
@@ -217,6 +240,39 @@ export class DialogueScene extends Phaser.Scene {
       return;
     }
 
+    this.confirmationBackdrop = this.add.rectangle(width / 2, this.scale.height / 2, width, this.scale.height, 0x020617, 0.48)
+      .setScrollFactor(0)
+      .setDepth(209)
+      .setVisible(false)
+      .setInteractive();
+    this.confirmationCard = this.add.rectangle(width / 2, boxY + 112, 520, 116, 0x172033, 0.99)
+      .setStrokeStyle(2, 0xfacc15, 0.95)
+      .setScrollFactor(0)
+      .setDepth(210)
+      .setVisible(false);
+    this.confirmationText = this.add.text(166, boxY + 73, "This choice is permanent for this character.\nConfirm this specialization?", {
+      color: "#f8fafc",
+      fontFamily: "Arial, sans-serif",
+      fontSize: "13px",
+      lineSpacing: 4,
+    })
+      .setScrollFactor(0)
+      .setDepth(211)
+      .setVisible(false);
+    this.cancelConfirmationButton = this.add.text(width - 360, boxY + 112, "Cancel", {
+      backgroundColor: "#334155",
+      color: "#f8fafc",
+      fixedWidth: 82,
+      fixedHeight: 28,
+      fontFamily: "Arial, sans-serif",
+      fontSize: "13px",
+      padding: { x: 10, y: 6 },
+    })
+      .setScrollFactor(0)
+      .setDepth(211)
+      .setVisible(false)
+      .setInteractive({ useHandCursor: true })
+      .on(Phaser.Input.Events.POINTER_DOWN, () => this.cancelAdvancedClassChoice());
     this.confirmButton = this.add.text(width - 252, boxY + 112, "Confirm", {
       backgroundColor: "#047857",
       color: "#f8fafc",
@@ -231,6 +287,50 @@ export class DialogueScene extends Phaser.Scene {
       .setVisible(false)
       .setInteractive({ useHandCursor: true })
       .on(Phaser.Input.Events.POINTER_DOWN, () => this.confirmAdvancedClassChoice());
+  }
+
+  private showAdvancedClassConfirmation(): void {
+    this.confirmationBackdrop?.setVisible(true);
+    this.confirmationCard?.setVisible(true);
+    this.confirmationText?.setVisible(true);
+    this.cancelConfirmationButton?.setVisible(true);
+    this.confirmButton?.setVisible(true);
+    this.game.canvas.dataset.advancedClassModal = "visible";
+  }
+
+  private cancelAdvancedClassChoice(): void {
+    this.selectedAdvancedClass = undefined;
+    this.confirmationBackdrop?.setVisible(false);
+    this.confirmationCard?.setVisible(false);
+    this.confirmationText?.setVisible(false);
+    this.cancelConfirmationButton?.setVisible(false);
+    this.confirmButton?.setVisible(false);
+    this.game.canvas.dataset.advancedClassModal = "hidden";
+    this.renderLine();
+  }
+
+  private getPortraitTextureKey(): string {
+    const key = getNpcTextureKey(this.dialogueData?.npcId ?? "");
+    return this.textures.exists(key) ? key : NpcTextureKeys.TownService;
+  }
+
+  private getRoleLabel(): string {
+    const service = this.dialogueData?.serviceType ?? "resident";
+    const labels: Record<string, string> = {
+      "advanced-class": "Advanced class mentor",
+      "hunter-board": "Hunting board keeper",
+      "advanced-hunter-board": "Advanced hunting board keeper",
+      "stat-reset": "Stat reset specialist",
+      merchant: "Merchant",
+      appraiser: "Appraiser",
+      storage: "Storage keeper",
+      crafter: "Crafting specialist",
+      refiner: "Refinement specialist",
+      travel: "Wayfinder",
+      inn: "Innkeeper",
+      guide: "Regional guide",
+    };
+    return labels[service] ?? service;
   }
 
   private getAdvancedClassPreviewText(definition: AdvancedClassDefinition): string {
@@ -251,6 +351,8 @@ export class DialogueScene extends Phaser.Scene {
     this.game.canvas.dataset.dialogueNpcName = state === "open" ? data?.npcName ?? "" : "";
     this.game.canvas.dataset.dialogueId = state === "open" ? data?.dialogueId ?? "" : "";
     this.game.canvas.dataset.dialogueServiceType = state === "open" ? data?.serviceType ?? "" : "";
+    this.game.canvas.dataset.dialogueRole = state === "open" ? this.getRoleLabel() : "";
+    this.game.canvas.dataset.dialogueNpcTextureKey = state === "open" ? this.getPortraitTextureKey() : "";
     this.game.canvas.dataset.dialogueText = state === "open"
       ? selected ? this.getAdvancedClassPreviewText(selected) : data?.lines[this.lineIndex] ?? ""
       : "";
@@ -276,5 +378,6 @@ export class DialogueScene extends Phaser.Scene {
     this.game.canvas.dataset.selectedAdvancedClass = selected?.id ?? "";
     this.game.canvas.dataset.selectedAdvancedClassPreviewSkills = selected?.previewSkillNames.join("|") ?? "";
     this.game.canvas.dataset.advancedClassConfirmation = selected ? `pending:${selected.id}` : "";
+    this.game.canvas.dataset.advancedClassModal = selected ? "visible" : "hidden";
   }
 }
