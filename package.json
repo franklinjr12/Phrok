@@ -5,10 +5,16 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "typecheck": "tsc --noEmit",
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
     "test": "npm run test:logic && npm run test:e2e",
     "test:e2e": "playwright test",
+    "test:e2e:smoke": "playwright test tests/appShell.spec.ts tests/characterCreation.spec.ts tests/mainMenu.spec.ts",
+    "test:e2e:combat": "playwright test tests/combat.spec.ts",
+    "test:e2e:ui": "playwright test tests/worldUi.spec.ts tests/townNpcs.spec.ts",
+    "test:e2e:world": "playwright test tests/world.spec.ts tests/challengeDungeons.spec.ts",
+    "test:tools": "node --test scripts/data-tools.test.mjs",
     "test:logic": "vitest run src",
     "test:ui": "playwright test --ui"
   },

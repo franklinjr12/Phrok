@@ -1,35 +1,41 @@
-# Repository Guidelines
+# Stack
 
-## Project Structure & Module Organization
+- Phaser 4
+- TypeScript
+- Vite
+- Vitest
+- Playwright
 
-This is a Vite + TypeScript Phaser project. The browser entry point is `src/main.ts`, shared styling is in `src/styles.css`, and game code belongs under `src/game/`. Scene classes currently live in `src/game/scenes/`, for example `MainMenuScene.ts`. End-to-end tests are in `tests/` and use Playwright. Design and planning notes live in `docs/`. Generated output such as `dist/`, `test-results/`, and `playwright-report/` should not be edited by hand.
+# Repository map
 
-## Build, Test, and Development Commands
+- Runtime: `src/game/`
+- Scenes: `src/game/scenes/`
+- UI: `src/game/scenes/UIScene.ts`
+- World runtime: `src/game/scenes/WorldScene.ts`
+- Domain systems: `src/game/systems/`
+- Data registry: `src/game/data/`
+- Static game data: `public/assets/data/`
+- E2E tests: `tests/`
+- Architecture docs: `docs/architecture/`
+- Game design: `docs/design/`
+- Epics: `docs/epics/`
 
-- `npm install`: install dependencies from `package-lock.json`.
-- `npm run dev`: start the Vite development server.
-- `npm run build`: type-check with `tsc --noEmit` and create the production Vite build.
-- `npm test`: run the Playwright test suite.
-- `npm run test:ui`: open Playwright's interactive test runner.
-- `npm run preview`: serve the production build locally for final checks.
+Read only documentation relevant to current task. For large data catalogs, use `scripts/query-data.mjs` or `scripts/list-data.mjs` first.
 
-## Coding Style & Naming Conventions
+# Verification
 
-Use TypeScript modules and keep imports explicit. Follow the existing style: two-space indentation, double quotes, semicolons, and trailing commas only where TypeScript or the formatter naturally adds them. Name Phaser scene classes in `PascalCase` with a `Scene` suffix, such as `MainMenuScene`. Use `camelCase` for variables, functions, and private helpers. Keep scene-specific constants near the scene that owns them until they are reused across modules.
+Use `./scripts/verify.ps1` from repository root. Use scoped verification while iterating; use `-Scope Full` before completing architectural work.
 
-## Testing Guidelines
+# Agent workflow
 
-Use Vitest for game logic and backend-style tests once those modules exist. Use Playwright for end-to-end and frontend tests and visual tests. Because this is a game, Playwright tests should simulate user input directly, such as pressing keys, moving the mouse to a position, and clicking the canvas. Place browser tests in `tests/` using the `*.spec.ts` suffix, for visual changes example sprites etc use playwright screenshot feature and analyse the image if its according to your changes. Every feature or significant code change must include a test: logic changes should be covered by Vitest, and visual or interaction changes should be covered by Playwright. Run `npm test` before submitting changes. For UI-heavy changes, use `npm run test:ui` or inspect the generated Playwright report after failures.
+- Work on one backlog/refactor task at a time.
+- Resolve named epics through `docs/epics/index.md` and its one epic file.
+- Do not inspect complete GDD, backlog, or large game-data files unless bulk work requires it.
+- Prefer existing focused tests and deterministic debug scenarios.
+- Preserve gameplay behavior, save compatibility, and public event names during refactors.
+- Do not redesign unrelated systems or run repository-wide formatting.
+- Final report: changes, tests run, remaining issues.
 
-## Project Notes & Planning
+# Assets
 
-The project backlog lives in `docs/backlog.md`. The full game design and project description live in `docs/gdd.md`. Consult these documents when implementation details, feature intent, or priorities are unclear.
-
-## Commit & Pull Request Guidelines
-
-This repository does not yet have commit history to derive a local convention from. Use short, imperative commit messages, for example `Add main menu scene` or `Document test workflow`. Pull requests should include a concise summary, testing performed, and linked issue or backlog item when applicable. Include screenshots or short recordings for visible UI/gameplay changes.
-
-## Agent-Specific Instructions
-
-For any sprites that do not exist yet at implementation that that you need use the skill "generate single sprite"
-ALWAYS use the skill "/caveman ultra" on every start of conversation unless told otherwise.
+Use sprite generation only when task requires a missing sprite.
