@@ -1,6 +1,6 @@
 # Project Backlog
 
-# **Echoes of the Rune Wilds**
+# **Phrok**
 
 ## Single-Player 2D Top-Down Pixel Art RPG
 
