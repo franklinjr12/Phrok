@@ -84,6 +84,8 @@ import type { DataRegistry } from "../data/dataRegistry";
 import type { DialogueSceneData } from "./DialogueScene";
 import type { MapDefinition, MonsterDefinition, RegionDefinition } from "../types/dataDefinitions";
 import type { GameState } from "../types/gameState";
+import { WorldDebugAdapter } from "../world/debug/WorldDebugAdapter";
+import type { DroppedLootObject, EnemyRuntime, PortalObject, SpawnZoneRuntime, WorldSceneData } from "../world/worldTypes";
 
 const mapKeysById: Record<string, string> = {
   "crownfield-town": "map-crownfield-town",
@@ -111,40 +113,6 @@ const monsterSpawnPlacementAttempts = 32;
 const fallbackRespawnTownId = "crownfield-town";
 
 type PrototypeTilemapLayer = Phaser.Tilemaps.TilemapLayer | Phaser.Tilemaps.TilemapGPULayer;
-type WorldSceneData = {
-  spawnName?: string;
-  lastAutosaveMap?: string;
-  lastAutosaveSlot?: string;
-  lastTransition?: string;
-  useSavedPosition?: boolean;
-};
-type PortalObject = {
-  name: string;
-  bounds: Phaser.Geom.Rectangle;
-  targetMapId: string;
-  targetSpawnName: string;
-};
-type DroppedLootObject = {
-  id: string;
-  drop: LootDrop;
-  marker: Phaser.GameObjects.Rectangle;
-  label: Phaser.GameObjects.Text;
-};
-type SpawnZoneRuntime = SpawnZoneDefinition & {
-  respawnTimerMs: number;
-};
-type EnemyRuntime = {
-  enemy: EnemyEntity;
-  zoneId: string;
-  home: Phaser.Math.Vector2;
-  damagedByPlayer: boolean;
-  assistedByAlly: boolean;
-  elapsedInCombatMs: number;
-  attackTimerMs: number;
-  castTimerMs: number;
-  castWindupMs: number | null;
-};
-
 export class WorldScene extends Phaser.Scene {
   private player?: PlayerEntity;
   private enemy?: EnemyEntity;
@@ -157,6 +125,7 @@ export class WorldScene extends Phaser.Scene {
   private collisionMap?: GridCollisionMap;
   private state?: GameState;
   private dataRegistry?: DataRegistry;
+  private worldDebug?: WorldDebugAdapter;
   private playerCombatStats?: CombatStats;
   private weaponAttack = 0;
   private attackTarget?: EnemyEntity;
@@ -207,6 +176,7 @@ export class WorldScene extends Phaser.Scene {
     const dataRegistry = this.registry.get(RegistryKeys.DataRegistry) as DataRegistry;
     this.state = state;
     this.dataRegistry = dataRegistry;
+    this.worldDebug = new WorldDebugAdapter(this.game.canvas);
     this.droppedLoot = [];
     this.portals = [];
     this.npcs = [];
@@ -285,7 +255,7 @@ export class WorldScene extends Phaser.Scene {
     this.unsubscribeDialogueClosed = eventBus.on("dialogueClosed", () => {
       this.isDialogueOpen = false;
       this.pendingNpcInteraction = undefined;
-      this.game.canvas.dataset.dialogueBlockingMovement = "false";
+      this.worldDebug?.set("dialogueBlockingMovement", "false");
     });
     this.unsubscribeEquipmentChanged = eventBus.on("equipmentChanged", () => {
       syncEquippedSupportFromEquipment(state, (id) => dataRegistry.getItem(id));
@@ -344,13 +314,13 @@ export class WorldScene extends Phaser.Scene {
         damageNumbersEnabled: settings.damageNumbersEnabled,
         intensity: settings.visualEffectsIntensity,
       });
-      this.game.canvas.dataset.settingsSummary = getSettingsSummary(settings);
-      this.game.canvas.dataset.settingsDifficulty = settings.difficulty;
-      this.game.canvas.dataset.settingsUiScale = String(settings.uiScale);
-      this.game.canvas.dataset.damageNumbersEnabled = String(settings.damageNumbersEnabled);
-      this.game.canvas.dataset.vfxIntensity = settings.visualEffectsIntensity;
-      this.game.canvas.dataset.screenShakeEnabled = String(settings.screenShakeEnabled);
-      this.game.canvas.dataset.flashIntensity = settings.flashIntensity.toFixed(2);
+      this.worldDebug?.set("settingsSummary", getSettingsSummary(settings));
+      this.worldDebug?.set("settingsDifficulty", settings.difficulty);
+      this.worldDebug?.set("settingsUiScale", String(settings.uiScale));
+      this.worldDebug?.set("damageNumbersEnabled", String(settings.damageNumbersEnabled));
+      this.worldDebug?.set("vfxIntensity", settings.visualEffectsIntensity);
+      this.worldDebug?.set("screenShakeEnabled", String(settings.screenShakeEnabled));
+      this.worldDebug?.set("flashIntensity", settings.flashIntensity.toFixed(2));
     });
     audioManager.initialize(state, this.game.canvas);
     this.input.keyboard?.on("keydown-F9", this.toggleAssistDebugOverlay, this);
@@ -363,7 +333,7 @@ export class WorldScene extends Phaser.Scene {
     this.input.keyboard?.on("keydown-N", this.toggleMusicMute, this);
     this.input.keyboard?.on("keydown-J", this.toggleSfxMute, this);
     this.input.keyboard?.on("keydown-Y", this.toggleDamageNumbers, this);
-    this.input.keyboard?.on("keydown-U", this.toggleVfxIntensity, this);
+    window.addEventListener("keydown", this.handleWorldKeydown, true);
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
       this.unsubscribeDialogueClosed?.();
       this.unsubscribeEquipmentChanged?.();
@@ -385,124 +355,124 @@ export class WorldScene extends Phaser.Scene {
       this.input.keyboard?.off("keydown-N", this.toggleMusicMute, this);
       this.input.keyboard?.off("keydown-J", this.toggleSfxMute, this);
       this.input.keyboard?.off("keydown-Y", this.toggleDamageNumbers, this);
-      this.input.keyboard?.off("keydown-U", this.toggleVfxIntensity, this);
+      window.removeEventListener("keydown", this.handleWorldKeydown, true);
       this.input.off("pointerdown", this.handlePointerDown, this);
     });
 
     const primaryEnemy = this.enemies.find((enemy) => enemy.isAlive) ?? this.enemies[0];
-    this.game.canvas.dataset.scene = "world";
-    this.game.canvas.dataset.currentMap = state.currentMapId;
-    this.game.canvas.dataset.currentMapName = map.name;
+    this.worldDebug?.set("scene", "world");
+    this.worldDebug?.set("currentMap", state.currentMapId);
+    this.worldDebug?.set("currentMapName", map.name);
     this.syncMapMetadataDataset(map, region);
-    this.game.canvas.dataset.characterArchetype = state.character.archetype;
-    this.game.canvas.dataset.spawnedMonster = primaryEnemy?.id ?? "";
-    this.game.canvas.dataset.spawnedMonsterName = primaryEnemy?.name ?? "";
-    this.game.canvas.dataset.enemySelected = "false";
-    this.game.canvas.dataset.enemyCombatState = primaryEnemy?.behaviorMode ?? "";
-    this.game.canvas.dataset.enemyHp = primaryEnemy ? `${primaryEnemy.hp}/${primaryEnemy.maxHp}` : "";
-    this.game.canvas.dataset.enemyPosition = primaryEnemy
-      ? `${primaryEnemy.sprite.x},${primaryEnemy.sprite.y}`
-      : "";
-    this.game.canvas.dataset.enemyTextureKey = primaryEnemy?.textureKey ?? "";
-    this.game.canvas.dataset.targetFrame = "hidden";
-    this.game.canvas.dataset.autoAttack = "idle";
-    this.game.canvas.dataset.playerCombatState = "alive";
-    this.game.canvas.dataset.gameOver = "hidden";
-    this.game.canvas.dataset.respawnTargetMap = this.getRespawnTownId();
-    this.game.canvas.dataset.respawnTargetName = this.getRespawnTownName();
-    this.game.canvas.dataset.lastDeathSource = "";
-    this.game.canvas.dataset.lastCombatFormula = "";
-    this.game.canvas.dataset.lastSkillUse = "";
-    this.game.canvas.dataset.skillCooldowns = "";
-    this.game.canvas.dataset.consumableCooldowns = getConsumableCooldownSummary(state);
-    this.game.canvas.dataset.autoPotionSettings = getAutoPotionSettingsSummary(state);
-    this.game.canvas.dataset.lastAutoPotionUse = "";
-    this.game.canvas.dataset.lastSupportAction = "";
-    this.game.canvas.dataset.supportSummary = getSupportSummary(state);
-    this.game.canvas.dataset.lastXpGain = "";
-    this.game.canvas.dataset.lastLevelUp = "";
-    this.game.canvas.dataset.lastLootDrop = "";
-    this.game.canvas.dataset.lastLootPickup = "";
-    this.game.canvas.dataset.pendingLootCount = "0";
-    this.game.canvas.dataset.inventoryGold = String(state.inventory.gold);
-    this.game.canvas.dataset.inventoryStackCount = String(state.inventory.items.length);
-    this.game.canvas.dataset.equipmentInstanceCount = String(state.inventory.equipmentInstances.length);
-    this.game.canvas.dataset.playerXpNext = String(getLevelXpThreshold(dataRegistry.getXpTable("standard"), state.playerProfile.level + 1) ?? "");
-    this.game.canvas.dataset.tilemapKey = tilemapKey;
-    this.game.canvas.dataset.tilemapLayers = [
-      tiledLayerNames.ground,
-      tiledLayerNames.decoration,
-      tiledLayerNames.collision,
-      tiledLayerNames.objects,
-    ].join("|");
-    this.game.canvas.dataset.tilemapSize = `${tilemap.width}x${tilemap.height}`;
-    this.game.canvas.dataset.spawnPoint = `${spawnPoint.x},${spawnPoint.y}`;
-    this.game.canvas.dataset.spawnName = this.spawnName;
-    this.game.canvas.dataset.currentSaveSlot = String(state.currentSaveSlot ?? "");
-    this.game.canvas.dataset.npcCount = String(this.npcs.length);
-    this.game.canvas.dataset.npcEntityCount = String(this.npcs.length);
-    this.game.canvas.dataset.npcNames = this.npcs.map((npc) => npc.name).join("|");
-    this.game.canvas.dataset.npcServiceTypes = this.npcs.map((npc) => npc.serviceType).join("|");
-    this.game.canvas.dataset.dialogueState = "closed";
-    this.game.canvas.dataset.dialogueBlockingMovement = "false";
-    this.game.canvas.dataset.pendingNpcInteraction = "";
-    this.game.canvas.dataset.pendingPortalInteraction = "";
-    this.game.canvas.dataset.portalCount = String(this.portals.length);
-    this.game.canvas.dataset.safeZone = primaryEnemy ? "field-entrance" : "town";
-    this.game.canvas.dataset.gatheringSpotCount = String(this.countObjectsByType(tilemap, "gathering"));
-    this.game.canvas.dataset.monsterSpawnZoneCount = String(this.spawnZones.length);
-    this.game.canvas.dataset.monsterSpawnZones = this.spawnZones.map((zone) => `${zone.name}:${zone.monsterId}:${zone.maxCount}`).join("|");
-    this.game.canvas.dataset.enemyEntityCount = String(this.enemies.length);
-    this.game.canvas.dataset.enemyAliveCount = String(this.enemies.filter((enemy) => enemy.isAlive).length);
-    this.game.canvas.dataset.enemyBehavior = primaryEnemy?.behavior ?? "";
-    this.game.canvas.dataset.enemyTraits = primaryEnemy ? this.getEnemyTraitDataset(primaryEnemy) : "";
-    this.game.canvas.dataset.enemyVisualMarker = primaryEnemy ? this.getEnemyVisualMarkerDataset(primaryEnemy) : "none";
-    this.game.canvas.dataset.enemyRespawnMs = primaryEnemy ? String(primaryEnemy.respawnMs) : "";
-    this.game.canvas.dataset.enemyDamage = primaryEnemy ? String(primaryEnemy.stats.attack) : "";
-    this.game.canvas.dataset.settingsSummary = getSettingsSummary(state.settings);
-    this.game.canvas.dataset.settingsDifficulty = state.settings.difficulty;
-    this.game.canvas.dataset.settingsUiScale = String(state.settings.uiScale);
-    this.game.canvas.dataset.screenShakeEnabled = String(state.settings.screenShakeEnabled);
-    this.game.canvas.dataset.flashIntensity = state.settings.flashIntensity.toFixed(2);
-    this.game.canvas.dataset.enemyAggroRange = primaryEnemy ? String(primaryEnemy.aggroRange) : "";
-    this.game.canvas.dataset.enemyLeashDistance = primaryEnemy ? String(primaryEnemy.leashDistance) : "";
-    this.game.canvas.dataset.enemyAssistRadius = primaryEnemy ? String(primaryEnemy.assistRadius) : "";
-    this.game.canvas.dataset.enemyCastRange = primaryEnemy ? String(primaryEnemy.castRange) : "";
-    this.game.canvas.dataset.enemyCastCooldown = primaryEnemy ? String(primaryEnemy.castCooldownMs) : "";
-    this.game.canvas.dataset.enemyCastCooldownRemaining = "0";
-    this.game.canvas.dataset.enemyCastTelegraph = "hidden";
-    this.game.canvas.dataset.enemySilenced = "false";
-    this.game.canvas.dataset.enemyAssistedCount = "0";
-    this.game.canvas.dataset.debugAssistRadius = "hidden";
-    this.game.canvas.dataset.bossUi = "hidden";
-    this.game.canvas.dataset.bossProtocol = primaryEnemy?.bossProtocolEnabled ? "enabled" : "disabled";
-    this.game.canvas.dataset.bossPhase = primaryEnemy?.bossProtocolEnabled ? String(primaryEnemy.bossPhase) : "";
-    this.game.canvas.dataset.bossHp = primaryEnemy?.bossProtocolEnabled ? `${primaryEnemy.hp}/${primaryEnemy.maxHp}` : "";
-    this.game.canvas.dataset.bossControlResistance = primaryEnemy?.bossProtocolEnabled ? String(primaryEnemy.getControlDurationMultiplier()) : "";
-    this.game.canvas.dataset.bossKnockbackResistance = primaryEnemy?.bossProtocolEnabled ? String(primaryEnemy.getKnockbackDistance(100)) : "";
-    this.game.canvas.dataset.lastBossControlResist = "";
-    this.game.canvas.dataset.lastBossKnockbackResist = "";
-    this.game.canvas.dataset.lastBossStealthDetection = "";
-    this.game.canvas.dataset.lastBossPhase = "";
-    this.game.canvas.dataset.lastBossReward = "";
-    this.game.canvas.dataset.bestiaryKills = this.getBestiaryKillDataset();
-    this.game.canvas.dataset.lastBestiaryUpdate = "";
-    this.game.canvas.dataset.lastBestiaryMilestone = "";
-    this.game.canvas.dataset.huntingBoardSummary = getHuntingBoardSummary(state, dataRegistry, region.id);
-    this.game.canvas.dataset.questLogSummary = getQuestLogSummary(state, dataRegistry.getQuests());
-    this.game.canvas.dataset.huntingBoardRefreshCount = String(state.huntingBoard.refreshCount);
-    this.game.canvas.dataset.huntingBoardLastRefresh = state.huntingBoard.lastRefreshReason;
-    this.game.canvas.dataset.lastHuntingBoardProgress = "";
-    this.game.canvas.dataset.lastHuntingBoardUnlock = "";
-    this.game.canvas.dataset.treasureSpotCount = String(this.countObjectsByType(tilemap, "treasure"));
-    this.game.canvas.dataset.lastAutosaveSlot = this.lastAutosaveSlot;
-    this.game.canvas.dataset.lastAutosaveMap = this.lastAutosaveMap;
-    this.game.canvas.dataset.lastTransition = this.lastTransition;
-    this.game.canvas.dataset.collisionLayerEnabled = String(Boolean(collisionLayer));
-    this.game.canvas.dataset.playerCharacterId = this.player.character.id;
-    this.game.canvas.dataset.playerHasCollisionBody = String(Boolean(this.player.sprite.body));
-    this.game.canvas.dataset.wasdMovement = "disabled";
-    this.game.canvas.dataset.movementMarker = "hidden";
+    this.worldDebug?.set("characterArchetype", state.character.archetype);
+    this.worldDebug?.set("spawnedMonster", primaryEnemy?.id ?? "");
+    this.worldDebug?.set("spawnedMonsterName", primaryEnemy?.name ?? "");
+    this.worldDebug?.set("enemySelected", "false");
+    this.worldDebug?.set("enemyCombatState", primaryEnemy?.behaviorMode ?? "");
+    this.worldDebug?.set("enemyHp", primaryEnemy ? `${primaryEnemy.hp}/${primaryEnemy.maxHp}` : "");
+    this.worldDebug?.set("enemyPosition", primaryEnemy
+? `${primaryEnemy.sprite.x},${primaryEnemy.sprite.y}`
+: "");
+    this.worldDebug?.set("enemyTextureKey", primaryEnemy?.textureKey ?? "");
+    this.worldDebug?.set("targetFrame", "hidden");
+    this.worldDebug?.set("autoAttack", "idle");
+    this.worldDebug?.set("playerCombatState", "alive");
+    this.worldDebug?.set("gameOver", "hidden");
+    this.worldDebug?.set("respawnTargetMap", this.getRespawnTownId());
+    this.worldDebug?.set("respawnTargetName", this.getRespawnTownName());
+    this.worldDebug?.set("lastDeathSource", "");
+    this.worldDebug?.set("lastCombatFormula", "");
+    this.worldDebug?.set("lastSkillUse", "");
+    this.worldDebug?.set("skillCooldowns", "");
+    this.worldDebug?.set("consumableCooldowns", getConsumableCooldownSummary(state));
+    this.worldDebug?.set("autoPotionSettings", getAutoPotionSettingsSummary(state));
+    this.worldDebug?.set("lastAutoPotionUse", "");
+    this.worldDebug?.set("lastSupportAction", "");
+    this.worldDebug?.set("supportSummary", getSupportSummary(state));
+    this.worldDebug?.set("lastXpGain", "");
+    this.worldDebug?.set("lastLevelUp", "");
+    this.worldDebug?.set("lastLootDrop", "");
+    this.worldDebug?.set("lastLootPickup", "");
+    this.worldDebug?.set("pendingLootCount", "0");
+    this.worldDebug?.set("inventoryGold", String(state.inventory.gold));
+    this.worldDebug?.set("inventoryStackCount", String(state.inventory.items.length));
+    this.worldDebug?.set("equipmentInstanceCount", String(state.inventory.equipmentInstances.length));
+    this.worldDebug?.set("playerXpNext", String(getLevelXpThreshold(dataRegistry.getXpTable("standard"), state.playerProfile.level + 1) ?? ""));
+    this.worldDebug?.set("tilemapKey", tilemapKey);
+    this.worldDebug?.set("tilemapLayers", [
+tiledLayerNames.ground,
+tiledLayerNames.decoration,
+tiledLayerNames.collision,
+tiledLayerNames.objects,
+].join("|"));
+    this.worldDebug?.set("tilemapSize", `${tilemap.width}x${tilemap.height}`);
+    this.worldDebug?.set("spawnPoint", `${spawnPoint.x},${spawnPoint.y}`);
+    this.worldDebug?.set("spawnName", this.spawnName);
+    this.worldDebug?.set("currentSaveSlot", String(state.currentSaveSlot ?? ""));
+    this.worldDebug?.set("npcCount", String(this.npcs.length));
+    this.worldDebug?.set("npcEntityCount", String(this.npcs.length));
+    this.worldDebug?.set("npcNames", this.npcs.map((npc) => npc.name).join("|"));
+    this.worldDebug?.set("npcServiceTypes", this.npcs.map((npc) => npc.serviceType).join("|"));
+    this.worldDebug?.set("dialogueState", "closed");
+    this.worldDebug?.set("dialogueBlockingMovement", "false");
+    this.worldDebug?.set("pendingNpcInteraction", "");
+    this.worldDebug?.set("pendingPortalInteraction", "");
+    this.worldDebug?.set("portalCount", String(this.portals.length));
+    this.worldDebug?.set("safeZone", primaryEnemy ? "field-entrance" : "town");
+    this.worldDebug?.set("gatheringSpotCount", String(this.countObjectsByType(tilemap, "gathering")));
+    this.worldDebug?.set("monsterSpawnZoneCount", String(this.spawnZones.length));
+    this.worldDebug?.set("monsterSpawnZones", this.spawnZones.map((zone) => `${zone.name}:${zone.monsterId}:${zone.maxCount}`).join("|"));
+    this.worldDebug?.set("enemyEntityCount", String(this.enemies.length));
+    this.worldDebug?.set("enemyAliveCount", String(this.enemies.filter((enemy) => enemy.isAlive).length));
+    this.worldDebug?.set("enemyBehavior", primaryEnemy?.behavior ?? "");
+    this.worldDebug?.set("enemyTraits", primaryEnemy ? this.getEnemyTraitDataset(primaryEnemy) : "");
+    this.worldDebug?.set("enemyVisualMarker", primaryEnemy ? this.getEnemyVisualMarkerDataset(primaryEnemy) : "none");
+    this.worldDebug?.set("enemyRespawnMs", primaryEnemy ? String(primaryEnemy.respawnMs) : "");
+    this.worldDebug?.set("enemyDamage", primaryEnemy ? String(primaryEnemy.stats.attack) : "");
+    this.worldDebug?.set("settingsSummary", getSettingsSummary(state.settings));
+    this.worldDebug?.set("settingsDifficulty", state.settings.difficulty);
+    this.worldDebug?.set("settingsUiScale", String(state.settings.uiScale));
+    this.worldDebug?.set("screenShakeEnabled", String(state.settings.screenShakeEnabled));
+    this.worldDebug?.set("flashIntensity", state.settings.flashIntensity.toFixed(2));
+    this.worldDebug?.set("enemyAggroRange", primaryEnemy ? String(primaryEnemy.aggroRange) : "");
+    this.worldDebug?.set("enemyLeashDistance", primaryEnemy ? String(primaryEnemy.leashDistance) : "");
+    this.worldDebug?.set("enemyAssistRadius", primaryEnemy ? String(primaryEnemy.assistRadius) : "");
+    this.worldDebug?.set("enemyCastRange", primaryEnemy ? String(primaryEnemy.castRange) : "");
+    this.worldDebug?.set("enemyCastCooldown", primaryEnemy ? String(primaryEnemy.castCooldownMs) : "");
+    this.worldDebug?.set("enemyCastCooldownRemaining", "0");
+    this.worldDebug?.set("enemyCastTelegraph", "hidden");
+    this.worldDebug?.set("enemySilenced", "false");
+    this.worldDebug?.set("enemyAssistedCount", "0");
+    this.worldDebug?.set("debugAssistRadius", "hidden");
+    this.worldDebug?.set("bossUi", "hidden");
+    this.worldDebug?.set("bossProtocol", primaryEnemy?.bossProtocolEnabled ? "enabled" : "disabled");
+    this.worldDebug?.set("bossPhase", primaryEnemy?.bossProtocolEnabled ? String(primaryEnemy.bossPhase) : "");
+    this.worldDebug?.set("bossHp", primaryEnemy?.bossProtocolEnabled ? `${primaryEnemy.hp}/${primaryEnemy.maxHp}` : "");
+    this.worldDebug?.set("bossControlResistance", primaryEnemy?.bossProtocolEnabled ? String(primaryEnemy.getControlDurationMultiplier()) : "");
+    this.worldDebug?.set("bossKnockbackResistance", primaryEnemy?.bossProtocolEnabled ? String(primaryEnemy.getKnockbackDistance(100)) : "");
+    this.worldDebug?.set("lastBossControlResist", "");
+    this.worldDebug?.set("lastBossKnockbackResist", "");
+    this.worldDebug?.set("lastBossStealthDetection", "");
+    this.worldDebug?.set("lastBossPhase", "");
+    this.worldDebug?.set("lastBossReward", "");
+    this.worldDebug?.set("bestiaryKills", this.getBestiaryKillDataset());
+    this.worldDebug?.set("lastBestiaryUpdate", "");
+    this.worldDebug?.set("lastBestiaryMilestone", "");
+    this.worldDebug?.set("huntingBoardSummary", getHuntingBoardSummary(state, dataRegistry, region.id));
+    this.worldDebug?.set("questLogSummary", getQuestLogSummary(state, dataRegistry.getQuests()));
+    this.worldDebug?.set("huntingBoardRefreshCount", String(state.huntingBoard.refreshCount));
+    this.worldDebug?.set("huntingBoardLastRefresh", state.huntingBoard.lastRefreshReason);
+    this.worldDebug?.set("lastHuntingBoardProgress", "");
+    this.worldDebug?.set("lastHuntingBoardUnlock", "");
+    this.worldDebug?.set("treasureSpotCount", String(this.countObjectsByType(tilemap, "treasure")));
+    this.worldDebug?.set("lastAutosaveSlot", this.lastAutosaveSlot);
+    this.worldDebug?.set("lastAutosaveMap", this.lastAutosaveMap);
+    this.worldDebug?.set("lastTransition", this.lastTransition);
+    this.worldDebug?.set("collisionLayerEnabled", String(Boolean(collisionLayer)));
+    this.worldDebug?.set("playerCharacterId", this.player.character.id);
+    this.worldDebug?.set("playerHasCollisionBody", String(Boolean(this.player.sprite.body)));
+    this.worldDebug?.set("wasdMovement", "disabled");
+    this.worldDebug?.set("movementMarker", "hidden");
     this.syncPlayerDataset();
     this.syncSupportDataset();
     this.persistTransitionSpawn();
@@ -551,7 +521,7 @@ export class WorldScene extends Phaser.Scene {
 
     if (clickedNpc) {
       this.pendingPortalInteraction = undefined;
-      this.game.canvas.dataset.pendingPortalInteraction = "";
+      this.worldDebug?.set("pendingPortalInteraction", "");
       this.interactWithNpc(clickedNpc);
       return;
     }
@@ -563,7 +533,7 @@ export class WorldScene extends Phaser.Scene {
     if (clickedEnemy) {
       this.pendingNpcInteraction = undefined;
       this.pendingPortalInteraction = undefined;
-      this.game.canvas.dataset.pendingPortalInteraction = "";
+      this.worldDebug?.set("pendingPortalInteraction", "");
       this.selectEnemy(clickedEnemy);
       this.moveIntoAttackRange(clickedEnemy);
       return;
@@ -582,31 +552,31 @@ export class WorldScene extends Phaser.Scene {
     };
 
     if (!this.isWalkable(destination.x, destination.y)) {
-      this.game.canvas.dataset.lastMovementClickValid = "false";
+      this.worldDebug?.set("lastMovementClickValid", "false");
       return;
     }
 
     if (!this.collisionMap) {
-      this.game.canvas.dataset.lastMovementClickValid = "false";
+      this.worldDebug?.set("lastMovementClickValid", "false");
       return;
     }
 
     const path = findPath(this.collisionMap, this.player.position, destination);
 
     if (path.length === 0) {
-      this.game.canvas.dataset.lastMovementClickValid = "false";
+      this.worldDebug?.set("lastMovementClickValid", "false");
       return;
     }
 
     this.player.setPath(path);
     this.pendingNpcInteraction = undefined;
     this.pendingPortalInteraction = undefined;
-    this.game.canvas.dataset.pendingNpcInteraction = "";
-    this.game.canvas.dataset.pendingPortalInteraction = "";
+    this.worldDebug?.set("pendingNpcInteraction", "");
+    this.worldDebug?.set("pendingPortalInteraction", "");
     this.clearTarget();
     this.showClickMarker(destination.x, destination.y);
-    this.game.canvas.dataset.lastMovementClickValid = "true";
-    this.game.canvas.dataset.lastPathLength = String(path.length);
+    this.worldDebug?.set("lastMovementClickValid", "true");
+    this.worldDebug?.set("lastPathLength", String(path.length));
     this.syncPlayerDataset();
   }
 
@@ -619,7 +589,7 @@ export class WorldScene extends Phaser.Scene {
     this.clickMarker = this.add.circle(x, y, 18, 0xfacc15, 0.22)
       .setStrokeStyle(2, 0xfef08a, 0.85)
       .setDepth(10);
-    this.game.canvas.dataset.movementMarker = "visible";
+    this.worldDebug?.set("movementMarker", "visible");
 
     this.tweens.add({
       targets: this.clickMarker,
@@ -630,7 +600,7 @@ export class WorldScene extends Phaser.Scene {
       onComplete: () => {
         this.clickMarker?.destroy();
         this.clickMarker = undefined;
-        this.game.canvas.dataset.movementMarker = "hidden";
+        this.worldDebug?.set("movementMarker", "hidden");
       },
     });
   }
@@ -643,8 +613,8 @@ export class WorldScene extends Phaser.Scene {
     this.attackTarget = enemy;
     enemy.setSelected(true, this.player?.character.id ?? null);
     enemy.behaviorMode = "chasing";
-    this.game.canvas.dataset.enemySelected = "true";
-    this.game.canvas.dataset.autoAttack = "moving-to-range";
+    this.worldDebug?.set("enemySelected", "true");
+    this.worldDebug?.set("autoAttack", "moving-to-range");
     eventBus.emit("enemyTargetChanged", {
       enemyId: enemy.id,
       name: enemy.name,
@@ -659,26 +629,26 @@ export class WorldScene extends Phaser.Scene {
   private clearTarget(): void {
     this.attackTarget?.setSelected(false, null);
     this.attackTarget = undefined;
-    this.game.canvas.dataset.enemySelected = "false";
-    this.game.canvas.dataset.autoAttack = "idle";
+    this.worldDebug?.set("enemySelected", "false");
+    this.worldDebug?.set("autoAttack", "idle");
     eventBus.emit("enemyTargetChanged", {
       enemyId: null,
       name: "",
       hp: 0,
       maxHp: 0,
     });
-    this.game.canvas.dataset.bossUi = "hidden";
+    this.worldDebug?.set("bossUi", "hidden");
   }
 
   private interactWithNpc(npc: NpcEntity): void {
     this.clearTarget();
     this.pendingPortalInteraction = undefined;
-    this.game.canvas.dataset.pendingPortalInteraction = "";
+    this.worldDebug?.set("pendingPortalInteraction", "");
     this.pendingNpcInteraction = npc;
-    this.game.canvas.dataset.pendingNpcInteraction = npc.id;
-    this.game.canvas.dataset.lastClickedNpc = npc.id;
-    this.game.canvas.dataset.lastClickedNpcName = npc.name;
-    this.game.canvas.dataset.lastClickedNpcServiceType = npc.serviceType;
+    this.worldDebug?.set("pendingNpcInteraction", npc.id);
+    this.worldDebug?.set("lastClickedNpc", npc.id);
+    this.worldDebug?.set("lastClickedNpcName", npc.name);
+    this.worldDebug?.set("lastClickedNpcServiceType", npc.serviceType);
 
     if (this.isPlayerInNpcRange(npc)) {
       this.openNpcDialogue(npc);
@@ -721,22 +691,22 @@ export class WorldScene extends Phaser.Scene {
     const path = findPath(this.collisionMap, this.player.position, npc.position);
 
     if (path.length === 0) {
-      this.game.canvas.dataset.lastMovementClickValid = "false";
+      this.worldDebug?.set("lastMovementClickValid", "false");
       return;
     }
 
     this.player.setPath(path);
     this.showClickMarker(npc.position.x, npc.position.y);
-    this.game.canvas.dataset.lastMovementClickValid = "true";
-    this.game.canvas.dataset.lastPathLength = String(path.length);
+    this.worldDebug?.set("lastMovementClickValid", "true");
+    this.worldDebug?.set("lastPathLength", String(path.length));
   }
 
   private interactWithPortal(portal: PortalObject): void {
     this.clearTarget();
     this.pendingNpcInteraction = undefined;
     this.pendingPortalInteraction = portal;
-    this.game.canvas.dataset.pendingNpcInteraction = "";
-    this.game.canvas.dataset.pendingPortalInteraction = portal.name;
+    this.worldDebug?.set("pendingNpcInteraction", "");
+    this.worldDebug?.set("pendingPortalInteraction", portal.name);
 
     if (this.isPlayerInsidePortal(portal) || this.isPlayerInPortalInteractionRange(portal)) {
       this.transitionThroughPortal(portal);
@@ -771,14 +741,14 @@ export class WorldScene extends Phaser.Scene {
     const route = this.findPortalApproachRoute(portal);
 
     if (!route) {
-      this.game.canvas.dataset.lastMovementClickValid = "false";
+      this.worldDebug?.set("lastMovementClickValid", "false");
       return;
     }
 
     this.player.setPath(route.path);
     this.showClickMarker(route.destination.x, route.destination.y);
-    this.game.canvas.dataset.lastMovementClickValid = "true";
-    this.game.canvas.dataset.lastPathLength = String(route.path.length);
+    this.worldDebug?.set("lastMovementClickValid", "true");
+    this.worldDebug?.set("lastPathLength", String(route.path.length));
   }
 
   private findPortalApproachRoute(portal: PortalObject): { destination: Phaser.Math.Vector2; path: Vector2Like[] } | null {
@@ -821,9 +791,9 @@ export class WorldScene extends Phaser.Scene {
     if (shop && (npc.serviceType === "merchant" || npc.serviceType === "appraiser")) {
       this.pendingNpcInteraction = undefined;
       this.player?.clearDestination();
-      this.game.canvas.dataset.pendingNpcInteraction = "";
-      this.game.canvas.dataset.lastOpenedShop = shop.id;
-      this.game.canvas.dataset.lastOpenedShopNpc = npc.id;
+      this.worldDebug?.set("pendingNpcInteraction", "");
+      this.worldDebug?.set("lastOpenedShop", shop.id);
+      this.worldDebug?.set("lastOpenedShopNpc", npc.id);
       eventBus.emit("shopOpened", { shopId: shop.id, npcId: npc.id });
       return;
     }
@@ -831,8 +801,8 @@ export class WorldScene extends Phaser.Scene {
     if (npc.serviceType === "storage") {
       this.pendingNpcInteraction = undefined;
       this.player?.clearDestination();
-      this.game.canvas.dataset.pendingNpcInteraction = "";
-      this.game.canvas.dataset.lastOpenedStorageNpc = npc.id;
+      this.worldDebug?.set("pendingNpcInteraction", "");
+      this.worldDebug?.set("lastOpenedStorageNpc", npc.id);
       eventBus.emit("storageOpened", { npcId: npc.id });
       return;
     }
@@ -840,8 +810,8 @@ export class WorldScene extends Phaser.Scene {
     if (npc.serviceType === "crafter") {
       this.pendingNpcInteraction = undefined;
       this.player?.clearDestination();
-      this.game.canvas.dataset.pendingNpcInteraction = "";
-      this.game.canvas.dataset.lastOpenedCraftingNpc = npc.id;
+      this.worldDebug?.set("pendingNpcInteraction", "");
+      this.worldDebug?.set("lastOpenedCraftingNpc", npc.id);
       eventBus.emit("craftingOpened", { npcId: npc.id });
       return;
     }
@@ -849,8 +819,8 @@ export class WorldScene extends Phaser.Scene {
     if (npc.serviceType === "refiner") {
       this.pendingNpcInteraction = undefined;
       this.player?.clearDestination();
-      this.game.canvas.dataset.pendingNpcInteraction = "";
-      this.game.canvas.dataset.lastOpenedRefinementNpc = npc.id;
+      this.worldDebug?.set("pendingNpcInteraction", "");
+      this.worldDebug?.set("lastOpenedRefinementNpc", npc.id);
       eventBus.emit("refinementOpened", { npcId: npc.id });
       return;
     }
@@ -879,8 +849,8 @@ export class WorldScene extends Phaser.Scene {
     this.pendingNpcInteraction = undefined;
     this.player?.clearDestination();
     this.isDialogueOpen = true;
-    this.game.canvas.dataset.pendingNpcInteraction = "";
-    this.game.canvas.dataset.dialogueBlockingMovement = "true";
+    this.worldDebug?.set("pendingNpcInteraction", "");
+    this.worldDebug?.set("dialogueBlockingMovement", "true");
     this.scene.launch(SceneKeys.Dialogue, sceneData);
     this.scene.bringToTop(SceneKeys.Dialogue);
   }
@@ -908,7 +878,7 @@ export class WorldScene extends Phaser.Scene {
       if (enemy.behavior !== "caster") {
         enemy.behaviorMode = enemyCanAttack ? "chasing" : "idle";
       }
-      this.game.canvas.dataset.autoAttack = "moving-to-range";
+      this.worldDebug?.set("autoAttack", "moving-to-range");
 
       if (!player.destination && player.path.length === 0) {
         this.moveIntoAttackRange(enemy);
@@ -921,7 +891,7 @@ export class WorldScene extends Phaser.Scene {
     if (enemy.behavior !== "caster") {
       enemy.behaviorMode = enemyCanAttack ? "attacking" : "idle";
     }
-    this.game.canvas.dataset.autoAttack = "attacking";
+    this.worldDebug?.set("autoAttack", "attacking");
 
     if (runtime) {
       runtime.attackTimerMs += deltaMs;
@@ -982,8 +952,8 @@ export class WorldScene extends Phaser.Scene {
     });
 
     if (!enemy.isAlive) {
-      this.game.canvas.dataset.autoAttack = "stopped";
-      this.game.canvas.dataset.enemySelected = "false";
+      this.worldDebug?.set("autoAttack", "stopped");
+      this.worldDebug?.set("enemySelected", "false");
       this.handleEnemyDefeated(enemy);
       eventBus.emit("enemyTargetChanged", {
         enemyId: null,
@@ -1011,25 +981,25 @@ export class WorldScene extends Phaser.Scene {
     );
 
     if (!result) {
-      this.game.canvas.dataset.lastSkillUse = `${slot}:item`;
-      this.game.canvas.dataset.consumableCooldowns = getConsumableCooldownSummary(this.state);
-      this.game.canvas.dataset.playerHp = `${this.state.character.stats.hp}/${this.state.character.stats.maxHp}`;
-      this.game.canvas.dataset.playerSp = `${this.state.character.stats.sp}/${this.state.character.stats.maxSp}`;
+      this.worldDebug?.set("lastSkillUse", `${slot}:item`);
+      this.worldDebug?.set("consumableCooldowns", getConsumableCooldownSummary(this.state));
+      this.worldDebug?.set("playerHp", `${this.state.character.stats.hp}/${this.state.character.stats.maxHp}`);
+      this.worldDebug?.set("playerSp", `${this.state.character.stats.sp}/${this.state.character.stats.maxSp}`);
       this.syncPlayerDataset();
       return;
     }
 
-    this.game.canvas.dataset.lastSkillUse = result.success
-      ? `${slot}:${result.skillId}:success:${result.damage}:${result.affectedTargetIds.join(",")}`
-      : `${slot}:${result.skillId}:failed:${result.reason}`;
+    this.worldDebug?.set("lastSkillUse", result.success
+? `${slot}:${result.skillId}:success:${result.damage}:${result.affectedTargetIds.join(",")}`
+: `${slot}:${result.skillId}:failed:${result.reason}`);
     if (result.success) {
       eventBus.emit("skillUsed", { skillId: result.skillId, actorId: this.state.character.id });
       this.spawnSkillVfx(result.damage);
     }
-    this.game.canvas.dataset.skillCooldowns = Object.entries(this.state.character.skills.cooldowns)
-      .map(([skillId, readyAt]) => `${skillId}:${readyAt}`)
-      .join("|");
-    this.game.canvas.dataset.playerSp = `${this.state.character.stats.sp}/${this.state.character.stats.maxSp}`;
+    this.worldDebug?.set("skillCooldowns", Object.entries(this.state.character.skills.cooldowns)
+.map(([skillId, readyAt]) => `${skillId}:${readyAt}`)
+.join("|"));
+    this.worldDebug?.set("playerSp", `${this.state.character.stats.sp}/${this.state.character.stats.maxSp}`);
 
     if (this.attackTarget) {
       this.syncEnemyDataset();
@@ -1044,8 +1014,8 @@ export class WorldScene extends Phaser.Scene {
 
       if (!this.attackTarget.isAlive) {
         const defeated = this.attackTarget;
-        this.game.canvas.dataset.autoAttack = "stopped";
-        this.game.canvas.dataset.enemySelected = "false";
+        this.worldDebug?.set("autoAttack", "stopped");
+        this.worldDebug?.set("enemySelected", "false");
         this.handleEnemyDefeated(defeated);
         eventBus.emit("enemyTargetChanged", {
           enemyId: null,
@@ -1118,6 +1088,12 @@ export class WorldScene extends Phaser.Scene {
     this.syncVfxSettings();
   }
 
+  private handleWorldKeydown = (event: KeyboardEvent): void => {
+    if (event.code === "KeyU") {
+      this.toggleVfxIntensity();
+    }
+  };
+
   private syncVfxSettings(): void {
     if (!this.state) {
       return;
@@ -1127,8 +1103,8 @@ export class WorldScene extends Phaser.Scene {
       damageNumbersEnabled: this.state.settings.damageNumbersEnabled,
       intensity: this.state.settings.visualEffectsIntensity,
     });
-    this.game.canvas.dataset.damageNumbersEnabled = String(this.state.settings.damageNumbersEnabled);
-    this.game.canvas.dataset.vfxIntensity = this.state.settings.visualEffectsIntensity;
+    this.worldDebug?.set("damageNumbersEnabled", String(this.state.settings.damageNumbersEnabled));
+    this.worldDebug?.set("vfxIntensity", this.state.settings.visualEffectsIntensity);
   }
 
   private createSkillTarget(): SkillExecutionTarget | undefined {
@@ -1155,7 +1131,7 @@ export class WorldScene extends Phaser.Scene {
         if (runtime) {
           runtime.damagedByPlayer = true;
         }
-        this.game.canvas.dataset.lastSkillStatusEffect = `${enemy.id}:${effectId}:${applied ? "applied" : "resisted"}`;
+        this.worldDebug?.set("lastSkillStatusEffect", `${enemy.id}:${effectId}:${applied ? "applied" : "resisted"}`);
         this.syncEnemyDataset();
       },
     };
@@ -1176,12 +1152,12 @@ export class WorldScene extends Phaser.Scene {
       return;
     }
 
-    this.game.canvas.dataset.lastAutoPotionUse = result.success
-      ? `${result.itemId}:success:hp:${result.restoredHp}:sp:${result.restoredSp}`
-      : `${result.itemId}:failed:${result.reason}`;
-    this.game.canvas.dataset.consumableCooldowns = getConsumableCooldownSummary(this.state);
-    this.game.canvas.dataset.playerHp = `${this.state.character.stats.hp}/${this.state.character.stats.maxHp}`;
-    this.game.canvas.dataset.playerSp = `${this.state.character.stats.sp}/${this.state.character.stats.maxSp}`;
+    this.worldDebug?.set("lastAutoPotionUse", result.success
+? `${result.itemId}:success:hp:${result.restoredHp}:sp:${result.restoredSp}`
+: `${result.itemId}:failed:${result.reason}`);
+    this.worldDebug?.set("consumableCooldowns", getConsumableCooldownSummary(this.state));
+    this.worldDebug?.set("playerHp", `${this.state.character.stats.hp}/${this.state.character.stats.maxHp}`);
+    this.worldDebug?.set("playerSp", `${this.state.character.stats.sp}/${this.state.character.stats.maxSp}`);
   }
 
   private updateSupportCompanion(): void {
@@ -1203,17 +1179,17 @@ export class WorldScene extends Phaser.Scene {
       return;
     }
 
-    this.game.canvas.dataset.lastSupportAction = result.success
-      ? `${result.supportId}:${result.actionId}:success:hp:${result.restoredHp}:cleanse:${result.cleansedStatusIds.join(",")}:status:${result.appliedStatusEffectIds.join(",")}`
-      : `${result.supportId}:${result.actionId}:failed`;
+    this.worldDebug?.set("lastSupportAction", result.success
+? `${result.supportId}:${result.actionId}:success:hp:${result.restoredHp}:cleanse:${result.cleansedStatusIds.join(",")}:status:${result.appliedStatusEffectIds.join(",")}`
+: `${result.supportId}:${result.actionId}:failed`);
     if (result.success && result.restoredHp > 0 && this.player) {
       this.vfxManager?.spawnCombatText("healing", result.restoredHp, this.player.sprite.x, this.player.sprite.y - 34);
     }
-    this.game.canvas.dataset.playerHp = `${this.state.character.stats.hp}/${this.state.character.stats.maxHp}`;
-    this.game.canvas.dataset.playerStatusEffects = getStatusSummary(
-      this.state.character.statusEffects,
-      (id) => this.dataRegistry!.getStatusEffect(id),
-    );
+    this.worldDebug?.set("playerHp", `${this.state.character.stats.hp}/${this.state.character.stats.maxHp}`);
+    this.worldDebug?.set("playerStatusEffects", getStatusSummary(
+this.state.character.statusEffects,
+(id) => this.dataRegistry!.getStatusEffect(id),
+));
     this.syncSupportDataset();
     this.playerCombatStats = this.createPlayerCombatStats(this.state, this.dataRegistry);
   }
@@ -1243,11 +1219,11 @@ export class WorldScene extends Phaser.Scene {
 
     if (result.damage > 0 || result.expiredIds.length > 0 || result.tickedIds.length > 0) {
       emitStatusEffectsChanged("player", this.state.character.id, this.state.character.statusEffects);
-      this.game.canvas.dataset.playerStatusEffects = getStatusSummary(
-        this.state.character.statusEffects,
-        (id) => this.dataRegistry!.getStatusEffect(id),
-      );
-      this.game.canvas.dataset.lastStatusTick = `player:${result.damage}:${result.tickedIds.join(",")}:${result.expiredIds.join(",")}`;
+      this.worldDebug?.set("playerStatusEffects", getStatusSummary(
+this.state.character.statusEffects,
+(id) => this.dataRegistry!.getStatusEffect(id),
+));
+      this.worldDebug?.set("lastStatusTick", `player:${result.damage}:${result.tickedIds.join(",")}:${result.expiredIds.join(",")}`);
       this.playerCombatStats = this.createPlayerCombatStats(this.state, this.dataRegistry);
     }
   }
@@ -1284,12 +1260,12 @@ export class WorldScene extends Phaser.Scene {
       if (result.damage > 0 || result.expiredIds.length > 0 || result.tickedIds.length > 0) {
         emitStatusEffectsChanged("enemy", enemy.id, enemy.statusEffects);
         this.syncEnemyDataset();
-        this.game.canvas.dataset.lastStatusTick = `enemy:${result.damage}:${result.tickedIds.join(",")}:${result.expiredIds.join(",")}`;
+        this.worldDebug?.set("lastStatusTick", `enemy:${result.damage}:${result.tickedIds.join(",")}:${result.expiredIds.join(",")}`);
       }
 
       if (!enemy.isAlive && this.attackTarget === enemy) {
-        this.game.canvas.dataset.autoAttack = "stopped";
-        this.game.canvas.dataset.enemySelected = "false";
+        this.worldDebug?.set("autoAttack", "stopped");
+        this.worldDebug?.set("enemySelected", "false");
         this.handleEnemyDefeated(enemy);
         eventBus.emit("enemyTargetChanged", {
           enemyId: null,
@@ -1307,7 +1283,7 @@ export class WorldScene extends Phaser.Scene {
     controlEffect: "freeze" | "stun" | "silence" | "blind" | "slow",
   ): boolean {
     if (enemy.bossProtocolEnabled) {
-      this.game.canvas.dataset.lastBossControlResist = `${enemy.id}:${controlEffect}`;
+      this.worldDebug?.set("lastBossControlResist", `${enemy.id}:${controlEffect}`);
       return false;
     }
 
@@ -1343,7 +1319,7 @@ export class WorldScene extends Phaser.Scene {
     const definition = this.dataRegistry.getStatusEffect(effectId);
 
     if (enemy.bossProtocolEnabled && definition.type === "control") {
-      this.game.canvas.dataset.lastBossControlResist = `${enemy.id}:${definition.controlEffect ?? effectId}`;
+      this.worldDebug?.set("lastBossControlResist", `${enemy.id}:${definition.controlEffect ?? effectId}`);
       emitStatusEffectsChanged("enemy", enemy.id, enemy.statusEffects);
       return false;
     }
@@ -1359,7 +1335,7 @@ export class WorldScene extends Phaser.Scene {
     }
 
     const resistedDistance = enemy.getKnockbackDistance(distance);
-    this.game.canvas.dataset.lastBossKnockbackResist = `${enemy.id}:${distance}->${resistedDistance.toFixed(1)}`;
+    this.worldDebug?.set("lastBossKnockbackResist", `${enemy.id}:${distance}->${resistedDistance.toFixed(1)}`);
 
     if (resistedDistance < 4) {
       return;
@@ -1384,7 +1360,7 @@ export class WorldScene extends Phaser.Scene {
     this.syncBossProtocolDataset(enemy);
 
     if (enemy.bossPhase !== previousPhase) {
-      this.game.canvas.dataset.lastBossPhase = `${enemy.id}:${previousPhase}->${enemy.bossPhase}`;
+      this.worldDebug?.set("lastBossPhase", `${enemy.id}:${previousPhase}->${enemy.bossPhase}`);
     }
 
     const monster = this.dataRegistry.getMonster(enemy.id);
@@ -1392,17 +1368,17 @@ export class WorldScene extends Phaser.Scene {
     const phaseChange = recordBossPhase(this.state, enemy.id, phase);
 
     if (phase) {
-      this.game.canvas.dataset.bossPhaseData = [
-        phase.id,
-        phase.behavior,
-        phase.dialogueId ?? "",
-        phase.vfxKey ?? "",
-        phase.attackIds.join(","),
-      ].join(":");
+      this.worldDebug?.set("bossPhaseData", [
+phase.id,
+phase.behavior,
+phase.dialogueId ?? "",
+phase.vfxKey ?? "",
+phase.attackIds.join(","),
+].join(":"));
     }
 
     if (phaseChange) {
-      this.game.canvas.dataset.lastBossPhaseData = phaseChange;
+      this.worldDebug?.set("lastBossPhaseData", phaseChange);
     }
   }
 
@@ -1418,7 +1394,7 @@ export class WorldScene extends Phaser.Scene {
     this.rewardEnemyKill(enemy);
 
     if (enemy.boss) {
-      this.game.canvas.dataset.bossUi = "hidden";
+      this.worldDebug?.set("bossUi", "hidden");
     }
   }
 
@@ -1446,7 +1422,7 @@ export class WorldScene extends Phaser.Scene {
       if (distance <= runtime.enemy.assistRadius) {
         runtime.assistedByAlly = true;
         runtime.elapsedInCombatMs = 0;
-        this.game.canvas.dataset.lastAssistCall = `${source.id}:${runtime.enemy.id}`;
+        this.worldDebug?.set("lastAssistCall", `${source.id}:${runtime.enemy.id}`);
       }
     }
 
@@ -1464,32 +1440,32 @@ export class WorldScene extends Phaser.Scene {
     const monster = dataRegistry.getMonster(enemy.id);
     const dropTable = dataRegistry.getDropTable(monster.dropTableId);
     const bestiaryEntry = recordMonsterKill(state, monster, dropTable);
-    this.game.canvas.dataset.bestiaryKills = this.getBestiaryKillDataset();
-    this.game.canvas.dataset.lastBestiaryUpdate = `${monster.id}:${bestiaryEntry.kills}`;
+    this.worldDebug?.set("bestiaryKills", this.getBestiaryKillDataset());
+    this.worldDebug?.set("lastBestiaryUpdate", `${monster.id}:${bestiaryEntry.kills}`);
     const xpResult = awardXp(state, dataRegistry.getXpTable("standard"), monster.xpReward);
-    this.game.canvas.dataset.lastXpGain = String(xpResult.amount);
-    this.game.canvas.dataset.playerXp = String(xpResult.totalXp);
-    this.game.canvas.dataset.playerXpNext = String(xpResult.nextLevelXp ?? "");
-    this.game.canvas.dataset.playerLevel = String(state.playerProfile.level);
-    this.game.canvas.dataset.playerStatPoints = String(state.playerProfile.statPoints);
-    this.game.canvas.dataset.playerSkillPoints = String(state.playerProfile.skillPoints);
-    this.game.canvas.dataset.playerHp = `${state.character.stats.hp}/${state.character.stats.maxHp}`;
-    this.game.canvas.dataset.playerSp = `${state.character.stats.sp}/${state.character.stats.maxSp}`;
+    this.worldDebug?.set("lastXpGain", String(xpResult.amount));
+    this.worldDebug?.set("playerXp", String(xpResult.totalXp));
+    this.worldDebug?.set("playerXpNext", String(xpResult.nextLevelXp ?? ""));
+    this.worldDebug?.set("playerLevel", String(state.playerProfile.level));
+    this.worldDebug?.set("playerStatPoints", String(state.playerProfile.statPoints));
+    this.worldDebug?.set("playerSkillPoints", String(state.playerProfile.skillPoints));
+    this.worldDebug?.set("playerHp", `${state.character.stats.hp}/${state.character.stats.maxHp}`);
+    this.worldDebug?.set("playerSp", `${state.character.stats.sp}/${state.character.stats.maxSp}`);
 
     if (xpResult.levelsGained.length > 0) {
-      this.game.canvas.dataset.lastLevelUp = String(xpResult.levelsGained.at(-1));
+      this.worldDebug?.set("lastLevelUp", String(xpResult.levelsGained.at(-1)));
       this.recordQuestEvent("reachLevel", String(state.playerProfile.level), state.playerProfile.level);
     }
 
     this.recordQuestEvent("killMonster", enemy.id);
     eventBus.emit("enemyKilled", { enemyId: enemy.id });
     const huntingProgress = recordHuntingBoardKill(state, dataRegistry, enemy.id);
-    this.game.canvas.dataset.lastHuntingBoardProgress = huntingProgress.join("|");
+    this.worldDebug?.set("lastHuntingBoardProgress", huntingProgress.join("|"));
     this.syncHuntingBoardDataset();
 
     if (enemy.boss) {
       const unlockedRegionId = unlockBossContractForMonster(state, dataRegistry, enemy.id);
-      this.game.canvas.dataset.lastHuntingBoardUnlock = unlockedRegionId ? `${unlockedRegionId}:boss` : "";
+      this.worldDebug?.set("lastHuntingBoardUnlock", unlockedRegionId ? `${unlockedRegionId}:boss` : "");
     }
 
     const drops = generateLootDrops(dropTable, dataRegistry, Math.random, {
@@ -1498,11 +1474,11 @@ export class WorldScene extends Phaser.Scene {
     this.applySupportMaterialFinder(drops, dropTable.entries);
     if (enemy.bossProtocolEnabled) {
       drops.push({ kind: "gold", quantity: bossRewardGold });
-      this.game.canvas.dataset.lastBossReward = `${enemy.id}:gold:${bossRewardGold}`;
+      this.worldDebug?.set("lastBossReward", `${enemy.id}:gold:${bossRewardGold}`);
     }
     const bossRewards = enemy.boss ? completeBossEncounter(state, monster, dataRegistry) : [];
     if (bossRewards.length > 0) {
-      this.game.canvas.dataset.lastMvpReward = `${enemy.id}:${bossRewards.join(",")}`;
+      this.worldDebug?.set("lastMvpReward", `${enemy.id}:${bossRewards.join(",")}`);
     }
     this.completeActiveChallengeForBoss(enemy.id);
     this.syncBossEncounterDataset();
@@ -1524,9 +1500,9 @@ export class WorldScene extends Phaser.Scene {
     }
 
     const map = this.dataRegistry.getMap(this.state.currentMapId);
-    this.game.canvas.dataset.huntingBoardSummary = getHuntingBoardSummary(this.state, this.dataRegistry, map.regionId);
-    this.game.canvas.dataset.huntingBoardRefreshCount = String(this.state.huntingBoard.refreshCount);
-    this.game.canvas.dataset.huntingBoardLastRefresh = this.state.huntingBoard.lastRefreshReason;
+    this.worldDebug?.set("huntingBoardSummary", getHuntingBoardSummary(this.state, this.dataRegistry, map.regionId));
+    this.worldDebug?.set("huntingBoardRefreshCount", String(this.state.huntingBoard.refreshCount));
+    this.worldDebug?.set("huntingBoardLastRefresh", this.state.huntingBoard.lastRefreshReason);
   }
 
   private recordQuestEvent(type: Parameters<typeof updateQuestObjectives>[2]["type"], targetId: string, amount?: number): void {
@@ -1535,7 +1511,7 @@ export class WorldScene extends Phaser.Scene {
     }
 
     const progress = updateQuestObjectives(this.state, this.dataRegistry, { type, targetId, amount } as Parameters<typeof updateQuestObjectives>[2]);
-    this.game.canvas.dataset.lastQuestProgress = progress.join("|");
+    this.worldDebug?.set("lastQuestProgress", progress.join("|"));
   }
 
   private getBestiaryKillDataset(): string {
@@ -1574,7 +1550,7 @@ export class WorldScene extends Phaser.Scene {
 
     drops.push({ kind: "item", itemId: materialEntry.itemId, quantity: 1 });
     this.state.support.cooldowns["material-ping"] = Date.now() + 9000;
-    this.game.canvas.dataset.lastSupportAction = `${support.id}:material-ping:success:${materialEntry.itemId}`;
+    this.worldDebug?.set("lastSupportAction", `${support.id}:material-ping:success:${materialEntry.itemId}`);
   }
 
   private spawnLootDrop(drop: LootDrop, x: number, y: number): void {
@@ -1597,13 +1573,13 @@ export class WorldScene extends Phaser.Scene {
     }
 
     this.droppedLoot.push({ id, drop, marker, label });
-    this.game.canvas.dataset.lastLootDrop = this.getLootDatasetValue(drop);
-    this.game.canvas.dataset.pendingLootCount = String(this.droppedLoot.length);
-    this.game.canvas.dataset.lootPosition = `${Math.round(x)},${Math.round(y)}`;
+    this.worldDebug?.set("lastLootDrop", this.getLootDatasetValue(drop));
+    this.worldDebug?.set("pendingLootCount", String(this.droppedLoot.length));
+    this.worldDebug?.set("lootPosition", `${Math.round(x)},${Math.round(y)}`);
     eventBus.emit("lootDropped", this.getLootEventPayload(drop));
 
     if (this.trySupportAutoPickup(this.droppedLoot[this.droppedLoot.length - 1])) {
-      this.game.canvas.dataset.lastSupportAction = `auto-pickup:${this.getLootDatasetValue(drop)}`;
+      this.worldDebug?.set("lastSupportAction", `auto-pickup:${this.getLootDatasetValue(drop)}`);
     }
   }
 
@@ -1625,12 +1601,12 @@ export class WorldScene extends Phaser.Scene {
     loot.marker.destroy();
     loot.label.destroy();
     this.droppedLoot = this.droppedLoot.filter((entry) => entry !== loot);
-    this.game.canvas.dataset.lastLootPickup = this.getLootDatasetValue(loot.drop);
-    this.game.canvas.dataset.pendingLootCount = String(this.droppedLoot.length);
-    this.game.canvas.dataset.inventoryGold = String(this.state.inventory.gold);
-    this.game.canvas.dataset.playerGold = String(this.state.playerProfile.gold);
-    this.game.canvas.dataset.inventoryStackCount = String(this.state.inventory.items.length);
-    this.game.canvas.dataset.equipmentInstanceCount = String(this.state.inventory.equipmentInstances.length);
+    this.worldDebug?.set("lastLootPickup", this.getLootDatasetValue(loot.drop));
+    this.worldDebug?.set("pendingLootCount", String(this.droppedLoot.length));
+    this.worldDebug?.set("inventoryGold", String(this.state.inventory.gold));
+    this.worldDebug?.set("playerGold", String(this.state.playerProfile.gold));
+    this.worldDebug?.set("inventoryStackCount", String(this.state.inventory.items.length));
+    this.worldDebug?.set("equipmentInstanceCount", String(this.state.inventory.equipmentInstances.length));
     eventBus.emit("lootPickedUp", this.getLootEventPayload(loot.drop));
 
     return true;
@@ -1660,8 +1636,8 @@ export class WorldScene extends Phaser.Scene {
     loot.marker.destroy();
     loot.label.destroy();
     this.droppedLoot = this.droppedLoot.filter((entry) => entry !== loot);
-    this.game.canvas.dataset.lastLootPickup = this.getLootDatasetValue(loot.drop);
-    this.game.canvas.dataset.pendingLootCount = String(this.droppedLoot.length);
+    this.worldDebug?.set("lastLootPickup", this.getLootDatasetValue(loot.drop));
+    this.worldDebug?.set("pendingLootCount", String(this.droppedLoot.length));
     eventBus.emit("lootPickedUp", this.getLootEventPayload(loot.drop));
     return true;
   }
@@ -1728,13 +1704,13 @@ export class WorldScene extends Phaser.Scene {
       return;
     }
 
-    this.game.canvas.dataset.playerCombatState = "dead";
-    this.game.canvas.dataset.autoAttack = "stopped";
-    this.game.canvas.dataset.enemySelected = "false";
-    this.game.canvas.dataset.gameplayInputBlocked = "true";
-    this.game.canvas.dataset.lastDeathSource = source;
-    this.game.canvas.dataset.respawnTargetMap = this.getRespawnTownId();
-    this.game.canvas.dataset.respawnTargetName = this.getRespawnTownName();
+    this.worldDebug?.set("playerCombatState", "dead");
+    this.worldDebug?.set("autoAttack", "stopped");
+    this.worldDebug?.set("enemySelected", "false");
+    this.worldDebug?.set("gameplayInputBlocked", "true");
+    this.worldDebug?.set("lastDeathSource", source);
+    this.worldDebug?.set("respawnTargetMap", this.getRespawnTownId());
+    this.worldDebug?.set("respawnTargetName", this.getRespawnTownName());
     this.player?.clearDestination();
     this.attackTarget = undefined;
 
@@ -1749,11 +1725,11 @@ export class WorldScene extends Phaser.Scene {
     const resetBossId = resetActiveBossEncounter(this.state);
     this.state.challengeDungeons.activeRun = null;
     this.state.challengeDungeons.activeClassTrialId = null;
-    this.game.canvas.dataset.lastBossReset = resetBossId ?? "";
-    this.game.canvas.dataset.challengeDungeonActive = "";
-    this.game.canvas.dataset.challengeDungeonModifier = "";
-    this.game.canvas.dataset.challengeDungeonDifficulty = "";
-    this.game.canvas.dataset.challengeDungeonRewards = "";
+    this.worldDebug?.set("lastBossReset", resetBossId ?? "");
+    this.worldDebug?.set("challengeDungeonActive", "");
+    this.worldDebug?.set("challengeDungeonModifier", "");
+    this.worldDebug?.set("challengeDungeonDifficulty", "");
+    this.worldDebug?.set("challengeDungeonRewards", "");
     this.syncBossEncounterDataset();
     this.scene.launch(SceneKeys.GameOver, {
       deathSource: source,
@@ -1801,8 +1777,8 @@ export class WorldScene extends Phaser.Scene {
 
     if (path.length > 0) {
       this.player.setPath(path);
-      this.game.canvas.dataset.lastMovementClickValid = "true";
-      this.game.canvas.dataset.lastPathLength = String(path.length);
+      this.worldDebug?.set("lastMovementClickValid", "true");
+      this.worldDebug?.set("lastPathLength", String(path.length));
     }
   }
 
@@ -1861,7 +1837,7 @@ export class WorldScene extends Phaser.Scene {
       const aggroRange = playerIsStealthed && !bossDetectedStealth ? 0 : enemy.aggroRange;
 
       if (bossDetectedStealth) {
-        this.game.canvas.dataset.lastBossStealthDetection = `${enemy.id}:${Math.round(distanceToPlayer)}`;
+        this.worldDebug?.set("lastBossStealthDetection", `${enemy.id}:${Math.round(distanceToPlayer)}`);
       }
 
       const intent = decideEnemyAiIntent({
@@ -1911,7 +1887,7 @@ export class WorldScene extends Phaser.Scene {
       runtime.castWindupMs = null;
       enemy.setCastProgress(null);
       this.moveEnemyToward(enemy, runtime.home, 54);
-      this.game.canvas.dataset.lastEnemyLeash = enemy.id;
+      this.worldDebug?.set("lastEnemyLeash", enemy.id);
       return;
     }
 
@@ -1928,7 +1904,7 @@ export class WorldScene extends Phaser.Scene {
         enemy.behaviorMode = "chasing";
         runtime.castWindupMs = null;
         enemy.setCastProgress(null);
-        this.game.canvas.dataset.lastEnemyKeepDistance = `${enemy.id}:${Math.round(distanceToPlayer)}<${Math.round(retreatDistance)}`;
+        this.worldDebug?.set("lastEnemyKeepDistance", `${enemy.id}:${Math.round(distanceToPlayer)}<${Math.round(retreatDistance)}`);
         return;
       }
 
@@ -1944,14 +1920,14 @@ export class WorldScene extends Phaser.Scene {
       enemy.behaviorMode = "casting";
       runtime.castWindupMs = (runtime.castWindupMs ?? 0) + deltaMs;
       enemy.setCastProgress(runtime.castWindupMs / enemyCastWindupMs);
-      this.game.canvas.dataset.lastEnemyCastStart = enemy.id;
+      this.worldDebug?.set("lastEnemyCastStart", enemy.id);
 
       if (runtime.castWindupMs >= enemyCastWindupMs) {
         runtime.castTimerMs = 0;
         runtime.castWindupMs = null;
         enemy.setCastProgress(null);
         this.enemyAttack(enemy);
-        this.game.canvas.dataset.lastEnemyCast = enemy.id;
+        this.worldDebug?.set("lastEnemyCast", enemy.id);
       }
       return;
     }
@@ -2040,7 +2016,7 @@ export class WorldScene extends Phaser.Scene {
       deltaMs,
     );
     if (readyMvpIds.length > 0) {
-      this.game.canvas.dataset.lastMvpRespawnReady = readyMvpIds.join("|");
+      this.worldDebug?.set("lastMvpRespawnReady", readyMvpIds.join("|"));
     }
 
     for (const zone of this.spawnZones) {
@@ -2061,7 +2037,7 @@ export class WorldScene extends Phaser.Scene {
       if (zone.respawnTimerMs >= respawnMs) {
         zone.respawnTimerMs = 0;
         this.spawnEnemyFromZone(zone, null);
-        this.game.canvas.dataset.lastEnemyRespawn = zone.id;
+        this.worldDebug?.set("lastEnemyRespawn", zone.id);
       }
     }
   }
@@ -2079,23 +2055,23 @@ export class WorldScene extends Phaser.Scene {
     if (this.state) {
       this.state.position = { x, y };
     }
-    this.game.canvas.dataset.playerX = x.toFixed(1);
-    this.game.canvas.dataset.playerY = y.toFixed(1);
-    this.game.canvas.dataset.playerDirection = this.player.direction;
-    this.game.canvas.dataset.playerMotionState = this.player.motionState;
-    this.game.canvas.dataset.playerAnimationState = this.player.animationState;
-    this.game.canvas.dataset.playerDestination = this.player.destination
-      ? `${this.player.destination.x.toFixed(1)},${this.player.destination.y.toFixed(1)}`
-      : "";
-    this.game.canvas.dataset.playerPathRemaining = String(this.player.path.length);
-    this.game.canvas.dataset.cameraFollowingPlayer = String(this.isCameraFollowingPlayer);
-    this.game.canvas.dataset.playerStatusEffects = this.dataRegistry && this.state
-      ? getStatusSummary(this.state.character.statusEffects, (id) => this.dataRegistry!.getStatusEffect(id))
-      : "";
+    this.worldDebug?.set("playerX", x.toFixed(1));
+    this.worldDebug?.set("playerY", y.toFixed(1));
+    this.worldDebug?.set("playerDirection", this.player.direction);
+    this.worldDebug?.set("playerMotionState", this.player.motionState);
+    this.worldDebug?.set("playerAnimationState", this.player.animationState);
+    this.worldDebug?.set("playerDestination", this.player.destination
+? `${this.player.destination.x.toFixed(1)},${this.player.destination.y.toFixed(1)}`
+: "");
+    this.worldDebug?.set("playerPathRemaining", String(this.player.path.length));
+    this.worldDebug?.set("cameraFollowingPlayer", String(this.isCameraFollowingPlayer));
+    this.worldDebug?.set("playerStatusEffects", this.dataRegistry && this.state
+? getStatusSummary(this.state.character.statusEffects, (id) => this.dataRegistry!.getStatusEffect(id))
+: "");
     if (this.state) {
-      this.game.canvas.dataset.consumableCooldowns = getConsumableCooldownSummary(this.state);
-      this.game.canvas.dataset.autoPotionSettings = getAutoPotionSettingsSummary(this.state);
-      this.game.canvas.dataset.supportSummary = getSupportSummary(this.state);
+      this.worldDebug?.set("consumableCooldowns", getConsumableCooldownSummary(this.state));
+      this.worldDebug?.set("autoPotionSettings", getAutoPotionSettingsSummary(this.state));
+      this.worldDebug?.set("supportSummary", getSupportSummary(this.state));
     }
   }
 
@@ -2108,65 +2084,65 @@ export class WorldScene extends Phaser.Scene {
       ? this.dataRegistry.getSupport(this.state.support.equippedSupportId)
       : null;
 
-    this.game.canvas.dataset.supportSummary = getSupportSummary(this.state);
-    this.game.canvas.dataset.supportCompanion = support?.id ?? "";
-    this.game.canvas.dataset.supportCompanionName = support?.name ?? "";
-    this.game.canvas.dataset.supportLevel = support ? String(this.state.support.levels[support.id] ?? 1) : "";
-    this.game.canvas.dataset.supportAffinity = support ? String(this.state.support.affinity[support.id] ?? 0) : "";
-    this.game.canvas.dataset.supportAutoPickupFilter = this.state.support.autoPickupFilter;
+    this.worldDebug?.set("supportSummary", getSupportSummary(this.state));
+    this.worldDebug?.set("supportCompanion", support?.id ?? "");
+    this.worldDebug?.set("supportCompanionName", support?.name ?? "");
+    this.worldDebug?.set("supportLevel", support ? String(this.state.support.levels[support.id] ?? 1) : "");
+    this.worldDebug?.set("supportAffinity", support ? String(this.state.support.affinity[support.id] ?? 0) : "");
+    this.worldDebug?.set("supportAutoPickupFilter", this.state.support.autoPickupFilter);
   }
 
   private syncEnemyDataset(): void {
     this.refreshPrimaryEnemy();
     const aliveEnemies = this.enemies.filter((enemy) => enemy.isAlive);
-    this.game.canvas.dataset.enemyEntityCount = String(this.enemies.length);
-    this.game.canvas.dataset.enemyAliveCount = String(aliveEnemies.length);
-    this.game.canvas.dataset.enemyPositions = aliveEnemies
-      .map((enemy) => `${enemy.sprite.x.toFixed(1)},${enemy.sprite.y.toFixed(1)}`)
-      .join("|");
-    this.game.canvas.dataset.enemySpawnMinimumDistance = String(monsterSpawnMinimumDistance);
+    this.worldDebug?.set("enemyEntityCount", String(this.enemies.length));
+    this.worldDebug?.set("enemyAliveCount", String(aliveEnemies.length));
+    this.worldDebug?.set("enemyPositions", aliveEnemies
+.map((enemy) => `${enemy.sprite.x.toFixed(1)},${enemy.sprite.y.toFixed(1)}`)
+.join("|"));
+    this.worldDebug?.set("enemySpawnMinimumDistance", String(monsterSpawnMinimumDistance));
 
     if (!this.enemy) {
-      this.game.canvas.dataset.enemyHp = "";
-      this.game.canvas.dataset.enemyCombatState = "";
-      this.game.canvas.dataset.enemySelected = "false";
-      this.game.canvas.dataset.enemyAlive = "false";
-      this.game.canvas.dataset.enemyCastRange = "";
-      this.game.canvas.dataset.enemyCastCooldown = "";
-      this.game.canvas.dataset.enemyCastCooldownRemaining = "0";
-      this.game.canvas.dataset.enemyCastTelegraph = "hidden";
-      this.game.canvas.dataset.enemySilenced = "false";
-      this.game.canvas.dataset.enemyVisualMarker = "none";
-      this.game.canvas.dataset.enemyTextureKey = "";
-      this.game.canvas.dataset.enemyRespawnMs = "";
-      this.game.canvas.dataset.enemyDamage = "";
-      this.game.canvas.dataset.bossProtocol = "disabled";
-      this.game.canvas.dataset.bossPhase = "";
-      this.game.canvas.dataset.bossHp = "";
+      this.worldDebug?.set("enemyHp", "");
+      this.worldDebug?.set("enemyCombatState", "");
+      this.worldDebug?.set("enemySelected", "false");
+      this.worldDebug?.set("enemyAlive", "false");
+      this.worldDebug?.set("enemyCastRange", "");
+      this.worldDebug?.set("enemyCastCooldown", "");
+      this.worldDebug?.set("enemyCastCooldownRemaining", "0");
+      this.worldDebug?.set("enemyCastTelegraph", "hidden");
+      this.worldDebug?.set("enemySilenced", "false");
+      this.worldDebug?.set("enemyVisualMarker", "none");
+      this.worldDebug?.set("enemyTextureKey", "");
+      this.worldDebug?.set("enemyRespawnMs", "");
+      this.worldDebug?.set("enemyDamage", "");
+      this.worldDebug?.set("bossProtocol", "disabled");
+      this.worldDebug?.set("bossPhase", "");
+      this.worldDebug?.set("bossHp", "");
       this.syncBossEncounterDataset();
       this.syncAssistDataset();
       return;
     }
 
-    this.game.canvas.dataset.enemyHp = `${this.enemy.hp}/${this.enemy.maxHp}`;
-    this.game.canvas.dataset.enemyCombatState = this.enemy.behaviorMode;
-    this.game.canvas.dataset.enemySelected = String(this.enemy.targetingState.selected);
-    this.game.canvas.dataset.enemyAlive = String(this.enemy.isAlive);
-    this.game.canvas.dataset.enemyPosition = `${this.enemy.sprite.x.toFixed(1)},${this.enemy.sprite.y.toFixed(1)}`;
-    this.game.canvas.dataset.enemyTextureKey = this.enemy.textureKey;
-    this.game.canvas.dataset.enemyBehavior = this.enemy.behavior;
-    this.game.canvas.dataset.enemyTraits = this.getEnemyTraitDataset(this.enemy);
-    this.game.canvas.dataset.enemyVisualMarker = this.getEnemyVisualMarkerDataset(this.enemy);
-    this.game.canvas.dataset.enemyRespawnMs = String(this.enemy.respawnMs);
-    this.game.canvas.dataset.enemyDamage = String(this.enemy.stats.attack);
-    this.game.canvas.dataset.enemyAggroRange = String(this.enemy.aggroRange);
-    this.game.canvas.dataset.enemyLeashDistance = String(this.enemy.leashDistance);
-    this.game.canvas.dataset.enemyAssistRadius = String(this.enemy.assistRadius);
-    this.game.canvas.dataset.enemyCastRange = String(this.enemy.castRange);
-    this.game.canvas.dataset.enemyCastCooldown = String(this.enemy.castCooldownMs);
-    this.game.canvas.dataset.enemyStatusEffects = this.dataRegistry
-      ? getStatusSummary(this.enemy.statusEffects, (id) => this.dataRegistry!.getStatusEffect(id))
-      : "";
+    this.worldDebug?.set("enemyHp", `${this.enemy.hp}/${this.enemy.maxHp}`);
+    this.worldDebug?.set("enemyCombatState", this.enemy.behaviorMode);
+    this.worldDebug?.set("enemySelected", String(this.enemy.targetingState.selected));
+    this.worldDebug?.set("enemyAlive", String(this.enemy.isAlive));
+    this.worldDebug?.set("enemyPosition", `${this.enemy.sprite.x.toFixed(1)},${this.enemy.sprite.y.toFixed(1)}`);
+    this.worldDebug?.set("enemyTextureKey", this.enemy.textureKey);
+    this.worldDebug?.set("enemyBehavior", this.enemy.behavior);
+    this.worldDebug?.set("enemyTraits", this.getEnemyTraitDataset(this.enemy));
+    this.worldDebug?.set("enemyVisualMarker", this.getEnemyVisualMarkerDataset(this.enemy));
+    this.worldDebug?.set("enemyRespawnMs", String(this.enemy.respawnMs));
+    this.worldDebug?.set("enemyDamage", String(this.enemy.stats.attack));
+    this.worldDebug?.set("enemyAggroRange", String(this.enemy.aggroRange));
+    this.worldDebug?.set("enemyLeashDistance", String(this.enemy.leashDistance));
+    this.worldDebug?.set("enemyAssistRadius", String(this.enemy.assistRadius));
+    this.worldDebug?.set("enemyCastRange", String(this.enemy.castRange));
+    this.worldDebug?.set("enemyCastCooldown", String(this.enemy.castCooldownMs));
+    this.worldDebug?.set("enemyStatusEffects", this.dataRegistry
+? getStatusSummary(this.enemy.statusEffects, (id) => this.dataRegistry!.getStatusEffect(id))
+: "");
     this.syncBossProtocolDataset(this.enemy);
     this.syncBossEncounterDataset();
     this.syncCasterDataset(this.enemy);
@@ -2175,20 +2151,20 @@ export class WorldScene extends Phaser.Scene {
 
   private syncBossProtocolDataset(enemy: EnemyEntity): void {
     if (!enemy.bossProtocolEnabled) {
-      this.game.canvas.dataset.bossProtocol = "disabled";
-      this.game.canvas.dataset.bossPhase = "";
-      this.game.canvas.dataset.bossHp = "";
-      this.game.canvas.dataset.bossControlResistance = "";
-      this.game.canvas.dataset.bossKnockbackResistance = "";
+      this.worldDebug?.set("bossProtocol", "disabled");
+      this.worldDebug?.set("bossPhase", "");
+      this.worldDebug?.set("bossHp", "");
+      this.worldDebug?.set("bossControlResistance", "");
+      this.worldDebug?.set("bossKnockbackResistance", "");
       return;
     }
 
-    this.game.canvas.dataset.bossProtocol = "enabled";
-    this.game.canvas.dataset.bossUi = enemy.isAlive && enemy.targetingState.selected ? "visible" : "hidden";
-    this.game.canvas.dataset.bossPhase = String(enemy.bossPhase);
-    this.game.canvas.dataset.bossHp = `${enemy.hp}/${enemy.maxHp}`;
-    this.game.canvas.dataset.bossControlResistance = String(enemy.getControlDurationMultiplier());
-    this.game.canvas.dataset.bossKnockbackResistance = String(enemy.getKnockbackDistance(100));
+    this.worldDebug?.set("bossProtocol", "enabled");
+    this.worldDebug?.set("bossUi", enemy.isAlive && enemy.targetingState.selected ? "visible" : "hidden");
+    this.worldDebug?.set("bossPhase", String(enemy.bossPhase));
+    this.worldDebug?.set("bossHp", `${enemy.hp}/${enemy.maxHp}`);
+    this.worldDebug?.set("bossControlResistance", String(enemy.getControlDurationMultiplier()));
+    this.worldDebug?.set("bossKnockbackResistance", String(enemy.getKnockbackDistance(100)));
   }
 
   private hasPlayerStealth(): boolean {
@@ -2211,25 +2187,25 @@ export class WorldScene extends Phaser.Scene {
       ? 0
       : Phaser.Math.Clamp(runtime.castWindupMs / enemyCastWindupMs, 0, 1);
 
-    this.game.canvas.dataset.enemyCastCooldownRemaining = String(cooldownRemaining);
-    this.game.canvas.dataset.enemyCastTelegraph = runtime?.castWindupMs === null || runtime?.castWindupMs === undefined
-      ? "hidden"
-      : `visible:${castProgress.toFixed(2)}`;
-    this.game.canvas.dataset.enemySilenced = String(this.hasEnemyControl(enemy, "silence"));
+    this.worldDebug?.set("enemyCastCooldownRemaining", String(cooldownRemaining));
+    this.worldDebug?.set("enemyCastTelegraph", runtime?.castWindupMs === null || runtime?.castWindupMs === undefined
+? "hidden"
+: `visible:${castProgress.toFixed(2)}`);
+    this.worldDebug?.set("enemySilenced", String(this.hasEnemyControl(enemy, "silence")));
   }
 
   private syncAssistDataset(): void {
     const assistedEnemies = this.enemyRuntimes.filter((runtime) => runtime.enemy.isAlive && runtime.assistedByAlly);
 
-    this.game.canvas.dataset.enemyAssistedCount = String(assistedEnemies.length);
-    this.game.canvas.dataset.enemyAssistedIds = assistedEnemies.map((runtime) => runtime.enemy.id).join("|");
+    this.worldDebug?.set("enemyAssistedCount", String(assistedEnemies.length));
+    this.worldDebug?.set("enemyAssistedIds", assistedEnemies.map((runtime) => runtime.enemy.id).join("|"));
   }
 
   private toggleAssistDebugOverlay(): void {
     this.assistDebugVisible = !this.assistDebugVisible;
-    this.game.canvas.dataset.debugAssistRadius = this.assistDebugVisible
-      ? `visible:${this.getDebugAssistRadiusCount()}`
-      : "hidden";
+    this.worldDebug?.set("debugAssistRadius", this.assistDebugVisible
+? `visible:${this.getDebugAssistRadiusCount()}`
+: "hidden");
     this.renderAssistDebugOverlay();
   }
 
@@ -2254,7 +2230,7 @@ export class WorldScene extends Phaser.Scene {
       graphics.strokeCircle(runtime.enemy.sprite.x, runtime.enemy.sprite.y, runtime.enemy.assistRadius);
     }
 
-    this.game.canvas.dataset.debugAssistRadius = `visible:${this.getDebugAssistRadiusCount()}`;
+    this.worldDebug?.set("debugAssistRadius", `visible:${this.getDebugAssistRadiusCount()}`);
   }
 
   private getDebugAssistRadiusCount(): number {
@@ -2300,9 +2276,9 @@ export class WorldScene extends Phaser.Scene {
     const targetY = originY + deltaY;
 
     if (label.startsWith("player:")) {
-      this.game.canvas.dataset.lastMeleeLunge = `${label}:${deltaX.toFixed(1)},${deltaY.toFixed(1)}`;
+      this.worldDebug?.set("lastMeleeLunge", `${label}:${deltaX.toFixed(1)},${deltaY.toFixed(1)}`);
     } else {
-      this.game.canvas.dataset.lastEnemyMeleeLunge = `${label}:${deltaX.toFixed(1)},${deltaY.toFixed(1)}`;
+      this.worldDebug?.set("lastEnemyMeleeLunge", `${label}:${deltaX.toFixed(1)},${deltaY.toFixed(1)}`);
     }
 
     const lungeOut = this.tweens.add({
@@ -2357,8 +2333,8 @@ export class WorldScene extends Phaser.Scene {
     const hitVfxId = critical ? "critical-hit" : "weapon-hit";
     this.vfxManager?.spawn(hitVfxId, enemy.sprite.x, enemy.sprite.y);
     this.vfxManager?.spawnCombatText(critical ? "critical" : "damage", damage, enemy.sprite.x, enemy.sprite.y - 38);
-    this.game.canvas.dataset.lastHitVfx = hitVfxId;
-    this.game.canvas.dataset.lastHitReaction = `${enemy.id}:${critical ? "critical" : "hit"}:${damage}`;
+    this.worldDebug?.set("lastHitVfx", hitVfxId);
+    this.worldDebug?.set("lastHitReaction", `${enemy.id}:${critical ? "critical" : "hit"}:${damage}`);
 
     if (enemy.isAlive) {
       this.tweens.add({
@@ -2377,7 +2353,7 @@ export class WorldScene extends Phaser.Scene {
 
     if (this.player) {
       this.vfxManager?.spawn("skill-cast", this.player.sprite.x, this.player.sprite.y + 8);
-      this.game.canvas.dataset.lastPlayerAnimation = `cast:${this.player.direction}`;
+      this.worldDebug?.set("lastPlayerAnimation", `cast:${this.player.direction}`);
     }
 
     if (target?.isAlive || target?.hp === 0) {
@@ -2389,13 +2365,13 @@ export class WorldScene extends Phaser.Scene {
   }
 
   private syncCombatFormulaDataset(damage: number, hit: boolean, critical: boolean): void {
-    this.game.canvas.dataset.lastCombatFormula = [
-      "kind=physical",
-      `weapon=${this.weaponAttack}`,
-      `hit=${hit}`,
-      `crit=${critical}`,
-      `damage=${damage}`,
-    ].join("|");
+    this.worldDebug?.set("lastCombatFormula", [
+"kind=physical",
+`weapon=${this.weaponAttack}`,
+`hit=${hit}`,
+`crit=${critical}`,
+`damage=${damage}`,
+].join("|"));
   }
 
   private updateMapTransitions(): void {
@@ -2429,10 +2405,10 @@ export class WorldScene extends Phaser.Scene {
       ? writeSaveSlot(this.state.currentSaveSlot, this.state)
       : writeAutosave(this.state);
     const savedSlot = this.state.currentSaveSlot ?? autosaveSlot;
-    this.game.canvas.dataset.lastTransition = `${portal.name}:${portal.targetMapId}:${portal.targetSpawnName}`;
-    this.game.canvas.dataset.lastTransitionExpiredBuffs = removedStatusIds.join(",");
-    this.game.canvas.dataset.lastAutosaveSlot = String(savedSlot);
-    this.game.canvas.dataset.lastAutosaveMap = saveData.gameState.currentMapId;
+    this.worldDebug?.set("lastTransition", `${portal.name}:${portal.targetMapId}:${portal.targetSpawnName}`);
+    this.worldDebug?.set("lastTransitionExpiredBuffs", removedStatusIds.join(","));
+    this.worldDebug?.set("lastAutosaveSlot", String(savedSlot));
+    this.worldDebug?.set("lastAutosaveMap", saveData.gameState.currentMapId);
     eventBus.emit("saveCompleted", { saveSlot: savedSlot });
     this.scene.restart({
       spawnName: portal.targetSpawnName,
@@ -2452,8 +2428,8 @@ export class WorldScene extends Phaser.Scene {
       : writeAutosave(this.state);
     const savedSlot = this.state.currentSaveSlot ?? autosaveSlot;
 
-    this.game.canvas.dataset.lastAutosaveSlot = String(savedSlot);
-    this.game.canvas.dataset.lastAutosaveMap = saveData.currentMapId;
+    this.worldDebug?.set("lastAutosaveSlot", String(savedSlot));
+    this.worldDebug?.set("lastAutosaveMap", saveData.currentMapId);
     eventBus.emit("saveCompleted", { saveSlot: savedSlot });
   }
 
@@ -2566,15 +2542,15 @@ export class WorldScene extends Phaser.Scene {
 
     const dungeon = this.dataRegistry.getDungeonByMapId(this.state.currentMapId);
     const result = dungeon ? beginChallengeDungeon(this.state, dungeon) : null;
-    this.game.canvas.dataset.lastChallengeDungeonStart = result
-      ? `${result.dungeonId}:${result.modifier.id}`
-      : "unavailable";
+    this.worldDebug?.set("lastChallengeDungeonStart", result
+? `${result.dungeonId}:${result.modifier.id}`
+: "unavailable");
 
     if (result) {
-      this.game.canvas.dataset.challengeDungeonActive = `${result.dungeonId}:${result.modifier.id}`;
-      this.game.canvas.dataset.challengeDungeonModifier = result.modifierDisplay;
-      this.game.canvas.dataset.challengeDungeonDifficulty = result.difficultyDisplay;
-      this.game.canvas.dataset.challengeDungeonRewards = result.rewardDisplay;
+      this.worldDebug?.set("challengeDungeonActive", `${result.dungeonId}:${result.modifier.id}`);
+      this.worldDebug?.set("challengeDungeonModifier", result.modifierDisplay);
+      this.worldDebug?.set("challengeDungeonDifficulty", result.difficultyDisplay);
+      this.worldDebug?.set("challengeDungeonRewards", result.rewardDisplay);
     }
   }
 
@@ -2585,15 +2561,15 @@ export class WorldScene extends Phaser.Scene {
 
     if (this.state.challengeDungeons.activeClassTrialId) {
       const trial = completeClassTrial(this.state, this.dataRegistry);
-      this.game.canvas.dataset.lastClassTrialCompletion = trial ? `${trial.id}:${trial.rewardItemId}` : "";
+      this.worldDebug?.set("lastClassTrialCompletion", trial ? `${trial.id}:${trial.rewardItemId}` : "");
       this.syncClassTrialDataset();
       return;
     }
 
     const result = startClassTrial(this.state);
-    this.game.canvas.dataset.lastClassTrialStart = result.success
-      ? `${result.trial.id}:${result.replay ? "replay" : "first"}`
-      : `failed:${result.reason}`;
+    this.worldDebug?.set("lastClassTrialStart", result.success
+? `${result.trial.id}:${result.replay ? "replay" : "first"}`
+: `failed:${result.reason}`);
     this.syncClassTrialDataset();
   }
 
@@ -2609,13 +2585,13 @@ export class WorldScene extends Phaser.Scene {
     }
 
     const result = completeChallengeDungeon(this.state, this.dataRegistry);
-    this.game.canvas.dataset.lastChallengeDungeonCompletion = result
-      ? `${result.dungeonId}:${result.modifierId}:gold:${result.gold}:rewards:${result.rewards.map((reward) => `${reward.itemId}x${reward.quantity}`).join(",")}`
-      : "";
-    this.game.canvas.dataset.challengeDungeonActive = "";
-    this.game.canvas.dataset.challengeDungeonModifier = "";
-    this.game.canvas.dataset.challengeDungeonDifficulty = "";
-    this.game.canvas.dataset.challengeDungeonRewards = "";
+    this.worldDebug?.set("lastChallengeDungeonCompletion", result
+? `${result.dungeonId}:${result.modifierId}:gold:${result.gold}:rewards:${result.rewards.map((reward) => `${reward.itemId}x${reward.quantity}`).join(",")}`
+: "");
+    this.worldDebug?.set("challengeDungeonActive", "");
+    this.worldDebug?.set("challengeDungeonModifier", "");
+    this.worldDebug?.set("challengeDungeonDifficulty", "");
+    this.worldDebug?.set("challengeDungeonRewards", "");
   }
 
   private getChallengeScaledMonster(monster: MonsterDefinition): MonsterDefinition {
@@ -2650,71 +2626,71 @@ export class WorldScene extends Phaser.Scene {
       ? getClassTrial(this.state.character.advancedClass.id)
       : undefined;
 
-    this.game.canvas.dataset.classTrialOptions = classTrials.map((trial) => trial.advancedClassId).join("|");
-    this.game.canvas.dataset.currentClassTrial = availableTrial?.id ?? "";
-    this.game.canvas.dataset.currentClassTrialLesson = availableTrial?.lesson ?? "";
-    this.game.canvas.dataset.currentClassTrialReward = availableTrial
-      ? `${availableTrial.rewardKind}:${availableTrial.rewardItemId}`
-      : "";
-    this.game.canvas.dataset.activeClassTrial = activeTrial?.id ?? "";
-    this.game.canvas.dataset.completedClassTrials = this.state.challengeDungeons.completedClassTrialIds.join("|");
+    this.worldDebug?.set("classTrialOptions", classTrials.map((trial) => trial.advancedClassId).join("|"));
+    this.worldDebug?.set("currentClassTrial", availableTrial?.id ?? "");
+    this.worldDebug?.set("currentClassTrialLesson", availableTrial?.lesson ?? "");
+    this.worldDebug?.set("currentClassTrialReward", availableTrial
+? `${availableTrial.rewardKind}:${availableTrial.rewardItemId}`
+: "");
+    this.worldDebug?.set("activeClassTrial", activeTrial?.id ?? "");
+    this.worldDebug?.set("completedClassTrials", this.state.challengeDungeons.completedClassTrialIds.join("|"));
   }
 
   private syncMapMetadataDataset(map: MapDefinition, region: RegionDefinition): void {
-    this.game.canvas.dataset.currentRegion = region.id;
-    this.game.canvas.dataset.currentRegionName = region.name;
-    this.game.canvas.dataset.currentRegionLevelRange = `${region.levelRange.min}-${region.levelRange.max}`;
-    this.game.canvas.dataset.currentRegionDescription = region.description;
-    this.game.canvas.dataset.regionProgression = this.dataRegistry
-      ? this.dataRegistry.getRegions()
-        .map((entry) => `${entry.id}:${entry.levelRange.min}-${entry.levelRange.max}`)
-        .join("|")
-      : "";
-    this.game.canvas.dataset.currentMapDescription = map.description;
-    this.game.canvas.dataset.currentMapLevelRange = `${map.levelRange.min}-${map.levelRange.max}`;
-    this.game.canvas.dataset.currentMapType = map.type;
-    this.game.canvas.dataset.currentMapMusicKey = map.musicKey;
-    this.game.canvas.dataset.currentMapRecommendedElements = map.recommendedElements.join("|");
-    this.game.canvas.dataset.currentMapDropHighlights = map.dropHighlights.join("|");
-    this.game.canvas.dataset.currentMapPortals = map.portals
-      .map((portal) => `${portal.id}:${portal.targetMapId}:${portal.targetSpawnName}`)
-      .join("|");
-    this.game.canvas.dataset.currentMapSpawnGroups = map.spawnGroups
-      .map((spawnGroup) => `${spawnGroup.id}:${spawnGroup.monsterIds.join(",")}:${spawnGroup.maxCount}`)
-      .join("|");
-    this.game.canvas.dataset.currentMapNpcs = map.npcIds.join("|");
-    this.game.canvas.dataset.currentMapMonsters = map.monsterIds.join("|");
+    this.worldDebug?.set("currentRegion", region.id);
+    this.worldDebug?.set("currentRegionName", region.name);
+    this.worldDebug?.set("currentRegionLevelRange", `${region.levelRange.min}-${region.levelRange.max}`);
+    this.worldDebug?.set("currentRegionDescription", region.description);
+    this.worldDebug?.set("regionProgression", this.dataRegistry
+? this.dataRegistry.getRegions()
+.map((entry) => `${entry.id}:${entry.levelRange.min}-${entry.levelRange.max}`)
+.join("|")
+: "");
+    this.worldDebug?.set("currentMapDescription", map.description);
+    this.worldDebug?.set("currentMapLevelRange", `${map.levelRange.min}-${map.levelRange.max}`);
+    this.worldDebug?.set("currentMapType", map.type);
+    this.worldDebug?.set("currentMapMusicKey", map.musicKey);
+    this.worldDebug?.set("currentMapRecommendedElements", map.recommendedElements.join("|"));
+    this.worldDebug?.set("currentMapDropHighlights", map.dropHighlights.join("|"));
+    this.worldDebug?.set("currentMapPortals", map.portals
+.map((portal) => `${portal.id}:${portal.targetMapId}:${portal.targetSpawnName}`)
+.join("|"));
+    this.worldDebug?.set("currentMapSpawnGroups", map.spawnGroups
+.map((spawnGroup) => `${spawnGroup.id}:${spawnGroup.monsterIds.join(",")}:${spawnGroup.maxCount}`)
+.join("|"));
+    this.worldDebug?.set("currentMapNpcs", map.npcIds.join("|"));
+    this.worldDebug?.set("currentMapMonsters", map.monsterIds.join("|"));
     const dungeon = this.dataRegistry?.getDungeonByMapId(map.id);
 
-    this.game.canvas.dataset.currentDungeon = dungeon?.id ?? "";
-    this.game.canvas.dataset.currentDungeonBoss = dungeon?.bossId ?? "";
-    this.game.canvas.dataset.currentDungeonRooms = dungeon
-      ? dungeon.roomPlan.map((room) => `${room.id}:${room.encounterRole}`).join("|")
-      : "";
-    this.game.canvas.dataset.currentDungeonHazards = dungeon
-      ? dungeon.hazards.map((hazard) => `${hazard.id}:${hazard.effect}`).join("|")
-      : "";
-    this.game.canvas.dataset.currentDungeonRewards = dungeon?.rewardItemIds.join("|") ?? "";
-    this.game.canvas.dataset.currentDungeonRareMaterials = dungeon?.rareMaterialIds.join("|") ?? "";
-    this.game.canvas.dataset.currentDungeonReplayable = dungeon ? String(dungeon.replayable) : "false";
-    this.game.canvas.dataset.currentDungeonShortcut = dungeon?.shortcutUnlockId ?? "";
-    this.game.canvas.dataset.currentDungeonBossMechanics = dungeon?.bossMechanics.join("|") ?? "";
-    this.game.canvas.dataset.challengeDungeonAvailable = String(isChallengeDungeonAvailable(this.state!, dungeon));
-    this.game.canvas.dataset.challengeDungeonModifiers = challengeDungeonModifiers
-      .map((modifier) => `${modifier.id}:${modifier.name}:${modifier.rewardMultiplier}`)
-      .join("|");
-    this.game.canvas.dataset.challengeDungeonActive = this.state?.challengeDungeons.activeRun
-      ? `${this.state.challengeDungeons.activeRun.dungeonId}:${this.state.challengeDungeons.activeRun.modifierId}`
-      : "";
-    this.game.canvas.dataset.challengeDungeonModifier = this.state?.challengeDungeons.activeRun
-      ? formatChallengeModifierDisplay(getChallengeDungeonModifier(this.state.challengeDungeons.activeRun.modifierId))
-      : "";
-    this.game.canvas.dataset.challengeDungeonDifficulty = this.state?.challengeDungeons.activeRun
-      ? formatChallengeDifficultyDisplay(getChallengeDungeonModifier(this.state.challengeDungeons.activeRun.modifierId))
-      : "";
-    this.game.canvas.dataset.challengeDungeonRewards = this.state?.challengeDungeons.activeRun
-      ? `x${this.state.challengeDungeons.activeRun.rewardMultiplier.toFixed(2)}`
-      : "";
+    this.worldDebug?.set("currentDungeon", dungeon?.id ?? "");
+    this.worldDebug?.set("currentDungeonBoss", dungeon?.bossId ?? "");
+    this.worldDebug?.set("currentDungeonRooms", dungeon
+? dungeon.roomPlan.map((room) => `${room.id}:${room.encounterRole}`).join("|")
+: "");
+    this.worldDebug?.set("currentDungeonHazards", dungeon
+? dungeon.hazards.map((hazard) => `${hazard.id}:${hazard.effect}`).join("|")
+: "");
+    this.worldDebug?.set("currentDungeonRewards", dungeon?.rewardItemIds.join("|") ?? "");
+    this.worldDebug?.set("currentDungeonRareMaterials", dungeon?.rareMaterialIds.join("|") ?? "");
+    this.worldDebug?.set("currentDungeonReplayable", dungeon ? String(dungeon.replayable) : "false");
+    this.worldDebug?.set("currentDungeonShortcut", dungeon?.shortcutUnlockId ?? "");
+    this.worldDebug?.set("currentDungeonBossMechanics", dungeon?.bossMechanics.join("|") ?? "");
+    this.worldDebug?.set("challengeDungeonAvailable", String(isChallengeDungeonAvailable(this.state!, dungeon)));
+    this.worldDebug?.set("challengeDungeonModifiers", challengeDungeonModifiers
+.map((modifier) => `${modifier.id}:${modifier.name}:${modifier.rewardMultiplier}`)
+.join("|"));
+    this.worldDebug?.set("challengeDungeonActive", this.state?.challengeDungeons.activeRun
+? `${this.state.challengeDungeons.activeRun.dungeonId}:${this.state.challengeDungeons.activeRun.modifierId}`
+: "");
+    this.worldDebug?.set("challengeDungeonModifier", this.state?.challengeDungeons.activeRun
+? formatChallengeModifierDisplay(getChallengeDungeonModifier(this.state.challengeDungeons.activeRun.modifierId))
+: "");
+    this.worldDebug?.set("challengeDungeonDifficulty", this.state?.challengeDungeons.activeRun
+? formatChallengeDifficultyDisplay(getChallengeDungeonModifier(this.state.challengeDungeons.activeRun.modifierId))
+: "");
+    this.worldDebug?.set("challengeDungeonRewards", this.state?.challengeDungeons.activeRun
+? `x${this.state.challengeDungeons.activeRun.rewardMultiplier.toFixed(2)}`
+: "");
     this.syncClassTrialDataset();
   }
 
@@ -2785,7 +2761,7 @@ export class WorldScene extends Phaser.Scene {
     }
 
     const result = beginBossArenaEncounter(this.state, boss, map.id);
-    this.game.canvas.dataset.bossArenaFlow = result ? `${result.bossId}:${result.arenaMapId}:locked:${result.locked}` : "";
+    this.worldDebug?.set("bossArenaFlow", result ? `${result.bossId}:${result.arenaMapId}:locked:${result.locked}` : "");
     this.syncBossEncounterDataset();
   }
 
@@ -2795,13 +2771,13 @@ export class WorldScene extends Phaser.Scene {
     }
 
     const bossState = this.state.bossEncounters;
-    this.game.canvas.dataset.activeBossEncounter = bossState.activeBossId ?? "";
-    this.game.canvas.dataset.activeBossArena = bossState.activeArenaMapId ?? "";
-    this.game.canvas.dataset.defeatedBosses = bossState.defeatedBossIds.join("|");
-    this.game.canvas.dataset.bossArenaExitUnlocked = bossState.victoryExitUnlockedBossIds.join("|");
-    this.game.canvas.dataset.mvpRespawnTimers = Object.entries(bossState.mvpRespawnTimers)
-      .map(([bossId, remaining]) => `${bossId}:${Math.ceil(remaining)}`)
-      .join("|");
+    this.worldDebug?.set("activeBossEncounter", bossState.activeBossId ?? "");
+    this.worldDebug?.set("activeBossArena", bossState.activeArenaMapId ?? "");
+    this.worldDebug?.set("defeatedBosses", bossState.defeatedBossIds.join("|"));
+    this.worldDebug?.set("bossArenaExitUnlocked", bossState.victoryExitUnlockedBossIds.join("|"));
+    this.worldDebug?.set("mvpRespawnTimers", Object.entries(bossState.mvpRespawnTimers)
+.map(([bossId, remaining]) => `${bossId}:${Math.ceil(remaining)}`)
+.join("|"));
   }
 
   private getWalkableSpawnPoint(zone: SpawnZoneRuntime): Phaser.Math.Vector2 {
