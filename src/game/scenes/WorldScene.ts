@@ -1779,6 +1779,7 @@ phase.attackIds.join(","),
       damage: finalDamage,
       hit: result.hit,
       critical: result.critical,
+      screenFlash: false,
       onImpact: () => {
         if (result.hit && state.character.stats.hp > 0) {
           this.player?.playHurt();

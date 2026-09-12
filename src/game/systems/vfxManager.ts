@@ -26,6 +26,7 @@ export interface CombatFeedbackRequest {
   damage: number;
   hit: boolean;
   critical: boolean;
+  screenFlash?: boolean;
   onImpact?: () => void;
 }
 
@@ -132,7 +133,7 @@ export class VfxManager {
       if (request.hit) {
         this.spawn(definitions.impact, request.targetX, request.targetY);
         this.spawn(definitions.hit, request.targetX, request.targetY);
-        this.triggerImpactFeedback(request.critical);
+        this.triggerImpactFeedback(request.critical, request.screenFlash ?? true);
       }
       request.onImpact?.();
     });
@@ -299,7 +300,7 @@ export class VfxManager {
     this.pendingTimers.add(timer);
   }
 
-  private triggerImpactFeedback(critical: boolean): void {
+  private triggerImpactFeedback(critical: boolean, screenFlash: boolean): void {
     const intensity = this.options.intensity === "reduced" ? 0.65 : 1;
     const flashIntensity = Phaser.Math.Clamp(this.options.flashIntensity ?? 0, 0, 1);
 
@@ -309,7 +310,7 @@ export class VfxManager {
       this.scene.cameras.main.shake(shakeDuration, shakeStrength, false);
     }
 
-    if (flashIntensity > 0) {
+    if (screenFlash && flashIntensity > 0) {
       const flashDuration = Math.max(20, Math.round((critical ? 100 : 55) * intensity * flashIntensity));
       this.scene.cameras.main.flash(flashDuration, 255, 255, 255, false);
     }
