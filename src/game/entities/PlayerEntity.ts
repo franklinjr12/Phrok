@@ -1,6 +1,7 @@
 import Phaser from "phaser";
 import type { CharacterData } from "../types/gameState";
 import { EntityPresentationController } from "../presentation/EntityPresentationController";
+import { getAttackAnimationKey } from "../presentation/attackAnimations";
 import {
   getAnimationState,
   moveToward,
@@ -47,6 +48,7 @@ export class PlayerEntity {
     this.createClassAnimations(scene);
     this.presentation = new EntityPresentationController(scene, this.sprite, {
       textureKey: this.getAvailableTextureKey(scene),
+      attackAnimationKey: getAttackAnimationKey(this.getAvailableArchetype(scene)),
       depthOffset: 1,
       idlePhase: Math.random() * Math.PI * 2,
     });
@@ -150,10 +152,13 @@ export class PlayerEntity {
   }
 
   private getAvailableTextureKey(scene: Phaser.Scene): string {
-    const textureKey = getPlayerTextureKey(this.character.archetype);
+    return getPlayerTextureKey(this.getAvailableArchetype(scene));
+  }
 
-    return scene.textures.exists(textureKey)
-      ? textureKey
-      : PlayerTextureKeys.Swordsman;
+  /** The archetype actually rendered, falling back to the swordsman sprite. */
+  private getAvailableArchetype(scene: Phaser.Scene): string {
+    return scene.textures.exists(getPlayerTextureKey(this.character.archetype))
+      ? this.character.archetype
+      : "swordsman";
   }
 }

@@ -8,6 +8,11 @@ export type PresentationControllerOptions = {
   depthOffset?: number;
   idlePhase?: number;
   idleAmplitude?: number;
+  /**
+   * Animation played by `playAttack`. The animation's frames must be centred on
+   * the same anchor as `textureKey` so the entity does not shift when it starts.
+   */
+  attackAnimationKey?: string;
 };
 
 /**
@@ -22,6 +27,8 @@ export class EntityPresentationController {
 
   private readonly scene: Phaser.Scene;
   private readonly logicalSprite: Phaser.GameObjects.Sprite;
+  private readonly baseTextureKey: string;
+  private readonly attackAnimationKey?: string;
   private readonly idlePhase: number;
   private readonly idleAmplitude: number;
   private readonly offset = { x: 0, y: 0 };
@@ -29,6 +36,7 @@ export class EntityPresentationController {
   private elapsedMs = 0;
   private hovered = false;
   private destroyed = false;
+  private attackPlaying = false;
 
   constructor(
     scene: Phaser.Scene,
@@ -37,6 +45,8 @@ export class EntityPresentationController {
   ) {
     this.scene = scene;
     this.logicalSprite = logicalSprite;
+    this.baseTextureKey = options.textureKey;
+    this.attackAnimationKey = options.attackAnimationKey;
     this.idlePhase = options.idlePhase ?? Math.random() * Math.PI * 2;
     this.idleAmplitude = options.idleAmplitude ?? 1;
     this.visualSprite = scene.add.sprite(logicalSprite.x, logicalSprite.y, options.textureKey)
@@ -65,7 +75,16 @@ export class EntityPresentationController {
     this.visualSprite.setData("presentationDirection", direction);
     this.visualSprite.setData("presentationMotion", motionState);
 
-    if (!this.actionTween?.isPlaying()) {
+    if (this.attackPlaying) {
+      // The swing itself carries the motion, so hold the idle squash flat and
+      // only keep the entity following its logical position.
+      this.visualSprite.setScale(baseScale);
+      this.visualSprite.setRotation(0);
+      this.visualSprite.setPosition(
+        this.logicalSprite.x + this.offset.x,
+        this.logicalSprite.y + this.offset.y,
+      );
+    } else if (!this.actionTween?.isPlaying()) {
       this.visualSprite.setScale(baseScale * (1 + rhythm), baseScale * (1 - rhythm));
       this.visualSprite.setRotation(0);
       this.visualSprite.setPosition(
@@ -75,6 +94,13 @@ export class EntityPresentationController {
     } else {
       this.syncVisualTransform();
     }
+  }
+
+  /** Texture and animation frame currently rendered, for world diagnostics. */
+  get renderedFrame(): string {
+    const frame = this.attackPlaying ? this.visualSprite.anims.currentFrame?.index ?? 0 : 0;
+
+    return `${this.visualSprite.texture.key}:${frame}`;
   }
 
   syncVisualTransform(): void {
@@ -87,7 +113,7 @@ export class EntityPresentationController {
 
   playLunge(deltaX: number, deltaY: number, durationMs = 135): void {
     if (this.destroyed) return;
-    this.stopAction();
+    this.stopActionTween();
     this.offset.x = 0;
     this.offset.y = 0;
     this.actionTween = this.scene.tweens.add({
@@ -111,6 +137,15 @@ export class EntityPresentationController {
   playAttack(): void {
     if (this.destroyed) return;
     this.stopAction();
+
+    if (this.attackAnimationKey && this.scene.anims.exists(this.attackAnimationKey)) {
+      this.attackPlaying = true;
+      this.visualSprite.once(Phaser.Animations.Events.ANIMATION_COMPLETE, () => this.restoreBaseTexture());
+      // Restart rather than ignore, so a fresh swing always replays from frame one.
+      this.visualSprite.anims.play(this.attackAnimationKey);
+      return;
+    }
+
     this.actionTween = this.scene.tweens.add({
       targets: this.visualSprite,
       scaleX: 1.08,
@@ -209,11 +244,29 @@ export class EntityPresentationController {
   }
 
   private stopAction(): void {
+    this.restoreBaseTexture();
+    this.stopActionTween();
+  }
+
+  /**
+   * Resets the tweened transform without touching a running attack animation, so
+   * a lunge can carry the swing forward instead of cutting it short.
+   */
+  private stopActionTween(): void {
     this.actionTween?.stop();
     this.actionTween = undefined;
     this.offset.x = 0;
     this.offset.y = 0;
     this.visualSprite.setRotation(0).setScale(1, 1).setAlpha(1).clearTint();
     this.syncVisualTransform();
+  }
+
+  /** Ends any running attack animation and returns the sprite to its idle frame. */
+  private restoreBaseTexture(): void {
+    if (!this.attackPlaying) return;
+    this.attackPlaying = false;
+    this.visualSprite.off(Phaser.Animations.Events.ANIMATION_COMPLETE);
+    this.visualSprite.anims.stop();
+    this.visualSprite.setTexture(this.baseTextureKey);
   }
 }

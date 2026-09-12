@@ -1,5 +1,6 @@
 import { paintWorld } from "../map/paintWorld";
 import Phaser from "phaser";
+import { PLAYER_MELEE_COOLDOWN_MS } from "../constants/combatTiming";
 import { RegistryKeys } from "../constants/registryKeys";
 import { SceneKeys } from "../constants/sceneKeys";
 import { EnemyEntity } from "../entities/EnemyEntity";
@@ -105,7 +106,7 @@ const tiledLayerNames = {
   objects: "Objects",
 } as const;
 const playerAttackRange = 62;
-const playerAttackCooldownMs = 850;
+const playerAttackCooldownMs = PLAYER_MELEE_COOLDOWN_MS;
 const portalInteractionRadius = 72;
 const portalClickPadding = 12;
 const enemyAttackCooldownMs = 1250;
@@ -664,6 +665,7 @@ tiledLayerNames.objects,
 
   private updatePlayerAttackCooldown(deltaMs: number): void {
     this.playerAttackTimerMs = Math.min(playerAttackCooldownMs, this.playerAttackTimerMs + deltaMs);
+    this.worldDebug?.set("playerRenderedFrame", this.player?.presentation.renderedFrame);
   }
 
   private selectEnemy(enemy: EnemyEntity): void {

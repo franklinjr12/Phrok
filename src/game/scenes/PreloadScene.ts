@@ -7,6 +7,7 @@ import { EnemyTextureKeys, getEnemyTextureKey } from "../entities/EnemyEntity";
 import { getNpcTextureKey, NpcTextureKeys } from "../entities/NpcEntity";
 import { getPlayerTextureKey } from "../entities/PlayerEntity";
 import { getSupportTextureKey } from "../entities/supportTextures";
+import { attackSheetDefinitions, createAttackAnimations, getAttackTextureKey } from "../presentation/attackAnimations";
 import type { MapDefinition } from "../types/dataDefinitions";
 import townServiceNpcUrl from "../../../assets/sprites/town-service-npc.png?url";
 
@@ -17,6 +18,13 @@ const spriteAssetUrls = import.meta.glob("../../../assets/sprites/**/*.png", {
 }) as Record<string, string>;
 const prototypeTilesKey = "prototype-tiles";
 
+function findSpriteUrl(suffix: string): string | undefined {
+  const match = Object.keys(spriteAssetUrls)
+    .find((path) => path.replace(/\\/g, "/").endsWith(`/${suffix}`));
+
+  return match ? spriteAssetUrls[match] : undefined;
+}
+
 export class PreloadScene extends Phaser.Scene {
   constructor() {
     super(SceneKeys.Preload);
@@ -25,10 +33,12 @@ export class PreloadScene extends Phaser.Scene {
   preload(): void {
     this.load.image(NpcTextureKeys.TownService, townServiceNpcUrl);
     this.loadEnemySprites();
+    this.loadAttackSpritesheets();
   }
 
   async create(): Promise<void> {
     this.createPlayerClassTextures();
+    createAttackAnimations(this);
     this.createFallbackEnemyTexture();
     this.createPrototypeTileTexture();
 
@@ -168,9 +178,31 @@ export class PreloadScene extends Phaser.Scene {
     graphics.destroy();
   }
 
+  private loadAttackSpritesheets(): void {
+    for (const [archetype, sheet] of Object.entries(attackSheetDefinitions)) {
+      const textureKey = getAttackTextureKey(archetype);
+      const url = findSpriteUrl(`animations/${sheet.fileName}`);
+
+      if (!url || this.textures.exists(textureKey)) {
+        continue;
+      }
+
+      this.load.spritesheet(textureKey, url, {
+        frameWidth: sheet.frameWidth,
+        frameHeight: sheet.frameHeight,
+      });
+    }
+  }
+
   private loadEnemySprites(): void {
     for (const [path, url] of Object.entries(spriteAssetUrls)) {
       const normalizedPath = path.replace(/\\/g, "/");
+
+      // Animation sheets are sliced as spritesheets, never loaded as one texture.
+      if (normalizedPath.includes("/animations/")) {
+        continue;
+      }
+
       const spriteId = normalizedPath.split("/").pop()?.replace(/\.png$/i, "") ?? "";
       const textureKey = this.getSpriteTextureKey(normalizedPath, spriteId);
 
