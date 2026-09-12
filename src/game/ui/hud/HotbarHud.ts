@@ -18,6 +18,7 @@ export interface HotbarHudContext extends UIContext {
 type HotbarVisual = {
   frame: Phaser.GameObjects.Rectangle;
   icon: Phaser.GameObjects.Text;
+  art: Phaser.GameObjects.Graphics;
   number: Phaser.GameObjects.Text;
   quantity: Phaser.GameObjects.Text;
   cooldown: Phaser.GameObjects.Rectangle;
@@ -40,6 +41,9 @@ export class HotbarHud {
     const x = Math.max(210, width / 2 - 140);
     const y = Math.max(540, height - 58);
 
+    const backing = this.context.scene.add.rectangle(x - 26, y - 25, hotbarSlotCount * 42 + 77, 50, uiTheme.colors.background, 0.96)
+      .setOrigin(0).setScrollFactor(0).setDepth(hudDepth - 1).setStrokeStyle(1, uiTheme.colors.accent);
+    this.navigationObjects.push(backing);
     for (let index = 0; index < hotbarSlotCount; index += 1) {
       const slot = this.context.scene.add.rectangle(x + index * 42, y, 36, 36, uiTheme.colors.header, 0.98)
         .setStrokeStyle(2, uiTheme.colors.border, 0.95).setScrollFactor(0).setDepth(hudDepth)
@@ -64,7 +68,8 @@ export class HotbarHud {
       const cooldownText = this.context.scene.add.text(slot.x, slot.y + 1, "", {
         color: uiTheme.text.onDark, fontFamily: uiTheme.fonts.body, fontSize: `${Math.round(9 * scale)}px`, stroke: "#0a1712", strokeThickness: 2,
       }).setOrigin(0.5).setScrollFactor(0).setDepth(hudDepth + 4).setVisible(false);
-      this.visuals.push({ frame: slot, icon, number, quantity, cooldown, cooldownText });
+      const art = this.context.scene.add.graphics().setPosition(slot.x, slot.y).setScrollFactor(0).setDepth(hudDepth + 1);
+      this.visuals.push({ frame: slot, icon, art, number, quantity, cooldown, cooldownText });
     }
 
     this.clearZone = this.context.scene.add.rectangle(x + hotbarSlotCount * 42 + 24, y, 42, 36, uiTheme.colors.negative, 0.28)
@@ -100,7 +105,24 @@ export class HotbarHud {
       const iconLabel = assignment ? this.getIconLabel(assignment.type, assignment.id) : "";
       visual.frame.setStrokeStyle(2, assignment ? (assignment.type === "skill" ? uiTheme.colors.sp : uiTheme.colors.hp) : uiTheme.colors.border, 0.95);
       visual.frame.setFillStyle(disabled ? uiTheme.colors.disabled : uiTheme.colors.header, disabled ? 0.55 : 0.98);
-      visual.icon.setText(iconLabel).setColor(disabled ? uiTheme.text.muted : uiTheme.text.onDark);
+      visual.icon.setText(iconLabel).setVisible(Boolean(assignment?.type === "skill" && assignment.id !== "power-slash"));
+      const artKey = assignment ? `${assignment.type}:${assignment.id}:${disabled}` : "empty";
+      if (visual.art.getData("assignment") !== artKey) {
+        const art = visual.art.clear().setAlpha(disabled ? 0.4 : 1).setData("assignment", artKey);
+        if (assignment?.type === "item") {
+          art.fillStyle(0x88a9aa).fillRoundedRect(-7, -5, 14, 17, 3);
+          art.fillStyle(0xa63829).fillRect(-5, 1, 10, 9);
+          art.fillStyle(0xc2b68f).fillRect(-3, -10, 6, 7);
+          art.fillStyle(0x795233).fillRect(-4, -12, 8, 3);
+          art.fillStyle(0xf1dba4).fillRect(-4, 1, 2, 5);
+        } else if (assignment?.id === "power-slash") {
+          art.lineStyle(7, 0x30291f).lineBetween(-9, 10, 10, -10);
+          art.lineStyle(4, 0xb5c4c5).lineBetween(-4, 5, 10, -10);
+          art.lineStyle(1, 0xf1e8c8).lineBetween(-3, 4, 10, -10);
+          art.lineStyle(3, 0xc39c50).lineBetween(-8, 0, 1, 9);
+          art.lineStyle(3, 0x8c5a35).lineBetween(-9, 10, -5, 6);
+        }
+      }
       visual.quantity.setText(assignment?.type === "item" ? String(this.getQuantity(assignment.id)) : assignment?.type === "skill" ? `Lv${getLearnedSkillLevel(this.context.state, assignment.id)}` : "");
       rendered.push(`${index + 1}:${iconLabel}`);
     }

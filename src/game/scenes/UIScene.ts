@@ -158,6 +158,7 @@ export class UIScene extends Phaser.Scene {
   private inputOwnership?: GameInputOwnership;
   private transitionInputLocked = false;
   private readonly targetHudModel = new TargetHudViewModel();
+  private readonly handledKeyEvents = new WeakSet<KeyboardEvent>();
 
   constructor() {
     super("UIScene");
@@ -194,6 +195,16 @@ export class UIScene extends Phaser.Scene {
     this.createMinimap(state, dataRegistry);
     this.registerKeyboard();
     this.registerEvents(state, dataRegistry);
+    const reflow = () => {
+      this.refreshMinimap(state, dataRegistry);
+      this.hotbarHud?.destroy();
+      this.hotbarHud?.create();
+      this.journeyHintText?.setPosition(16, this.scale.height - 170);
+      this.fieldLogText?.setPosition(this.scale.width - 218, this.scale.height - 166);
+      this.noticeText?.setPosition(this.scale.width / 2, this.scale.height - 170);
+    };
+    this.scale.on("resize", reflow);
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.scale.off("resize", reflow));
   }
 
   private registerKeyboard(): void {
@@ -631,37 +642,40 @@ export class UIScene extends Phaser.Scene {
   }
 
   private createHud(state: GameState, dataRegistry: DataRegistry): void {
-    const panel = this.add.rectangle(12, 12, 326, 124, uiTheme.colors.background, 0.96)
+    const panel = this.add.rectangle(12, 12, 326, 136, uiTheme.colors.background, 0.96)
       .setOrigin(0)
       .setStrokeStyle(1, uiTheme.colors.accent, 0.9)
       .setScrollFactor(0)
       .setDepth(hudDepth);
     void panel;
-    this.add.rectangle(28, 28, 42, 42, uiTheme.colors.inset, 1)
+    const trim = this.add.graphics().setScrollFactor(0).setDepth(hudDepth + 1);
+    trim.lineStyle(1, uiTheme.colors.accent, 0.45).strokeRect(16, 16, 318, 128);
+    for (const [x, y] of [[16,16], [334,16], [16,144], [334,144]]) {
+      trim.fillStyle(uiTheme.colors.accent).fillRect(x - 2, y - 2, 4, 4);
+    }
+    this.add.rectangle(46, 51, 48, 56, uiTheme.colors.inset, 1)
       .setStrokeStyle(2, uiTheme.colors.accent, 0.95).setScrollFactor(0).setDepth(hudDepth + 1);
     const playerClass = dataRegistry.getClass(state.character.archetype);
-    this.add.text(49, 49, playerClass.name.slice(0, 2).toUpperCase(), {
-      color: uiTheme.text.accent, fontFamily: uiTheme.fonts.heading, fontStyle: "bold", fontSize: "15px",
-    }).setOrigin(0.5).setScrollFactor(0).setDepth(hudDepth + 2);
+    this.add.image(46, 51, `player-${state.character.archetype}`).setDisplaySize(42, 48).setScrollFactor(0).setDepth(hudDepth + 2);
     this.addHudText(84, 20, state.playerProfile.name, uiTheme.text.onDark, 16);
     this.addHudText(84, 40, `${playerClass.name}${state.character.advancedClass ? ` · ${state.character.advancedClass.name}` : ""}`, uiTheme.text.accent, 11);
     this.levelText = this.addHudText(250, 20, `Lv ${state.playerProfile.level}`, uiTheme.text.onDark, 14);
     this.goldText = this.addHudText(250, 40, `Gold ${state.inventory.gold}`, "#f9e7a8", 11);
-    this.hpText = this.addHudText(84, 60, `HP ${state.character.stats.hp}/${state.character.stats.maxHp}`, uiTheme.text.onDark, 11);
-    this.spText = this.addHudText(84, 82, `SP ${state.character.stats.sp}/${state.character.stats.maxSp}`, uiTheme.text.onDark, 11);
-    this.add.rectangle(154, 64, 82, 7, uiTheme.colors.shadow, 0.95)
+    this.hpText = this.addHudText(84, 58, `HP ${state.character.stats.hp}/${state.character.stats.maxHp}`, uiTheme.text.onDark, 11);
+    this.spText = this.addHudText(84, 80, `SP ${state.character.stats.sp}/${state.character.stats.maxSp}`, uiTheme.text.onDark, 11);
+    this.add.rectangle(154, 70, 82, 7, uiTheme.colors.shadow, 0.95)
       .setOrigin(0, 0.5)
       .setScrollFactor(0)
       .setDepth(hudDepth);
-    this.hpBarFill = this.add.rectangle(154, 64, 1, 5, uiTheme.colors.hp, 1)
+    this.hpBarFill = this.add.rectangle(154, 70, 1, 5, uiTheme.colors.hp, 1)
       .setOrigin(0, 0.5)
       .setScrollFactor(0)
       .setDepth(hudDepth + 1);
-    this.add.rectangle(154, 86, 82, 7, uiTheme.colors.shadow, 0.95)
+    this.add.rectangle(154, 92, 82, 7, uiTheme.colors.shadow, 0.95)
       .setOrigin(0, 0.5)
       .setScrollFactor(0)
       .setDepth(hudDepth);
-    this.spBarFill = this.add.rectangle(154, 86, 1, 5, uiTheme.colors.sp, 1)
+    this.spBarFill = this.add.rectangle(154, 92, 1, 5, uiTheme.colors.sp, 1)
       .setOrigin(0, 0.5)
       .setScrollFactor(0)
       .setDepth(hudDepth + 1);
@@ -677,7 +691,7 @@ export class UIScene extends Phaser.Scene {
       .setScrollFactor(0)
       .setDepth(hudDepth + 1);
     this.xpText = this.addHudText(240, 102, "", "#f9e7a8", 10);
-    this.statusText = this.addHudText(250, 102, this.getPlayerStatusText(state, dataRegistry), "#f9a8d4", 9);
+    this.statusText = this.addHudText(28, 124, this.getPlayerStatusText(state, dataRegistry), "#f9a8d4", 9);
     this.hotbarHud = new HotbarHud({
       scene: this,
       state,
@@ -732,16 +746,17 @@ state.character.statusEffects,
     this.fieldLogEntries.length = 0;
     this.journeyHintText = this.add.text(16, height - 170, "", {
       color: uiTheme.text.onDark, fontFamily: uiTheme.fonts.body, fontSize: "11px", lineSpacing: 3,
-      backgroundColor: "#142d25", padding: { x: 10, y: 7 },
+      backgroundColor: "#0a1720", padding: { x: 10, y: 7 },
     }).setScrollFactor(0).setDepth(hudDepth + 2);
     this.fieldLogText = this.add.text(Number(this.scale.width || 800) - 218, height - 166, "", {
       color: uiTheme.text.secondary, fontFamily: uiTheme.fonts.body, fontSize: "10px", lineSpacing: 3,
-      backgroundColor: "#142d25", padding: { x: 9, y: 7 }, fixedWidth: 202,
+      backgroundColor: "#0a1720", padding: { x: 9, y: 7 }, fixedWidth: 202,
     }).setScrollFactor(0).setDepth(hudDepth + 2);
     this.noticeText = this.add.text(Number(this.scale.width || 800) / 2, height - 170, "", {
       color: uiTheme.text.onDark, fontFamily: uiTheme.fonts.heading, fontStyle: "bold", fontSize: "15px",
-      backgroundColor: "#315a4e", padding: { x: 12, y: 7 },
+      backgroundColor: "#24333a", padding: { x: 12, y: 7 },
     }).setOrigin(0.5).setScrollFactor(0).setDepth(hudDepth + 5).setVisible(false);
+    this.fieldLogText?.setVisible(false);
     this.uiDebug?.set("fieldLogVisible", "true");
     this.uiDebug?.set("fieldLog", "");
     this.uiDebug?.set("notices", "ready");
@@ -752,7 +767,7 @@ state.character.statusEffects,
     if (!message) return;
     this.fieldLogEntries.unshift(message);
     this.fieldLogEntries.splice(4);
-    this.fieldLogText?.setText(this.fieldLogEntries.join("\n"));
+    this.fieldLogText?.setText(this.fieldLogEntries.join("\n")).setVisible(true);
     this.uiDebug?.set("fieldLog", this.fieldLogEntries.join("|"));
   }
 
@@ -1038,6 +1053,10 @@ state.character.statusEffects,
     eventBus.emit("hotbarActionRequested", { slot });
   }
   private handleKeyboard(event: KeyboardEvent): void {
+    // A shared Phaser input queue can revisit the same DOM event across scene updates.
+    // Deduplicate by identity, preserving intentional repeated keystrokes and text entry.
+    if (this.handledKeyEvents.has(event)) return;
+    this.handledKeyEvents.add(event);
     if (this.isTextEntryEvent(event)) {
       this.inputOwnership?.set("text-entry");
       return;
@@ -1281,9 +1300,20 @@ state.character.statusEffects,
       .setDepth(hudDepth + 1)
       .setVisible(this.minimapVisible);
     this.minimapObjects.push(shape);
+    const terrainKey = `landscape-${map.id}`;
+    if (this.textures.exists(terrainKey)) {
+      const terrain = this.add.image(x + 16, y + 34, terrainKey).setOrigin(0).setDisplaySize(120, 52).setScrollFactor(0).setDepth(hudDepth + 1).setVisible(this.minimapVisible);
+      this.minimapObjects.push(terrain);
+    }
 
-    map.portals.slice(0, 4).forEach((portal, index) => {
-      const marker = this.add.circle(x + 34 + index * 26, y + 78, 4, 0x38bdf8, 1)
+    const tiled = this.cache.tilemap.get(map.tilemapKey)?.data as { width: number; height: number; tilewidth: number; tileheight: number; layers: Array<{ name: string; objects?: Array<{type: string; x: number; y: number; width?: number; height?: number; properties?: Array<{name: string; value: string}>}> }> } | undefined;
+    const mapObjects = tiled?.layers.find(layer => layer.name === "Objects")?.objects ?? [];
+    const point = (object: typeof mapObjects[number] | undefined, fallbackX: number, fallbackY: number) => object && tiled
+      ? { x: x + 16 + (object.x + (object.type === "portal" ? (object.width ?? 0) / 2 : 0)) / (tiled.width * tiled.tilewidth) * 120, y: y + 34 + (object.y + (object.type === "portal" ? (object.height ?? 0) / 2 : 0)) / (tiled.height * tiled.tileheight) * 52 }
+      : { x: fallbackX, y: fallbackY };
+    map.portals.forEach((portal, index) => {
+      const pos = point(mapObjects.find(o => o.type === "portal" && o.properties?.some(p => p.name === "targetMapId" && p.value === portal.targetMapId)), x + 34 + index * 26, y + 78);
+      const marker = this.add.circle(pos.x, pos.y, 3, 0x38bdf8, 1)
         .setScrollFactor(0)
         .setDepth(hudDepth + 2)
         .setVisible(this.minimapVisible)
@@ -1293,9 +1323,10 @@ state.character.statusEffects,
       this.minimapObjects.push(marker);
     });
 
-    map.npcIds.slice(0, 4).forEach((npcId, index) => {
+    map.npcIds.forEach((npcId, index) => {
+      const pos = point(mapObjects.find(o => o.type === "npc" && o.properties?.some(p => p.name === "npcId" && p.value === npcId)), x + 32 + index * 24, y + 48);
       const npc = dataRegistry.getNpc(npcId);
-      const marker = this.add.circle(x + 32 + index * 24, y + 48, 3, 0xfacc15, 1)
+      const marker = this.add.circle(pos.x, pos.y, 2, 0xfacc15, 1)
         .setScrollFactor(0)
         .setDepth(hudDepth + 2)
         .setVisible(this.minimapVisible)
@@ -1368,8 +1399,8 @@ state.character.statusEffects,
     const y = 20;
     const playerX = Number(this.game.canvas.dataset.playerX ?? this.state.position.x);
     const playerY = Number(this.game.canvas.dataset.playerY ?? this.state.position.y);
-    const markerX = x + 16 + Phaser.Math.Clamp(playerX / 1024, 0, 1) * 120;
-    const markerY = y + 34 + Phaser.Math.Clamp(playerY / 768, 0, 1) * 52;
+    const markerX = x + 16 + Phaser.Math.Clamp(playerX / (this.textures.get(`landscape-${this.state.currentMapId}`).getSourceImage().width || 800), 0, 1) * 120;
+    const markerY = y + 34 + Phaser.Math.Clamp(playerY / (this.textures.get(`landscape-${this.state.currentMapId}`).getSourceImage().height || 608), 0, 1) * 52;
 
     this.minimapPlayerMarker.setPosition(markerX, markerY);
     this.uiDebug?.set("minimapPlayer", `${Math.round(markerX)},${Math.round(markerY)}`);
@@ -1666,10 +1697,11 @@ state.character.statusEffects,
   private createMapLabel(mapId: string, dataRegistry: DataRegistry): void {
     const map = dataRegistry.getMap(mapId);
 
-    this.mapNameText = this.add.text(348, 18, this.getMapLabel(map, dataRegistry), {
+    this.mapNameText = this.add.text(348, 22, this.getMapLabel(map, dataRegistry), {
       color: "#f8fafc",
       fontFamily: "Arial, sans-serif",
-      fontSize: "18px",
+      fontSize: "14px",
+      backgroundColor: "#0a1720", padding: { x: 10, y: 8 },
     })
       .setScrollFactor(0)
       .setDepth(hudDepth);

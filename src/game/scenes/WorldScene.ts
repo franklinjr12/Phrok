@@ -1,3 +1,4 @@
+import { paintWorld } from "../map/paintWorld";
 import Phaser from "phaser";
 import { RegistryKeys } from "../constants/registryKeys";
 import { SceneKeys } from "../constants/sceneKeys";
@@ -216,20 +217,20 @@ export class WorldScene extends Phaser.Scene {
     this.portals = this.createPortals(tilemap);
     this.isTransitioning = false;
 
-    this.cameras.main.setBackgroundColor("#162019");
+    this.cameras.main.setBackgroundColor("#23382a");
+    paintWorld(this, tilemap, map);
+    const fitWorld = () => this.cameras.main.setZoom(Math.max(1, this.scale.width / tilemap.widthInPixels, this.scale.height / tilemap.heightInPixels));
+    fitWorld();
+    this.scale.on("resize", fitWorld);
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => this.scale.off("resize", fitWorld));
     this.physics.world.setBounds(0, 0, tilemap.widthInPixels, tilemap.heightInPixels);
     this.cameras.main.setBounds(0, 0, tilemap.widthInPixels, tilemap.heightInPixels);
 
-    groundLayer?.setDepth(0);
-    decorationLayer?.setDepth(5);
-    collisionLayer?.setDepth(6);
+    groundLayer?.setVisible(false);
+    decorationLayer?.setVisible(false);
+    collisionLayer?.setVisible(false);
     collisionLayer?.setCollisionByExclusion([-1]);
 
-    this.add.text(spawnPoint.x, spawnPoint.y - 122, map.name, {
-      color: "#f4f7fb",
-      fontFamily: "Arial, sans-serif",
-      fontSize: "24px",
-    }).setOrigin(0.5);
     this.createObjectMarkers(tilemap);
     this.createAdvancedClassNpcIfAvailable();
 
@@ -2895,8 +2896,10 @@ phase.attackIds.join(","),
     const y = (object.y ?? 0) + (object.height ?? 32) / 2;
     const targetMapId = this.getObjectStringProperty(object, "targetMapId", "unknown destination");
 
-    const marker = this.add.rectangle(x, y, object.width ?? 32, object.height ?? 32, 0x38bdf8, 0.28)
-      .setStrokeStyle(2, 0xbae6fd, 0.8)
+    this.add.ellipse(x, y, 28, 15, 0x8ec6bc, 0.25).setStrokeStyle(2, 0xd8be77, 0.8).setDepth(11);
+    this.add.text(x, y, "?", { color: "#f5dea0", fontSize: "24px" }).setOrigin(0.5).setDepth(12);
+    const marker = this.add.rectangle(x, y, object.width ?? 32, object.height ?? 32, 0xd8be77, 0.08)
+      .setStrokeStyle(1, 0xd8be77, 0.4)
       .setDepth(12)
       .setInteractive({ useHandCursor: true })
       .setData("portalDestination", targetMapId);
@@ -2915,7 +2918,7 @@ phase.attackIds.join(","),
       label.setVisible(true);
     });
     marker.on(Phaser.Input.Events.POINTER_OUT, () => {
-      marker.setAlpha(0.28).setStrokeStyle(2, 0xbae6fd, 0.8);
+      marker.setAlpha(1).setStrokeStyle(1, 0xd8be77, 0.4);
       label.setVisible(false);
     });
   }
@@ -2923,11 +2926,18 @@ phase.attackIds.join(","),
   private createSpotMarker(object: Phaser.Types.Tilemaps.TiledObject): void {
     const x = object.x ?? 0;
     const y = object.y ?? 0;
-    const color = object.type === "treasure" ? 0xfacc15 : 0x22c55e;
-
-    this.add.rectangle(x, y, 24, 20, color, 0.85)
-      .setStrokeStyle(2, 0xf8fafc, 0.75)
-      .setDepth(14);
+    const art = this.add.graphics().setPosition(x, y).setDepth(14);
+    if (object.type === "treasure") {
+      art.fillStyle(0x332a20).fillRect(-13, -10, 26, 21);
+      art.fillStyle(0x946538).fillRect(-11, -8, 22, 17);
+      art.fillStyle(0xd1b368).fillRect(-9, -8, 3, 17).fillRect(6, -8, 3, 17).fillRect(-11, -1, 22, 2);
+      art.fillStyle(0xf1d28a).fillRect(-2, -2, 4, 6);
+    } else {
+      art.fillStyle(0x263d28).fillEllipse(0, 7, 28, 10);
+      art.lineStyle(2, 0xa3ab64).lineBetween(0, 8, 0, -12);
+      art.fillStyle(0x78984c).fillEllipse(-6, -3, 12, 6).fillEllipse(6, -7, 12, 6);
+      art.fillStyle(0xbab878).fillCircle(0, -12, 3);
+    }
   }
 
   private countObjectsByType(tilemap: Phaser.Tilemaps.Tilemap, type: string): number {
