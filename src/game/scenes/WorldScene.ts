@@ -8,7 +8,10 @@ import { PlayerEntity } from "../entities/PlayerEntity";
 import type { Vector2Like } from "../entities/playerMovement";
 import {
   findPath,
+  isTileWalkable,
   isWorldPointWalkable,
+  tileToWorldCenter,
+  worldToTile,
   type GridCollisionMap,
 } from "../map/tilemapPathfinding";
 import { resolveAttack, type CombatStats } from "../systems/combatFormulas";
@@ -104,6 +107,7 @@ const tiledLayerNames = {
 const playerAttackRange = 62;
 const playerAttackCooldownMs = 850;
 const portalInteractionRadius = 72;
+const portalClickPadding = 12;
 const enemyAttackCooldownMs = 1250;
 const enemyCastWindupMs = 700;
 const playerAttackKnockbackDistance = 18;
@@ -548,10 +552,10 @@ tiledLayerNames.objects,
       return;
     }
 
-    const clickedPortal = this.portals.find((portal) => portal.bounds.contains(pointer.worldX, pointer.worldY));
+    const clickedPortal = this.portals.find((portal) => this.isPointNearPortal(pointer.worldX, pointer.worldY, portal));
 
     if (clickedPortal) {
-      this.interactWithPortal(clickedPortal);
+      this.interactWithPortal(clickedPortal, { x: pointer.worldX, y: pointer.worldY });
       return;
     }
 
@@ -590,6 +594,13 @@ tiledLayerNames.objects,
     this.worldDebug?.set("lastMovementClickValid", "true");
     this.worldDebug?.set("lastPathLength", String(path.length));
     this.syncPlayerDataset();
+  }
+
+  private isPointNearPortal(x: number, y: number, portal: PortalObject): boolean {
+    return x >= portal.bounds.x - portalClickPadding
+      && x <= portal.bounds.right + portalClickPadding
+      && y >= portal.bounds.y - portalClickPadding
+      && y <= portal.bounds.bottom + portalClickPadding;
   }
 
   private isWalkable(x: number, y: number): boolean {
@@ -751,7 +762,7 @@ tiledLayerNames.objects,
     this.worldDebug?.set("lastPathLength", String(path.length));
   }
 
-  private interactWithPortal(portal: PortalObject): void {
+  private interactWithPortal(portal: PortalObject, clickPoint?: Vector2Like): void {
     this.clearTarget();
     this.pendingNpcInteraction = undefined;
     this.pendingPortalInteraction = portal;
@@ -763,7 +774,7 @@ tiledLayerNames.objects,
       return;
     }
 
-    this.moveIntoPortalRange(portal);
+    this.moveIntoPortalRange(portal, clickPoint);
   }
 
   private isPlayerInsidePortal(portal: PortalObject): boolean {
@@ -783,12 +794,12 @@ tiledLayerNames.objects,
     ) <= portalInteractionRadius;
   }
 
-  private moveIntoPortalRange(portal: PortalObject): void {
+  private moveIntoPortalRange(portal: PortalObject, clickPoint?: Vector2Like): void {
     if (!this.player || !this.collisionMap) {
       return;
     }
 
-    const route = this.findPortalApproachRoute(portal);
+    const route = this.findPortalApproachRoute(portal, clickPoint);
 
     if (!route) {
       this.worldDebug?.set("lastMovementClickValid", "false");
@@ -801,31 +812,60 @@ tiledLayerNames.objects,
     this.worldDebug?.set("lastPathLength", String(route.path.length));
   }
 
-  private findPortalApproachRoute(portal: PortalObject): { destination: Phaser.Math.Vector2; path: Vector2Like[] } | null {
+  private findPortalApproachRoute(portal: PortalObject, clickPoint?: Vector2Like): { destination: Phaser.Math.Vector2; path: Vector2Like[] } | null {
     if (!this.player || !this.collisionMap) {
       return null;
     }
 
     const bounds = portal.bounds;
+    const focus = clickPoint ?? { x: bounds.centerX, y: bounds.centerY };
     const candidates = [
-      new Phaser.Math.Vector2(bounds.centerX, bounds.centerY),
-      new Phaser.Math.Vector2(bounds.left - 32, bounds.centerY),
-      new Phaser.Math.Vector2(bounds.right + 32, bounds.centerY),
-      new Phaser.Math.Vector2(bounds.centerX, bounds.top - 32),
-      new Phaser.Math.Vector2(bounds.centerX, bounds.bottom + 32),
-      new Phaser.Math.Vector2(bounds.left - 32, bounds.top - 32),
-      new Phaser.Math.Vector2(bounds.left - 32, bounds.bottom + 32),
-      new Phaser.Math.Vector2(bounds.right + 32, bounds.top - 32),
-      new Phaser.Math.Vector2(bounds.right + 32, bounds.bottom + 32),
+      ...this.findWalkablePortalTiles(portal, focus),
+      new Phaser.Math.Vector2(bounds.left - 1, bounds.centerY),
+      new Phaser.Math.Vector2(bounds.right + 1, bounds.centerY),
+      new Phaser.Math.Vector2(bounds.centerX, bounds.top - 1),
+      new Phaser.Math.Vector2(bounds.centerX, bounds.bottom + 1),
+      new Phaser.Math.Vector2(bounds.left - 1, bounds.top - 1),
+      new Phaser.Math.Vector2(bounds.left - 1, bounds.bottom + 1),
+      new Phaser.Math.Vector2(bounds.right + 1, bounds.top - 1),
+      new Phaser.Math.Vector2(bounds.right + 1, bounds.bottom + 1),
     ].filter((point) => this.isWalkable(point.x, point.y));
 
-    return candidates
-      .map((destination) => ({
-        destination,
-        path: findPath(this.collisionMap!, this.player!.position, destination),
-      }))
-      .filter((route) => route.path.length > 0)
-      .sort((a, b) => a.path.length - b.path.length)[0] ?? null;
+    for (const destination of candidates) {
+      const path = findPath(this.collisionMap, this.player.position, destination);
+
+      if (path.length > 0) {
+        return { destination, path };
+      }
+    }
+
+    return null;
+  }
+
+  private findWalkablePortalTiles(portal: PortalObject, focus: Vector2Like): Phaser.Math.Vector2[] {
+    const map = this.collisionMap;
+
+    if (!map) {
+      return [];
+    }
+
+    const first = worldToTile(map, { x: portal.bounds.left, y: portal.bounds.top });
+    const last = worldToTile(map, { x: portal.bounds.right - 1, y: portal.bounds.bottom - 1 });
+    const tiles: Phaser.Math.Vector2[] = [];
+
+    for (let y = first.y; y <= last.y; y += 1) {
+      for (let x = first.x; x <= last.x; x += 1) {
+        if (isTileWalkable(map, { x, y })) {
+          const center = tileToWorldCenter(map, { x, y });
+          tiles.push(new Phaser.Math.Vector2(center.x, center.y));
+        }
+      }
+    }
+
+    return tiles.sort((a, b) => (
+      Phaser.Math.Distance.Between(a.x, a.y, focus.x, focus.y)
+      - Phaser.Math.Distance.Between(b.x, b.y, focus.x, focus.y)
+    ));
   }
 
   private openNpcDialogue(npc: NpcEntity): void {

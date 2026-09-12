@@ -11,6 +11,8 @@ export function getNpcTextureKey(npcId: string): string {
 }
 
 export class NpcEntity {
+  private static readonly clickPadding = 8;
+
   readonly sprite: Phaser.GameObjects.Sprite;
   readonly nameLabel: Phaser.GameObjects.Text;
   readonly interactionRadius: number;
@@ -71,9 +73,8 @@ export class NpcEntity {
   }
 
   containsPoint(x: number, y: number): boolean {
-    return this.sprite.getBounds().contains(x, y)
-      || this.nameLabel.getBounds().contains(x, y)
-      || Phaser.Math.Distance.Between(x, y, this.sprite.x, this.sprite.y) <= this.interactionRadius;
+    const clickBounds = Phaser.Geom.Rectangle.Inflate(this.sprite.getBounds(), NpcEntity.clickPadding, NpcEntity.clickPadding);
+    return clickBounds.contains(x, y) || this.nameLabel.getBounds().contains(x, y);
   }
 
   pulseInteraction(): void {
