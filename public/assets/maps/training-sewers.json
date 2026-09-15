@@ -1667,6 +1667,60 @@
           "width": 128,
           "x": 288,
           "y": 352
+        },
+        {
+          "height": 48,
+          "name": "Sludge Pool",
+          "properties": [
+            {
+              "name": "effect",
+              "type": "string",
+              "value": "slow"
+            }
+          ],
+          "rotation": 0,
+          "type": "hazard",
+          "visible": true,
+          "width": 96,
+          "x": 360,
+          "y": 280,
+          "id": 11
+        },
+        {
+          "height": 32,
+          "name": "Broken Grate",
+          "properties": [
+            {
+              "name": "effect",
+              "type": "string",
+              "value": "damage"
+            }
+          ],
+          "rotation": 0,
+          "type": "hazard",
+          "visible": true,
+          "width": 48,
+          "x": 520,
+          "y": 180,
+          "id": 13
+        },
+        {
+          "height": 20,
+          "name": "Maintenance Cache",
+          "properties": [
+            {
+              "name": "lootItemId",
+              "type": "string",
+              "value": "rusted-buckler"
+            }
+          ],
+          "rotation": 0,
+          "type": "treasure",
+          "visible": true,
+          "width": 24,
+          "x": 120,
+          "y": 420,
+          "id": 15
         }
       ],
       "opacity": 1,
@@ -1677,7 +1731,7 @@
     }
   ],
   "nextlayerid": 5,
-  "nextobjectid": 10,
+  "nextobjectid": 16,
   "orientation": "orthogonal",
   "renderorder": "right-down",
   "tiledversion": "1.11.2",

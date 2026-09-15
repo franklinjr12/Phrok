@@ -1,15 +1,12 @@
 import { expect, test, type Page } from "@playwright/test";
-import { startApp } from "./helpers";
+import { continueFromMainMenu, startApp } from "./helpers";
 
 test("level 40 player can choose, save, and load an advanced specialization", async ({ page }) => {
   await seedLevel40Save(page);
   await startApp(page);
+  await expect(page.locator("canvas")).toHaveAttribute("data-save-slots", /1:used:Veteran:Swordsman:Lv 40:Crownfield/);
 
-  const canvas = page.locator("canvas");
-  await expect(canvas).toHaveAttribute("data-save-slots", /1:used:Veteran:Swordsman:Lv 40:Crownfield/);
-
-  await canvas.click({ position: { x: 400, y: 204 } });
-  await expect(canvas).toHaveAttribute("data-scene", "world");
+  const canvas = await continueFromMainMenu(page);
   await expect(canvas).toHaveAttribute("data-player-level", "40");
   await expect(canvas).toHaveAttribute("data-advanced-class-notification", "visible");
   await expect(canvas).toHaveAttribute("data-advanced-class-service", "available");
@@ -50,8 +47,7 @@ test("level 40 player can choose, save, and load an advanced specialization", as
 
   await page.reload();
   await expect(canvas).toHaveAttribute("data-scene", "main-menu");
-  await canvas.click({ position: { x: 400, y: 204 } });
-  await expect(canvas).toHaveAttribute("data-scene", "world");
+  await continueFromMainMenu(page);
   await expect(canvas).toHaveAttribute("data-player-advanced-class", "knight");
   await expect(canvas).toHaveAttribute("data-advanced-skill-tree", "knight:unlocked");
   await page.keyboard.press("KeyK");

@@ -1,5 +1,5 @@
 import type { DataRegistry } from "../../data/dataRegistry";
-import { getStatCost, getTotalBaseStats, baseStatKeys, baseStatLabels } from "../../systems/stats";
+import { getStatCost, getTotalBaseStats, baseStatKeys, baseStatLabels, previewStatAllocation } from "../../systems/stats";
 import type { BaseStatKey, DerivedStats, GameState } from "../../types/gameState";
 import { calculateDerivedStats } from "../../systems/stats";
 
@@ -9,6 +9,7 @@ export interface CharacterStatRow {
   total: number;
   cost: number;
   canIncrease: boolean;
+  preview: string[];
 }
 
 export interface DerivedStatRow {
@@ -44,7 +45,15 @@ export class CharacterWindowViewModel {
     this.statPoints = state.playerProfile.statPoints;
     this.baseStats = baseStatKeys.map((key) => {
       const cost = getStatCost(totals[key]);
-      return { key, label: baseStatLabels[key], total: totals[key], cost, canIncrease: state.playerProfile.statPoints >= cost };
+      const preview = previewStatAllocation(state, data.getClass(state.character.archetype), key, (id) => data.getItem(id), (id) => data.getStatusEffect(id), (id) => data.getSupport(id));
+      return {
+        key,
+        label: baseStatLabels[key],
+        total: totals[key],
+        cost,
+        canIncrease: state.playerProfile.statPoints >= cost,
+        preview: preview.map((row) => `${row.label} ${row.delta > 0 ? "+" : ""}${row.delta}`),
+      };
     });
     this.derivedStats = [
       ["Max HP", derived.maxHp], ["Max SP", derived.maxSp], ["Physical ATK", derived.physicalAttack],

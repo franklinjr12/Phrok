@@ -1,3 +1,5 @@
+import { getElementMatchup, getElementMultiplier } from "./elementalMatchup";
+
 export type AttackKind = "physical" | "ranged" | "magic";
 
 export interface CombatStats {
@@ -17,6 +19,8 @@ export interface AttackFormulaInput {
   skillPower?: number;
   random?: () => number;
   debug?: boolean;
+  attackElement?: string;
+  defenseElement?: string;
 }
 
 export interface AttackFormulaResult {
@@ -27,6 +31,8 @@ export interface AttackFormulaResult {
   finalDamage: number;
   hitChance: number;
   criticalChance: number;
+  elementMultiplier: number;
+  elementMatchup: "weak" | "normal" | "resist";
 }
 
 const attackKindMultipliers: Record<AttackKind, number> = {
@@ -41,11 +47,13 @@ export function resolveAttack(input: AttackFormulaInput): AttackFormulaResult {
   const criticalChance = clamp(input.attacker.criticalChance, 0, 0.75);
   const hit = random() <= hitChance;
   const critical = hit && random() <= criticalChance;
+  const elementMatchup = getElementMatchup(input.attackElement, input.defenseElement);
+  const elementMultiplier = getElementMultiplier(input.attackElement, input.defenseElement);
   const rawPower = (
     input.attacker.attack
     + input.weaponAttack
     + (input.skillPower ?? 0)
-  ) * attackKindMultipliers[input.attackKind];
+  ) * attackKindMultipliers[input.attackKind] * elementMultiplier;
   const mitigatedPower = rawPower - input.defender.defense * 0.65;
   const baseDamage = Math.max(1, Math.floor(mitigatedPower));
   const finalDamage = hit
@@ -60,6 +68,8 @@ export function resolveAttack(input: AttackFormulaInput): AttackFormulaResult {
     finalDamage,
     hitChance,
     criticalChance,
+    elementMultiplier,
+    elementMatchup,
   };
 
   if (input.debug) {
@@ -71,4 +81,14 @@ export function resolveAttack(input: AttackFormulaInput): AttackFormulaResult {
 
 function clamp(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, value));
+}
+
+export function getClassAttackKind(classId: string): AttackKind {
+  if (classId === "mage") {
+    return "magic";
+  }
+  if (classId === "archer") {
+    return "ranged";
+  }
+  return "physical";
 }

@@ -185,7 +185,11 @@ export function shouldSupportAutoPickup(
   const filter = state.support.autoPickupFilter;
 
   if (filter === "all") {
-    return true;
+    if (drop.kind === "gold") {
+      return true;
+    }
+    const rarity = getItem(drop.itemId).rarity ?? "Common";
+    return rarity === "Common" || rarity === "Uncommon";
   }
 
   if (filter === "gold") {

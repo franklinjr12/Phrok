@@ -22,4 +22,10 @@ describe("TargetHudViewModel", () => {
     expect(model.targetSnapshot?.enemyId).toBe("wolf");
     expect(model.bossSnapshot).toBeNull();
   });
+
+  it("marks severe danger when the target is far above the player", () => {
+    const model = new TargetHudViewModel();
+    model.setTarget("wolf", "Wolf", 50, 100, 10, false, [], 126, 4);
+    expect(model.targetSnapshot).toMatchObject({ danger: "severe", levelDelta: 6 });
+  });
 });

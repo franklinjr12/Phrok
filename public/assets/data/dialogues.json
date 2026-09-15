@@ -45,7 +45,8 @@
     "id": "orun-brightslag-greeting",
     "lines": [
       "Ore sings if you heat it right. Most folks just hear clanging.",
-      "Bring me rough materials once the refining bench is set."
+      "Bring me rough materials once the refining bench is set.",
+      "Early refinement is gentle. A +1 or +2 can turn a close sewer fight."
     ],
     "choices": [
       {
@@ -59,7 +60,8 @@
     "id": "nima-threadwell-greeting",
     "lines": [
       "A good craft starts before the first stitch or strike.",
-      "My patterns are pinned up, but commissions are not open yet."
+      "My patterns are pinned up, but commissions are not open yet.",
+      "Jelly, hopper, and hide from the meadows already make better gear than shop scraps."
     ],
     "choices": [
       {
@@ -149,7 +151,8 @@
     "id": "heth-grovewarden-greeting",
     "lines": [
       "Fresh claw marks go on this board before they go in a song.",
-      "Mossvale contracts favor quiet feet and a sharp eye."
+      "Mossvale contracts favor quiet feet and a sharp eye.",
+      "Hunters speak of a pale beast sometimes seen beneath the old trees."
     ],
     "choices": [
       {

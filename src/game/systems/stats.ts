@@ -106,6 +106,42 @@ export function allocateStatPoint(
   return true;
 }
 
+export function previewStatAllocation(
+  state: GameState,
+  playerClass: ClassDefinition,
+  stat: BaseStatKey,
+  getItem: (id: string) => ItemDefinition,
+  getStatusEffect?: (id: string) => StatusEffectDefinition,
+  getSupport?: (id: string) => SupportDefinition,
+): Array<{ label: string; delta: number }> {
+  const before = calculateDerivedStats(state, playerClass, getItem, getStatusEffect, getSupport);
+  const preview = {
+    ...state,
+    character: {
+      ...state.character,
+      allocatedStats: { ...state.character.allocatedStats, [stat]: state.character.allocatedStats[stat] + 1 },
+    },
+  };
+  const after = calculateDerivedStats(preview, playerClass, getItem, getStatusEffect, getSupport);
+  const labels: Array<[string, keyof DerivedStats]> = [
+    ["Max HP", "maxHp"],
+    ["Max SP", "maxSp"],
+    ["Physical Attack", "physicalAttack"],
+    ["Ranged Attack", "rangedAttack"],
+    ["Magic Attack", "magicAttack"],
+    ["Defense", "defense"],
+    ["Hit", "hit"],
+    ["Dodge", "dodge"],
+    ["Crit", "crit"],
+    ["Attack Speed", "attackSpeed"],
+    ["Cast Speed", "castSpeed"],
+    ["Move Speed", "moveSpeed"],
+  ];
+  return labels
+    .map(([label, key]) => ({ label, delta: Number(after[key]) - Number(before[key]) }))
+    .filter((row) => row.delta !== 0);
+}
+
 export function resetAllocatedStats(
   state: GameState,
   playerClass: ClassDefinition,

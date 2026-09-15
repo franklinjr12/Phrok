@@ -9,6 +9,12 @@
         "maxQuantity": 2
       },
       {
+        "itemId": "jelly-prism-charm",
+        "chance": 0.02,
+        "minQuantity": 1,
+        "maxQuantity": 1
+      },
+      {
         "type": "gold",
         "chance": 1,
         "minQuantity": 3,
@@ -24,6 +30,12 @@
         "chance": 1,
         "minQuantity": 1,
         "maxQuantity": 2
+      },
+      {
+        "itemId": "hopper-skip-anklet",
+        "chance": 0.018,
+        "minQuantity": 1,
+        "maxQuantity": 1
       },
       {
         "type": "gold",
@@ -45,6 +57,12 @@
       {
         "itemId": "minor-health-potion",
         "chance": 0.2,
+        "minQuantity": 1,
+        "maxQuantity": 1
+      },
+      {
+        "itemId": "pup-pack-fang",
+        "chance": 0.016,
         "minQuantity": 1,
         "maxQuantity": 1
       },
@@ -85,6 +103,12 @@
         "maxQuantity": 1
       },
       {
+        "itemId": "road-cutpurse-bandana",
+        "chance": 0.015,
+        "minQuantity": 1,
+        "maxQuantity": 1
+      },
+      {
         "type": "gold",
         "chance": 1,
         "minQuantity": 10,
@@ -115,6 +139,12 @@
         "maxQuantity": 1
       },
       {
+        "itemId": "sewer-shadow-cloak",
+        "chance": 0.012,
+        "minQuantity": 1,
+        "maxQuantity": 1
+      },
+      {
         "type": "gold",
         "chance": 1,
         "minQuantity": 9,
@@ -136,6 +166,12 @@
         "chance": 0.45,
         "minQuantity": 1,
         "maxQuantity": 2
+      },
+      {
+        "itemId": "bruiser-iron-knuckle",
+        "chance": 0.65,
+        "minQuantity": 1,
+        "maxQuantity": 1
       },
       {
         "type": "gold",
@@ -160,6 +196,12 @@
         "chance": 0.8,
         "minQuantity": 1,
         "maxQuantity": 3
+      },
+      {
+        "itemId": "sprite-dew-focus",
+        "chance": 0.014,
+        "minQuantity": 1,
+        "maxQuantity": 1
       },
       {
         "type": "gold",
@@ -188,6 +230,12 @@
       {
         "itemId": "mosswood-bowgrip",
         "chance": 0.14,
+        "minQuantity": 1,
+        "maxQuantity": 1
+      },
+      {
+        "itemId": "thorn-runner-bracer",
+        "chance": 0.013,
         "minQuantity": 1,
         "maxQuantity": 1
       },
@@ -1631,6 +1679,29 @@
         "chance": 0.04,
         "minQuantity": 1,
         "maxQuantity": 1
+      }
+    ]
+  },
+  {
+    "id": "silvermane-stalker-drops",
+    "entries": [
+      {
+        "itemId": "silvermane-crest",
+        "chance": 0.8,
+        "minQuantity": 1,
+        "maxQuantity": 1
+      },
+      {
+        "itemId": "silvermane-pelt",
+        "chance": 1,
+        "minQuantity": 1,
+        "maxQuantity": 2
+      },
+      {
+        "type": "gold",
+        "chance": 1,
+        "minQuantity": 28,
+        "maxQuantity": 44
       }
     ]
   }

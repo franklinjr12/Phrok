@@ -15,7 +15,7 @@ test("world supports mouse click player movement without WASD movement", async (
   await expect(canvas).toHaveAttribute("data-current-map-level-range", "1-3");
   await expect(canvas).toHaveAttribute("data-current-map-type", "town");
   await expect(canvas).toHaveAttribute("data-current-map-music-key", "music-crownfield-town");
-  await expect(canvas).toHaveAttribute("data-region-progression", /crownfield:1-10.*starfall-tower:65-99/);
+  await expect(canvas).toHaveAttribute("data-region-progression", /crownfield:1-15.*starfall-tower:65-99/);
 
   const startX = Number(await canvas.getAttribute("data-player-x"));
   const startY = Number(await canvas.getAttribute("data-player-y"));

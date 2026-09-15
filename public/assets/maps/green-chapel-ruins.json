@@ -1695,6 +1695,60 @@
           "width": 128,
           "x": 96,
           "y": 416
+        },
+        {
+          "height": 48,
+          "name": "Thorn Bramble",
+          "properties": [
+            {
+              "name": "effect",
+              "type": "string",
+              "value": "damage"
+            }
+          ],
+          "rotation": 0,
+          "type": "hazard",
+          "visible": true,
+          "width": 96,
+          "x": 300,
+          "y": 240,
+          "id": 12
+        },
+        {
+          "height": 40,
+          "name": "Spirit Bloom",
+          "properties": [
+            {
+              "name": "effect",
+              "type": "string",
+              "value": "silence"
+            }
+          ],
+          "rotation": 0,
+          "type": "hazard",
+          "visible": true,
+          "width": 64,
+          "x": 480,
+          "y": 320,
+          "id": 14
+        },
+        {
+          "height": 20,
+          "name": "Chapel Reliquary",
+          "properties": [
+            {
+              "name": "lootItemId",
+              "type": "string",
+              "value": "chapel-prayer-bead"
+            }
+          ],
+          "rotation": 0,
+          "type": "treasure",
+          "visible": true,
+          "width": 24,
+          "x": 140,
+          "y": 120,
+          "id": 16
         }
       ],
       "opacity": 1,
@@ -1705,7 +1759,7 @@
     }
   ],
   "nextlayerid": 5,
-  "nextobjectid": 11,
+  "nextobjectid": 17,
   "orientation": "orthogonal",
   "renderorder": "right-down",
   "tiledversion": "1.11.2",

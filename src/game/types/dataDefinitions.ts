@@ -81,6 +81,7 @@ export interface ItemDefinition {
   refinable?: boolean;
   value: number;
   supportId?: string;
+  effectIds?: string[];
 }
 
 export type ItemRarity = "Common" | "Uncommon" | "Rare" | "Epic" | "Legendary" | "Mythic";
@@ -124,6 +125,10 @@ export interface MonsterDefinition {
   respawnMs: number;
   elite: boolean;
   boss: boolean;
+  spriteMonsterId?: string;
+  visualTint?: number;
+  visualScale?: number;
+  rareVariant?: boolean;
   bossArena?: BossArenaDefinition;
   bossPhases?: BossPhaseDefinition[];
   mvp?: MvpDefinition;
@@ -476,6 +481,33 @@ export interface DifficultyDefinition {
   enemyDamageMultiplier: number;
 }
 
+export interface RareVariantDefinition {
+  id: string;
+  baseMonsterId: string;
+  variantMonsterId: string;
+  displayName: string;
+  mapIds: string[];
+  spawnChance: number;
+  maxSimultaneous: number;
+  announcementRadius: number;
+  elite: boolean;
+}
+
+export interface RewardChoiceOptionDefinition {
+  id: string;
+  itemId: string;
+  label: string;
+}
+
+export interface RewardChoiceDefinition {
+  id: string;
+  sourceId: string;
+  title: string;
+  prompt: string;
+  once: boolean;
+  classOptions: Record<string, RewardChoiceOptionDefinition[]>;
+}
+
 export interface DataFileMap {
   classes: ClassDefinition;
   skills: SkillDefinition;
@@ -495,6 +527,8 @@ export interface DataFileMap {
   vfx: VfxDefinition;
   xpTables: XpTableDefinition;
   difficulties: DifficultyDefinition;
+  rareVariants: RareVariantDefinition;
+  rewardChoices: RewardChoiceDefinition;
 }
 
 export type DataCollectionKey = keyof DataFileMap;

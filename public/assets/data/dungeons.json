@@ -3,220 +3,656 @@
     "id": "old-sewers",
     "mapId": "training-sewers",
     "name": "Old Sewers",
-    "levelRange": { "min": 5, "max": 15 },
+    "levelRange": {
+      "min": 8,
+      "max": 15
+    },
     "bossId": "sewer-glutton",
     "roomPlan": [
-      { "id": "sluice-entry", "name": "Sluice Entry", "encounterRole": "entrance" },
-      { "id": "rat-warrens", "name": "Rat Warrens", "encounterRole": "combat" },
-      { "id": "sludge-cistern", "name": "Sludge Cistern", "encounterRole": "hazard" },
-      { "id": "maintenance-cache", "name": "Maintenance Cache", "encounterRole": "treasure" },
-      { "id": "glutton-pit", "name": "Glutton Pit", "encounterRole": "boss" }
+      {
+        "id": "sluice-entry",
+        "name": "Sluice Entry",
+        "encounterRole": "entrance"
+      },
+      {
+        "id": "rat-warrens",
+        "name": "Rat Warrens",
+        "encounterRole": "combat"
+      },
+      {
+        "id": "sludge-cistern",
+        "name": "Sludge Cistern",
+        "encounterRole": "hazard"
+      },
+      {
+        "id": "maintenance-cache",
+        "name": "Maintenance Cache",
+        "encounterRole": "treasure"
+      },
+      {
+        "id": "glutton-pit",
+        "name": "Glutton Pit",
+        "encounterRole": "boss"
+      }
     ],
-    "enemyThemes": ["beast", "slime", "sewer"],
-    "hazardIds": ["sludge-pool", "broken-grate"],
+    "enemyThemes": [
+      "beast",
+      "slime",
+      "sewer"
+    ],
+    "hazardIds": [
+      "sludge-pool",
+      "broken-grate"
+    ],
     "hazards": [
-      { "id": "sludge-pool", "name": "Sludge Pool", "effect": "slow" },
-      { "id": "broken-grate", "name": "Broken Grate", "effect": "minor damage trap" }
+      {
+        "id": "sludge-pool",
+        "name": "Sludge Pool",
+        "effect": "slow"
+      },
+      {
+        "id": "broken-grate",
+        "name": "Broken Grate",
+        "effect": "minor damage trap"
+      }
     ],
-    "rewardItemIds": ["rusted-buckler", "minor-health-potion", "sewer-moss"],
-    "rareMaterialIds": ["glutton-gland"],
+    "rewardItemIds": [
+      "rusted-buckler",
+      "minor-health-potion",
+      "sewer-moss"
+    ],
+    "rareMaterialIds": [
+      "glutton-gland"
+    ],
     "replayable": true,
     "shortcutUnlockId": "maintenance-shortcut",
     "unlocksMapId": "",
-    "mechanics": ["high monster density", "beginner gear cache", "repeatable sewer farming loop"],
-    "bossMechanics": ["devour windup", "sludge splash", "summon rat adds"]
+    "mechanics": [
+      "high monster density",
+      "aggressive rat packs",
+      "sludge slow hazards",
+      "beginner gear cache",
+      "repeatable sewer farming loop"
+    ],
+    "bossMechanics": [
+      "devour windup",
+      "sludge splash",
+      "summon rat adds"
+    ]
   },
   {
     "id": "green-chapel-ruins",
     "mapId": "green-chapel-ruins",
     "name": "Green Chapel Ruins",
-    "levelRange": { "min": 15, "max": 25 },
+    "levelRange": {
+      "min": 19,
+      "max": 25
+    },
     "bossId": "thorn-priest",
     "roomPlan": [
-      { "id": "moss-narthex", "name": "Moss Narthex", "encounterRole": "entrance" },
-      { "id": "spirit-transept", "name": "Spirit Transept", "encounterRole": "combat" },
-      { "id": "thorn-nave", "name": "Thorn Nave", "encounterRole": "hazard" },
-      { "id": "rootguard-vestry", "name": "Rootguard Vestry", "encounterRole": "miniboss" },
-      { "id": "priest-altar", "name": "Priest Altar", "encounterRole": "boss" },
-      { "id": "nave-shortcut", "name": "Nave Shortcut", "encounterRole": "shortcut" }
+      {
+        "id": "moss-narthex",
+        "name": "Moss Narthex",
+        "encounterRole": "entrance"
+      },
+      {
+        "id": "spirit-transept",
+        "name": "Spirit Transept",
+        "encounterRole": "combat"
+      },
+      {
+        "id": "thorn-nave",
+        "name": "Thorn Nave",
+        "encounterRole": "hazard"
+      },
+      {
+        "id": "rootguard-vestry",
+        "name": "Rootguard Vestry",
+        "encounterRole": "miniboss"
+      },
+      {
+        "id": "priest-altar",
+        "name": "Priest Altar",
+        "encounterRole": "boss"
+      },
+      {
+        "id": "nave-shortcut",
+        "name": "Nave Shortcut",
+        "encounterRole": "shortcut"
+      }
     ],
-    "enemyThemes": ["plant", "spirit"],
-    "hazardIds": ["thorn-bramble", "spirit-bloom"],
+    "enemyThemes": [
+      "plant",
+      "spirit"
+    ],
+    "hazardIds": [
+      "thorn-bramble",
+      "spirit-bloom"
+    ],
     "hazards": [
-      { "id": "thorn-bramble", "name": "Thorn Bramble", "effect": "bleed damage lane" },
-      { "id": "spirit-bloom", "name": "Spirit Bloom", "effect": "silence pulse" }
+      {
+        "id": "thorn-bramble",
+        "name": "Thorn Bramble",
+        "effect": "bleed damage lane"
+      },
+      {
+        "id": "spirit-bloom",
+        "name": "Spirit Bloom",
+        "effect": "silence pulse"
+      }
     ],
-    "rewardItemIds": ["chapel-prayer-bead", "mosswood-bowgrip", "shadowleaf-wraps"],
-    "rareMaterialIds": ["rootbound-sigil", "verdant-core"],
+    "rewardItemIds": [
+      "chapel-prayer-bead",
+      "mosswood-bowgrip",
+      "shadowleaf-wraps",
+      "cracked-sigil-momentum"
+    ],
+    "rareMaterialIds": [
+      "rootbound-sigil",
+      "verdant-core"
+    ],
     "replayable": true,
     "shortcutUnlockId": "nave-shortcut",
     "unlocksMapId": "",
-    "mechanics": ["plant and spirit enemy mix", "environmental bramble hazards", "class-relevant archer thief and caster loot"],
-    "bossMechanics": ["root snare telegraph", "spirit bloom silence", "thorn wall phase"]
+    "mechanics": [
+      "plant and spirit enemy mix",
+      "environmental bramble hazards",
+      "class-relevant archer thief and caster loot"
+    ],
+    "bossMechanics": [
+      "root snare telegraph",
+      "spirit bloom silence",
+      "thorn wall phase"
+    ]
   },
   {
     "id": "tide-cave",
     "mapId": "tide-cave",
     "name": "Tide Cave",
-    "levelRange": { "min": 25, "max": 38 },
+    "levelRange": {
+      "min": 25,
+      "max": 38
+    },
     "bossId": "sunken-corsair",
     "roomPlan": [
-      { "id": "cave-mouth", "name": "Cave Mouth", "encounterRole": "entrance" },
-      { "id": "flooded-grotto", "name": "Flooded Grotto", "encounterRole": "hazard" },
-      { "id": "wrecked-hold", "name": "Wrecked Hold", "encounterRole": "combat" },
-      { "id": "coral-vault", "name": "Coral Vault", "encounterRole": "treasure" },
-      { "id": "corsair-deck", "name": "Corsair Deck", "encounterRole": "boss" }
+      {
+        "id": "cave-mouth",
+        "name": "Cave Mouth",
+        "encounterRole": "entrance"
+      },
+      {
+        "id": "flooded-grotto",
+        "name": "Flooded Grotto",
+        "encounterRole": "hazard"
+      },
+      {
+        "id": "wrecked-hold",
+        "name": "Wrecked Hold",
+        "encounterRole": "combat"
+      },
+      {
+        "id": "coral-vault",
+        "name": "Coral Vault",
+        "encounterRole": "treasure"
+      },
+      {
+        "id": "corsair-deck",
+        "name": "Corsair Deck",
+        "encounterRole": "boss"
+      }
     ],
-    "enemyThemes": ["aquatic", "pirate"],
-    "hazardIds": ["deep-water", "undertow"],
+    "enemyThemes": [
+      "aquatic",
+      "pirate"
+    ],
+    "hazardIds": [
+      "deep-water",
+      "undertow"
+    ],
     "hazards": [
-      { "id": "deep-water", "name": "Deep Water", "effect": "movement slow" },
-      { "id": "undertow", "name": "Undertow", "effect": "pull toward hazard lane" }
+      {
+        "id": "deep-water",
+        "name": "Deep Water",
+        "effect": "movement slow"
+      },
+      {
+        "id": "undertow",
+        "name": "Undertow",
+        "effect": "pull toward hazard lane"
+      }
     ],
-    "rewardItemIds": ["corsair-coin", "waterlogged-rune", "salt-pearl"],
-    "rareMaterialIds": ["abyssal-coral"],
+    "rewardItemIds": [
+      "corsair-coin",
+      "waterlogged-rune",
+      "salt-pearl"
+    ],
+    "rareMaterialIds": [
+      "abyssal-coral"
+    ],
     "replayable": true,
     "shortcutUnlockId": "",
     "unlocksMapId": "",
-    "mechanics": ["water slow hazards", "pirate and aquatic enemy packs", "rare crafting material farming"],
-    "bossMechanics": ["pistol volley", "undertow cleave", "summon drowned crew"]
+    "mechanics": [
+      "water slow hazards",
+      "pirate and aquatic enemy packs",
+      "rare crafting material farming"
+    ],
+    "bossMechanics": [
+      "pistol volley",
+      "undertow cleave",
+      "summon drowned crew"
+    ]
   },
   {
     "id": "ironroot-mine",
     "mapId": "ironroot-mine",
     "name": "Ironroot Mine",
-    "levelRange": { "min": 35, "max": 50 },
+    "levelRange": {
+      "min": 35,
+      "max": 50
+    },
     "bossId": "brass-burrower",
     "roomPlan": [
-      { "id": "mine-lift", "name": "Mine Lift", "encounterRole": "entrance" },
-      { "id": "ore-gallery", "name": "Ore Gallery", "encounterRole": "treasure" },
-      { "id": "cart-crossing", "name": "Cart Crossing", "encounterRole": "hazard" },
-      { "id": "automaton-yard", "name": "Automaton Yard", "encounterRole": "combat" },
-      { "id": "burrower-nest", "name": "Burrower Nest", "encounterRole": "boss" },
-      { "id": "ore-cart-shortcut", "name": "Ore Cart Shortcut", "encounterRole": "shortcut" }
+      {
+        "id": "mine-lift",
+        "name": "Mine Lift",
+        "encounterRole": "entrance"
+      },
+      {
+        "id": "ore-gallery",
+        "name": "Ore Gallery",
+        "encounterRole": "treasure"
+      },
+      {
+        "id": "cart-crossing",
+        "name": "Cart Crossing",
+        "encounterRole": "hazard"
+      },
+      {
+        "id": "automaton-yard",
+        "name": "Automaton Yard",
+        "encounterRole": "combat"
+      },
+      {
+        "id": "burrower-nest",
+        "name": "Burrower Nest",
+        "encounterRole": "boss"
+      },
+      {
+        "id": "ore-cart-shortcut",
+        "name": "Ore Cart Shortcut",
+        "encounterRole": "shortcut"
+      }
     ],
-    "enemyThemes": ["construct", "ore beast"],
-    "hazardIds": ["cave-in", "mine-cart"],
+    "enemyThemes": [
+      "construct",
+      "ore beast"
+    ],
+    "hazardIds": [
+      "cave-in",
+      "mine-cart"
+    ],
     "hazards": [
-      { "id": "cave-in", "name": "Cave-In", "effect": "falling rock damage" },
-      { "id": "mine-cart", "name": "Mine Cart", "effect": "charge lane knockback" }
+      {
+        "id": "cave-in",
+        "name": "Cave-In",
+        "effect": "falling rock damage"
+      },
+      {
+        "id": "mine-cart",
+        "name": "Mine Cart",
+        "effect": "charge lane knockback"
+      }
     ],
-    "rewardItemIds": ["deep-ore-cluster", "refined-nickel", "ironroot-ore"],
-    "rareMaterialIds": ["brass-burrower-plate"],
+    "rewardItemIds": [
+      "deep-ore-cluster",
+      "refined-nickel",
+      "ironroot-ore"
+    ],
+    "rareMaterialIds": [
+      "brass-burrower-plate"
+    ],
     "replayable": true,
     "shortcutUnlockId": "ore-cart-shortcut",
     "unlocksMapId": "",
-    "mechanics": ["ore gathering rewards", "construct enemy pressure", "mine hazard lanes"],
-    "bossMechanics": ["burrow vanish", "linear charge", "falling ore phase"]
+    "mechanics": [
+      "ore gathering rewards",
+      "construct enemy pressure",
+      "mine hazard lanes"
+    ],
+    "bossMechanics": [
+      "burrow vanish",
+      "linear charge",
+      "falling ore phase"
+    ]
   },
   {
     "id": "buried-sun-tomb",
     "mapId": "buried-sun-tomb",
     "name": "Buried Sun Tomb",
-    "levelRange": { "min": 40, "max": 55 },
+    "levelRange": {
+      "min": 40,
+      "max": 55
+    },
     "bossId": "dune-tyrant",
     "roomPlan": [
-      { "id": "sun-door", "name": "Sun Door", "encounterRole": "entrance" },
-      { "id": "jackal-hall", "name": "Jackal Hall", "encounterRole": "combat" },
-      { "id": "pressure-vault", "name": "Pressure Vault", "encounterRole": "hazard" },
-      { "id": "sigil-cache", "name": "Sigil Cache", "encounterRole": "treasure" },
-      { "id": "tyrant-sanctum", "name": "Tyrant Sanctum", "encounterRole": "boss" }
+      {
+        "id": "sun-door",
+        "name": "Sun Door",
+        "encounterRole": "entrance"
+      },
+      {
+        "id": "jackal-hall",
+        "name": "Jackal Hall",
+        "encounterRole": "combat"
+      },
+      {
+        "id": "pressure-vault",
+        "name": "Pressure Vault",
+        "encounterRole": "hazard"
+      },
+      {
+        "id": "sigil-cache",
+        "name": "Sigil Cache",
+        "encounterRole": "treasure"
+      },
+      {
+        "id": "tyrant-sanctum",
+        "name": "Tyrant Sanctum",
+        "encounterRole": "boss"
+      }
     ],
-    "enemyThemes": ["undead", "reptile", "desert"],
-    "hazardIds": ["pressure-plate", "sunbeam-trap"],
+    "enemyThemes": [
+      "undead",
+      "reptile",
+      "desert"
+    ],
+    "hazardIds": [
+      "pressure-plate",
+      "sunbeam-trap"
+    ],
     "hazards": [
-      { "id": "pressure-plate", "name": "Pressure Plate", "effect": "spike trap" },
-      { "id": "sunbeam-trap", "name": "Sunbeam Trap", "effect": "burning beam sweep" }
+      {
+        "id": "pressure-plate",
+        "name": "Pressure Plate",
+        "effect": "spike trap"
+      },
+      {
+        "id": "sunbeam-trap",
+        "name": "Sunbeam Trap",
+        "effect": "burning beam sweep"
+      }
     ],
-    "rewardItemIds": ["buried-sun-shard", "sun-glass", "tyrant-scale"],
-    "rareMaterialIds": ["sun-sigil-fragment"],
+    "rewardItemIds": [
+      "buried-sun-shard",
+      "sun-glass",
+      "tyrant-scale"
+    ],
+    "rareMaterialIds": [
+      "sun-sigil-fragment"
+    ],
     "replayable": true,
     "shortcutUnlockId": "",
     "unlocksMapId": "",
-    "mechanics": ["desert tomb visuals", "trap-heavy rooms", "sigil material rewards"],
-    "bossMechanics": ["phase one claws", "phase two sandstorm", "phase three sun sigil eruption"]
+    "mechanics": [
+      "desert tomb visuals",
+      "trap-heavy rooms",
+      "sigil material rewards"
+    ],
+    "bossMechanics": [
+      "phase one claws",
+      "phase two sandstorm",
+      "phase three sun sigil eruption"
+    ]
   },
   {
     "id": "cursed-bell-crypt",
     "mapId": "cursed-bell-crypt",
     "name": "Cursed Bell Crypt",
-    "levelRange": { "min": 55, "max": 70 },
+    "levelRange": {
+      "min": 55,
+      "max": 70
+    },
     "bossId": "bell-wraith",
     "roomPlan": [
-      { "id": "crypt-steps", "name": "Crypt Steps", "encounterRole": "entrance" },
-      { "id": "bone-aisle", "name": "Bone Aisle", "encounterRole": "combat" },
-      { "id": "curse-bell-hall", "name": "Curse Bell Hall", "encounterRole": "hazard" },
-      { "id": "hallowed-reliquary", "name": "Hallowed Reliquary", "encounterRole": "treasure" },
-      { "id": "wraith-belfry", "name": "Wraith Belfry", "encounterRole": "boss" }
+      {
+        "id": "crypt-steps",
+        "name": "Crypt Steps",
+        "encounterRole": "entrance"
+      },
+      {
+        "id": "bone-aisle",
+        "name": "Bone Aisle",
+        "encounterRole": "combat"
+      },
+      {
+        "id": "curse-bell-hall",
+        "name": "Curse Bell Hall",
+        "encounterRole": "hazard"
+      },
+      {
+        "id": "hallowed-reliquary",
+        "name": "Hallowed Reliquary",
+        "encounterRole": "treasure"
+      },
+      {
+        "id": "wraith-belfry",
+        "name": "Wraith Belfry",
+        "encounterRole": "boss"
+      }
     ],
-    "enemyThemes": ["undead", "curse"],
-    "hazardIds": ["curse-bell", "shadow-mire"],
+    "enemyThemes": [
+      "undead",
+      "curse"
+    ],
+    "hazardIds": [
+      "curse-bell",
+      "shadow-mire"
+    ],
     "hazards": [
-      { "id": "curse-bell", "name": "Curse Bell", "effect": "curse pulse telegraph" },
-      { "id": "shadow-mire", "name": "Shadow Mire", "effect": "dark slow field" }
+      {
+        "id": "curse-bell",
+        "name": "Curse Bell",
+        "effect": "curse pulse telegraph"
+      },
+      {
+        "id": "shadow-mire",
+        "name": "Shadow Mire",
+        "effect": "dark slow field"
+      }
     ],
-    "rewardItemIds": ["hallowed-bell-charm", "grave-silk", "curse-bell-clapper"],
-    "rareMaterialIds": ["wraith-ash"],
+    "rewardItemIds": [
+      "hallowed-bell-charm",
+      "grave-silk",
+      "curse-bell-clapper"
+    ],
+    "rareMaterialIds": [
+      "wraith-ash"
+    ],
     "replayable": true,
     "shortcutUnlockId": "",
     "unlocksMapId": "",
-    "mechanics": ["dark curse identity", "central undead packs", "anti-undead reward hook"],
-    "bossMechanics": ["bell toll telegraph", "curse wave", "wraith split phase"]
+    "mechanics": [
+      "dark curse identity",
+      "central undead packs",
+      "anti-undead reward hook"
+    ],
+    "bossMechanics": [
+      "bell toll telegraph",
+      "curse wave",
+      "wraith split phase"
+    ]
   },
   {
     "id": "starfall-tower",
     "mapId": "starfall-astral-spire",
     "name": "Starfall Tower",
-    "levelRange": { "min": 70, "max": 90 },
+    "levelRange": {
+      "min": 70,
+      "max": 90
+    },
     "bossId": "rune-chimera",
     "roomPlan": [
-      { "id": "rune-foyer", "name": "Rune Foyer", "encounterRole": "entrance" },
-      { "id": "elemental-stacks", "name": "Elemental Stacks", "encounterRole": "combat" },
-      { "id": "gravity-landing", "name": "Gravity Landing", "encounterRole": "hazard" },
-      { "id": "high-gear-armory", "name": "High Gear Armory", "encounterRole": "treasure" },
-      { "id": "chimera-aerie", "name": "Chimera Aerie", "encounterRole": "boss" },
-      { "id": "endgame-ascent", "name": "Endgame Ascent", "encounterRole": "shortcut" }
+      {
+        "id": "rune-foyer",
+        "name": "Rune Foyer",
+        "encounterRole": "entrance"
+      },
+      {
+        "id": "elemental-stacks",
+        "name": "Elemental Stacks",
+        "encounterRole": "combat"
+      },
+      {
+        "id": "gravity-landing",
+        "name": "Gravity Landing",
+        "encounterRole": "hazard"
+      },
+      {
+        "id": "high-gear-armory",
+        "name": "High Gear Armory",
+        "encounterRole": "treasure"
+      },
+      {
+        "id": "chimera-aerie",
+        "name": "Chimera Aerie",
+        "encounterRole": "boss"
+      },
+      {
+        "id": "endgame-ascent",
+        "name": "Endgame Ascent",
+        "encounterRole": "shortcut"
+      }
     ],
-    "enemyThemes": ["arcane", "elemental", "construct"],
-    "hazardIds": ["gravity-rune", "elemental-prism"],
+    "enemyThemes": [
+      "arcane",
+      "elemental",
+      "construct"
+    ],
+    "hazardIds": [
+      "gravity-rune",
+      "elemental-prism"
+    ],
     "hazards": [
-      { "id": "gravity-rune", "name": "Gravity Rune", "effect": "position shift pulse" },
-      { "id": "elemental-prism", "name": "Elemental Prism", "effect": "rotating element hazard" }
+      {
+        "id": "gravity-rune",
+        "name": "Gravity Rune",
+        "effect": "position shift pulse"
+      },
+      {
+        "id": "elemental-prism",
+        "name": "Elemental Prism",
+        "effect": "rotating element hazard"
+      }
     ],
-    "rewardItemIds": ["starbound-mantle", "rune-glass", "astral-gear"],
-    "rareMaterialIds": ["chimera-runeplate"],
+    "rewardItemIds": [
+      "starbound-mantle",
+      "rune-glass",
+      "astral-gear"
+    ],
+    "rareMaterialIds": [
+      "chimera-runeplate"
+    ],
     "replayable": true,
     "shortcutUnlockId": "endgame-tower-unlock",
     "unlocksMapId": "fallen-observatory",
-    "mechanics": ["arcane visual identity", "varied enemy elements", "high-level gear drops", "endgame tower unlock"],
-    "bossMechanics": ["fire rune phase", "ice rune phase", "lightning rune phase", "element alternation"]
+    "mechanics": [
+      "arcane visual identity",
+      "varied enemy elements",
+      "high-level gear drops",
+      "endgame tower unlock"
+    ],
+    "bossMechanics": [
+      "fire rune phase",
+      "ice rune phase",
+      "lightning rune phase",
+      "element alternation"
+    ]
   },
   {
     "id": "fallen-observatory",
     "mapId": "fallen-observatory",
     "name": "Fallen Observatory",
-    "levelRange": { "min": 85, "max": 99 },
+    "levelRange": {
+      "min": 85,
+      "max": 99
+    },
     "bossId": "fallen-star-saint",
     "roomPlan": [
-      { "id": "lens-approach", "name": "Lens Approach", "encounterRole": "entrance" },
-      { "id": "star-chart-floor", "name": "Star Chart Floor", "encounterRole": "combat" },
-      { "id": "meteor-lab", "name": "Meteor Lab", "encounterRole": "hazard" },
-      { "id": "mythic-cache", "name": "Mythic Cache", "encounterRole": "treasure" },
-      { "id": "saint-orrery", "name": "Saint Orrery", "encounterRole": "boss" },
-      { "id": "post-campaign-loop", "name": "Post Campaign Loop", "encounterRole": "shortcut" }
+      {
+        "id": "lens-approach",
+        "name": "Lens Approach",
+        "encounterRole": "entrance"
+      },
+      {
+        "id": "star-chart-floor",
+        "name": "Star Chart Floor",
+        "encounterRole": "combat"
+      },
+      {
+        "id": "meteor-lab",
+        "name": "Meteor Lab",
+        "encounterRole": "hazard"
+      },
+      {
+        "id": "mythic-cache",
+        "name": "Mythic Cache",
+        "encounterRole": "treasure"
+      },
+      {
+        "id": "saint-orrery",
+        "name": "Saint Orrery",
+        "encounterRole": "boss"
+      },
+      {
+        "id": "post-campaign-loop",
+        "name": "Post Campaign Loop",
+        "encounterRole": "shortcut"
+      }
     ],
-    "enemyThemes": ["arcane", "mythic", "construct"],
-    "hazardIds": ["falling-star", "lens-burn"],
+    "enemyThemes": [
+      "arcane",
+      "mythic",
+      "construct"
+    ],
+    "hazardIds": [
+      "falling-star",
+      "lens-burn"
+    ],
     "hazards": [
-      { "id": "falling-star", "name": "Falling Star", "effect": "delayed impact marker" },
-      { "id": "lens-burn", "name": "Lens Burn", "effect": "focused beam sweep" }
+      {
+        "id": "falling-star",
+        "name": "Falling Star",
+        "effect": "delayed impact marker"
+      },
+      {
+        "id": "lens-burn",
+        "name": "Lens Burn",
+        "effect": "focused beam sweep"
+      }
     ],
-    "rewardItemIds": ["observatory-lens", "astral-gear", "fallen-saint-lens"],
-    "rareMaterialIds": ["mythic-meteor-core"],
+    "rewardItemIds": [
+      "observatory-lens",
+      "astral-gear",
+      "fallen-saint-lens"
+    ],
+    "rareMaterialIds": [
+      "mythic-meteor-core"
+    ],
     "replayable": true,
     "shortcutUnlockId": "post-campaign-loop",
     "unlocksMapId": "",
-    "mechanics": ["late-game farming", "mythic material drops", "endgame build checks", "post-campaign replay loop"],
-    "bossMechanics": ["starfall patterns", "orbital beam rotation", "saint shield break", "mythic enrage phase"]
+    "mechanics": [
+      "late-game farming",
+      "mythic material drops",
+      "endgame build checks",
+      "post-campaign replay loop"
+    ],
+    "bossMechanics": [
+      "starfall patterns",
+      "orbital beam rotation",
+      "saint shield break",
+      "mythic enrage phase"
+    ]
   }
 ]

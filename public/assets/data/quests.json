@@ -3,43 +3,34 @@
     "id": "act1-crownfield-first-steps",
     "name": "Act 1: Crownfield First Steps",
     "type": "main",
-    "description": "Learn movement, combat, loot, and town services before facing the Sewer Glutton in Old Sewers.",
+    "description": "Explore Crownfield, follow the Old Road, and defeat the thing living below town.",
     "objectives": [
       {
         "id": "enter-meadows",
         "type": "visitMap",
-        "description": "Leave Crownfield and enter Crownfield Meadows.",
+        "description": "Leave Crownfield and explore the Meadows.",
         "targetId": "crownfield-meadows",
         "targetCount": 1,
         "regionHint": "Crownfield Meadows",
         "mapId": "crownfield-meadows"
       },
       {
-        "id": "defeat-jelly",
-        "type": "killMonster",
-        "description": "Defeat a Green Jelly.",
-        "targetId": "green-jelly",
+        "id": "follow-old-road",
+        "type": "visitMap",
+        "description": "Follow the Old Road beyond the meadows.",
+        "targetId": "crownfield-old-road",
         "targetCount": 1,
-        "regionHint": "Jelly Grove",
-        "mapId": "crownfield-meadows"
+        "regionHint": "Old Road",
+        "mapId": "crownfield-old-road"
       },
       {
-        "id": "collect-gel",
-        "type": "collectItem",
-        "description": "Loot Jelly Gel.",
-        "targetId": "jelly-gel",
+        "id": "investigate-sewers",
+        "type": "visitMap",
+        "description": "Investigate the Old Sewers beneath Crownfield.",
+        "targetId": "training-sewers",
         "targetCount": 1,
-        "regionHint": "Crownfield Meadows drops",
-        "mapId": "crownfield-meadows"
-      },
-      {
-        "id": "meet-crafter",
-        "type": "talkToNpc",
-        "description": "Speak with Nima Threadwell about services.",
-        "targetId": "nima-threadwell",
-        "targetCount": 1,
-        "regionHint": "Crownfield crafting stall",
-        "mapId": "crownfield-town"
+        "regionHint": "Old Sewers",
+        "mapId": "training-sewers"
       },
       {
         "id": "clear-sewers",
@@ -52,54 +43,68 @@
       }
     ],
     "rewards": {
-      "xp": 300,
-      "gold": 60,
-      "items": [{ "itemId": "minor-health-potion", "quantity": 2 }],
-      "unlockFlags": ["act2-unlocked"]
+      "xp": 80,
+      "gold": 40,
+      "items": [
+        {
+          "itemId": "minor-health-potion",
+          "quantity": 2
+        }
+      ],
+      "unlockFlags": [
+        "act2-unlocked",
+        "mossvale-route-unlocked"
+      ]
     },
     "requiredLevel": 1,
     "requiredFlags": [],
-    "unlockFlags": ["act1-complete", "old-sewers-cleared"],
+    "unlockFlags": [
+      "act1-complete",
+      "old-sewers-cleared"
+    ],
     "npcStart": "maela-hearth",
     "npcTurnIn": "maela-hearth",
     "mapMarkers": [
-      { "mapId": "crownfield-meadows", "label": "Meadows training", "x": 392, "y": 304 },
-      { "mapId": "training-sewers", "label": "Sewer Glutton", "x": 520, "y": 300 }
+      {
+        "mapId": "crownfield-meadows",
+        "label": "Meadows training",
+        "x": 392,
+        "y": 304
+      },
+      {
+        "mapId": "training-sewers",
+        "label": "Sewer Glutton",
+        "x": 520,
+        "y": 300
+      }
     ],
-    "rewardItemIds": ["minor-health-potion"]
+    "rewardItemIds": [
+      "minor-health-potion"
+    ]
   },
   {
     "id": "act2-mossvale-blueharbor-path",
-    "name": "Act 2: Mossvale and Blueharbor Path",
+    "name": "Act 2: Mossvale and the Green Chapel",
     "type": "main",
-    "description": "Learn elemental awareness, crafting, and hunting board routes toward Green Chapel and Tide Cave.",
+    "description": "Discover Mossvale, investigate the ruined chapel, and defeat the Thorn Priest.",
     "objectives": [
-      {
-        "id": "reach-15",
-        "type": "reachLevel",
-        "description": "Reach level 15.",
-        "targetId": "15",
-        "targetCount": 1,
-        "regionHint": "Crownfield or Mossvale",
-        "mapId": "mossvale-hub"
-      },
       {
         "id": "visit-mossvale",
         "type": "visitMap",
-        "description": "Travel to Mossvale Grove.",
+        "description": "Discover the road to Mossvale Grove.",
         "targetId": "mossvale-hub",
         "targetCount": 1,
         "regionHint": "Mossvale Grove",
         "mapId": "mossvale-hub"
       },
       {
-        "id": "meet-hunter-board",
-        "type": "talkToNpc",
-        "description": "Speak with Heth Grovewarden at the hunting board.",
-        "targetId": "mossvale-grove-warden",
+        "id": "investigate-chapel",
+        "type": "visitMap",
+        "description": "Investigate the disturbance around Green Chapel.",
+        "targetId": "green-chapel-ruins",
         "targetCount": 1,
-        "regionHint": "Mossvale Grove",
-        "mapId": "mossvale-hub"
+        "regionHint": "Green Chapel Ruins",
+        "mapId": "green-chapel-ruins"
       },
       {
         "id": "clear-green-chapel",
@@ -109,33 +114,48 @@
         "targetCount": 1,
         "regionHint": "Green Chapel Ruins",
         "mapId": "green-chapel-ruins"
-      },
-      {
-        "id": "clear-tide-cave",
-        "type": "killMonster",
-        "description": "Defeat the Sunken Corsair.",
-        "targetId": "sunken-corsair",
-        "targetCount": 1,
-        "regionHint": "Tide Cave",
-        "mapId": "tide-cave"
       }
     ],
     "rewards": {
-      "xp": 1200,
-      "gold": 180,
-      "items": [{ "itemId": "moss-fiber", "quantity": 2 }],
-      "unlockFlags": ["act3-unlocked"]
+      "xp": 160,
+      "gold": 80,
+      "items": [
+        {
+          "itemId": "moss-fiber",
+          "quantity": 2
+        }
+      ],
+      "unlockFlags": [
+        "act3-unlocked"
+      ]
     },
     "requiredLevel": 15,
-    "requiredFlags": ["act2-unlocked"],
-    "unlockFlags": ["act2-complete", "amber-ironroot-route-unlocked"],
+    "requiredFlags": [
+      "act2-unlocked"
+    ],
+    "unlockFlags": [
+      "act2-complete",
+      "amber-ironroot-route-unlocked"
+    ],
     "npcStart": "mossvale-routefinder",
     "npcTurnIn": "blueharbor-harbormaster",
     "mapMarkers": [
-      { "mapId": "green-chapel-ruins", "label": "Green Chapel", "x": 520, "y": 300 },
-      { "mapId": "tide-cave", "label": "Tide Cave", "x": 520, "y": 300 }
+      {
+        "mapId": "mossvale-hub",
+        "label": "Mossvale Grove",
+        "x": 400,
+        "y": 304
+      },
+      {
+        "mapId": "green-chapel-ruins",
+        "label": "Green Chapel",
+        "x": 520,
+        "y": 300
+      }
     ],
-    "rewardItemIds": ["moss-fiber"]
+    "rewardItemIds": [
+      "moss-fiber"
+    ]
   },
   {
     "id": "act3-amber-ironroot-trials",
@@ -183,19 +203,43 @@
     "rewards": {
       "xp": 2800,
       "gold": 360,
-      "items": [{ "itemId": "refined-nickel", "quantity": 2 }],
-      "unlockFlags": ["act4-unlocked"]
+      "items": [
+        {
+          "itemId": "refined-nickel",
+          "quantity": 2
+        }
+      ],
+      "unlockFlags": [
+        "act4-unlocked"
+      ]
     },
     "requiredLevel": 30,
-    "requiredFlags": ["act3-unlocked"],
-    "unlockFlags": ["act3-complete", "moonveil-unlocked"],
+    "requiredFlags": [
+      "act3-unlocked"
+    ],
+    "unlockFlags": [
+      "act3-complete",
+      "moonveil-unlocked"
+    ],
     "npcStart": "amber-caravan-guide",
     "npcTurnIn": "ironroot-lift-operator",
     "mapMarkers": [
-      { "mapId": "amber-dunes-hub", "label": "Refinement lesson", "x": 360, "y": 290 },
-      { "mapId": "ironroot-mine", "label": "Brass Burrower", "x": 520, "y": 300 }
+      {
+        "mapId": "amber-dunes-hub",
+        "label": "Refinement lesson",
+        "x": 360,
+        "y": 290
+      },
+      {
+        "mapId": "ironroot-mine",
+        "label": "Brass Burrower",
+        "x": 520,
+        "y": 300
+      }
     ],
-    "rewardItemIds": ["refined-nickel"]
+    "rewardItemIds": [
+      "refined-nickel"
+    ]
   },
   {
     "id": "act4-moonveil-bell",
@@ -243,19 +287,43 @@
     "rewards": {
       "xp": 4600,
       "gold": 540,
-      "items": [{ "itemId": "wraith-ash", "quantity": 2 }],
-      "unlockFlags": ["act5-unlocked"]
+      "items": [
+        {
+          "itemId": "wraith-ash",
+          "quantity": 2
+        }
+      ],
+      "unlockFlags": [
+        "act5-unlocked"
+      ]
     },
     "requiredLevel": 45,
-    "requiredFlags": ["act4-unlocked"],
-    "unlockFlags": ["act4-complete", "starfall-unlocked"],
+    "requiredFlags": [
+      "act4-unlocked"
+    ],
+    "unlockFlags": [
+      "act4-complete",
+      "starfall-unlocked"
+    ],
     "npcStart": "moonveil-lantern-keeper",
     "npcTurnIn": "moonveil-ferry-witch",
     "mapMarkers": [
-      { "mapId": "cursed-bell-road", "label": "Bell Haunts", "x": 380, "y": 300 },
-      { "mapId": "cursed-bell-crypt", "label": "Bell Wraith", "x": 520, "y": 300 }
+      {
+        "mapId": "cursed-bell-road",
+        "label": "Bell Haunts",
+        "x": 380,
+        "y": 300
+      },
+      {
+        "mapId": "cursed-bell-crypt",
+        "label": "Bell Wraith",
+        "x": 520,
+        "y": 300
+      }
     ],
-    "rewardItemIds": ["wraith-ash"]
+    "rewardItemIds": [
+      "wraith-ash"
+    ]
   },
   {
     "id": "act5-starfall-ending",
@@ -303,18 +371,43 @@
     "rewards": {
       "xp": 7000,
       "gold": 800,
-      "items": [{ "itemId": "chimera-runeplate", "quantity": 1 }],
-      "unlockFlags": ["endgame-unlocked", "final-boss-replay-unlocked"]
+      "items": [
+        {
+          "itemId": "chimera-runeplate",
+          "quantity": 1
+        }
+      ],
+      "unlockFlags": [
+        "endgame-unlocked",
+        "final-boss-replay-unlocked"
+      ]
     },
     "requiredLevel": 65,
-    "requiredFlags": ["act5-unlocked"],
-    "unlockFlags": ["campaign-complete", "save-continues-after-ending"],
+    "requiredFlags": [
+      "act5-unlocked"
+    ],
+    "unlockFlags": [
+      "campaign-complete",
+      "save-continues-after-ending"
+    ],
     "npcStart": "moonveil-ferry-witch",
     "npcTurnIn": "moonveil-ferry-witch",
     "mapMarkers": [
-      { "mapId": "starfall-astral-spire", "label": "Rune Chimera", "x": 520, "y": 300 },
-      { "mapId": "fallen-observatory", "label": "Endgame replay", "x": 520, "y": 300 }
+      {
+        "mapId": "starfall-astral-spire",
+        "label": "Rune Chimera",
+        "x": 520,
+        "y": 300
+      },
+      {
+        "mapId": "fallen-observatory",
+        "label": "Endgame replay",
+        "x": 520,
+        "y": 300
+      }
     ],
-    "rewardItemIds": ["chimera-runeplate"]
+    "rewardItemIds": [
+      "chimera-runeplate"
+    ]
   }
 ]

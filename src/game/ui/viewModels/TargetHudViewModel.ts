@@ -1,3 +1,5 @@
+export type TargetDanger = "normal" | "warning" | "severe";
+
 export interface TargetHudSnapshot {
   enemyId: string | null;
   name: string;
@@ -9,6 +11,8 @@ export interface TargetHudSnapshot {
   level: number | null;
   phase: number;
   statusIcons: string[];
+  danger: TargetDanger;
+  levelDelta: number;
 }
 
 /** Event-fed presentation state for target and boss HUDs. It owns formatting math, not combat state. */
@@ -16,12 +20,12 @@ export class TargetHudViewModel {
   private target: TargetHudSnapshot | null = null;
   private boss: TargetHudSnapshot | null = null;
 
-  setTarget(enemyId: string, name: string, hp: number, maxHp: number, level?: number, elite = false, statusIcons: string[] = [], barWidth = 126): void {
-    this.target = createSnapshot(enemyId, name, hp, maxHp, barWidth, false, 1, level, elite, statusIcons);
+  setTarget(enemyId: string, name: string, hp: number, maxHp: number, level?: number, elite = false, statusIcons: string[] = [], barWidth = 126, playerLevel?: number): void {
+    this.target = createSnapshot(enemyId, name, hp, maxHp, barWidth, false, 1, level, elite, statusIcons, playerLevel);
   }
 
-  setBoss(name: string, hp: number, maxHp: number, phase: number, level?: number, statusIcons: string[] = [], barWidth = 408): void {
-    this.boss = createSnapshot(this.boss?.enemyId ?? null, name, hp, maxHp, barWidth, true, phase, level, false, statusIcons);
+  setBoss(name: string, hp: number, maxHp: number, phase: number, level?: number, statusIcons: string[] = [], barWidth = 408, playerLevel?: number): void {
+    this.boss = createSnapshot(this.boss?.enemyId ?? null, name, hp, maxHp, barWidth, true, phase, level, false, statusIcons, playerLevel);
   }
 
   clearTarget(): void { this.target = null; }
@@ -30,8 +34,9 @@ export class TargetHudViewModel {
   get bossSnapshot(): TargetHudSnapshot | null { return this.boss; }
 }
 
-function createSnapshot(enemyId: string | null, name: string, hp: number, maxHp: number, barWidth: number, boss: boolean, phase: number, level?: number, elite = false, statusIcons: string[] = []): TargetHudSnapshot {
+function createSnapshot(enemyId: string | null, name: string, hp: number, maxHp: number, barWidth: number, boss: boolean, phase: number, level?: number, elite = false, statusIcons: string[] = [], playerLevel?: number): TargetHudSnapshot {
   const safeMaxHp = Math.max(1, maxHp);
+  const levelDelta = typeof level === "number" && typeof playerLevel === "number" ? level - playerLevel : 0;
   return {
     enemyId,
     name,
@@ -43,5 +48,7 @@ function createSnapshot(enemyId: string | null, name: string, hp: number, maxHp:
     level: typeof level === "number" ? level : null,
     phase,
     statusIcons,
+    danger: levelDelta >= 5 ? "severe" : levelDelta >= 3 ? "warning" : "normal",
+    levelDelta,
   };
 }

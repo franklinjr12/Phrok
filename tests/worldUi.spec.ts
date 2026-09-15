@@ -141,7 +141,7 @@ test("polished HUD exposes minimap, world map, readable bars, and tooltips", asy
   await page.keyboard.press("KeyO");
   await expect(canvas).toHaveAttribute("data-ui-panel", "worldMap");
   await expect(canvas).toHaveAttribute("data-world-map-panel", "visible");
-  await expect(canvas).toHaveAttribute("data-world-map-regions", /crownfield:1-10/);
+  await expect(canvas).toHaveAttribute("data-world-map-regions", /crownfield:1-15/);
   await expect(canvas).toHaveAttribute("data-world-map-current-location", "crownfield-town");
   await expect(canvas).toHaveAttribute("data-world-map-discovered-maps", /crownfield-town/);
   await expect(canvas).toHaveAttribute("data-world-map-fast-travel", /crownfield-town/);
@@ -230,7 +230,7 @@ test("hunting board lists regional contracts and accepts one active contract", a
   await expect(canvas).toHaveAttribute("data-ui-panel", "huntingBoard");
   await expect(canvas).toHaveAttribute("data-hunting-board-panel", "visible");
   await expect(canvas).toHaveAttribute("data-hunting-board-region", "crownfield");
-  await expect(canvas).toHaveAttribute("data-hunting-board-contract-count", "4");
+  await expect(canvas).toHaveAttribute("data-hunting-board-contract-count", "7");
   await expect(canvas).toHaveAttribute("data-hunting-board-contracts", /crownfield-hunt-1-green-jelly:available:0\/3/);
   await expect(canvas).toHaveAttribute("data-hunting-board-contracts", /crownfield-boss-sewer-glutton:locked:0\/1/);
   await expect(canvas).toHaveAttribute("data-selected-hunting-contract", "crownfield-hunt-1-green-jelly");

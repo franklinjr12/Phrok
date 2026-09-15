@@ -46,8 +46,8 @@ export function getRegionalHuntingContracts(
     .map((monsterId) => dataRegistry.getMonster(monsterId))
     .sort((left, right) => left.level - right.level);
   const normalTargets = regionMonsters
-    .filter((monster) => !monster.elite && !monster.boss)
-    .slice(0, 2);
+    .filter((monster) => !monster.elite && !monster.boss && !monster.rareVariant)
+    .slice(0, 5);
   const eliteTarget = findFirstMonster(dataRegistry, [...region.bossIds, ...region.monsterIds], "elite");
   const bossTarget = findFirstMonster(dataRegistry, region.bossIds, "boss");
 

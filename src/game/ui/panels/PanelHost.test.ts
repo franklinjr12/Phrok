@@ -46,6 +46,7 @@ function setup(overrides: Partial<Record<PanelId, Partial<UIPanel>>> = {}) {
       set: (key: string, value: string) => datasets.set(key, value),
       setActivePanel: (id: PanelId | null) => datasets.set("uiPanel", id ?? "closed"),
       setGameplayInputBlocked: (value: boolean) => { blocked = value; },
+      setWindowLayoutSnapshot: vi.fn(),
     },
   } as unknown as PanelContext;
   const makePanel = (id: PanelId): UIPanel => ({

@@ -19,11 +19,13 @@ describe("core visible sprite assets", () => {
     const missing = [
       ...classes.filter((entry) => !hasSprite(spriteIds, "players", entry.id) && !spriteIds.has(entry.id))
         .map((entry) => `players:${entry.id}`),
-      ...monsters.filter((entry) => !hasSprite(spriteIds, "monsters", entry.id) && !spriteIds.has(entry.id))
-        .map((entry) => `monsters:${entry.id}`),
+      ...monsters.filter((entry) => {
+        const spriteId = entry.spriteMonsterId || entry.id;
+        return !hasSprite(spriteIds, "monsters", spriteId) && !spriteIds.has(spriteId) && !spriteIds.has(entry.id);
+      }).map((entry) => `monsters:${entry.id}`),
       ...npcs.filter((entry) => !hasSprite(spriteIds, "npcs", entry.id))
         .map((entry) => `npcs:${entry.id}`),
-      ...supports.filter((entry) => !hasSprite(spriteIds, "supports", entry.id) && !spriteIds.has(entry.id))
+      ...supports.filter((entry) => !hasSprite(spriteIds, "supports", entry.id) && !spriteIds.has(entry.id) && !hasSprite(spriteIds, "supports", "pack-sprite"))
         .map((entry) => `supports:${entry.id}`),
     ];
 

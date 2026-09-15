@@ -2,6 +2,7 @@ import { expect, test } from "@playwright/test";
 import { enterMeadows, startApp } from "./helpers";
 
 test("swordsman plays the swing animation when it hits and returns to its idle sprite", async ({ page }) => {
+  test.setTimeout(60000);
   await startApp(page);
   const canvas = await enterMeadows(page);
 

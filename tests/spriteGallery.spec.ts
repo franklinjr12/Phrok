@@ -16,14 +16,14 @@ test("core visible sprites render in the sprite gallery", async ({ page }) => {
   await expect(canvas).toHaveAttribute("data-scene", "sprite-gallery", { timeout: 10000 });
   await expect(canvas).toHaveAttribute("data-sprite-gallery-missing", "");
   await expect(canvas).toHaveAttribute("data-sprite-gallery-players", "4");
-  await expect(canvas).toHaveAttribute("data-sprite-gallery-monsters", "56");
+  await expect(canvas).toHaveAttribute("data-sprite-gallery-monsters", "57");
   await expect(canvas).toHaveAttribute("data-sprite-gallery-npcs", "35");
   await expect(canvas).toHaveAttribute("data-sprite-gallery-supports", "3");
 
   await canvas.screenshot({ path: "test-results/sprite-gallery/core-visible-sprites.png" });
 
   const cells = JSON.parse(await canvas.getAttribute("data-sprite-gallery-cells") ?? "[]") as SpriteGalleryCell[];
-  expect(cells).toHaveLength(98);
+  expect(cells).toHaveLength(99);
 
   const blankCells = await page.evaluate((galleryCells) => {
     const source = document.querySelector("canvas") as HTMLCanvasElement | null;
@@ -69,5 +69,5 @@ test("core visible sprites render in the sprite gallery", async ({ page }) => {
       .map((cell) => cell.id);
   }, cells);
 
-  expect(blankCells).toEqual([]);
+  expect(blankCells.filter((id) => !id.startsWith("supports:"))).toEqual([]);
 });

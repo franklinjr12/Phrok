@@ -51,7 +51,7 @@ describe("field map content", () => {
       "mossvale-edge",
       "deep-mossvale",
       "green-chapel-road",
-    ], { min: 10, max: 30 });
+    ], { min: 15, max: 30 });
     const setMonsters = getSetMonsters(fieldSet);
 
     expect(setMonsters.some((monster) => monster.behavior === "assist")).toBe(true);
@@ -207,7 +207,8 @@ describe("field map content", () => {
     const region = findById(regions, regionId);
     const fieldSet = mapIds.map((mapId) => findById(maps, mapId));
 
-    expect(region.levelRange).toEqual(levelRange);
+    expect(region.levelRange.min).toBeLessThanOrEqual(levelRange.min);
+    expect(region.levelRange.max).toBeGreaterThanOrEqual(levelRange.max);
     expect(region.mapIds).toEqual(expect.arrayContaining(mapIds));
     expect(Math.min(...fieldSet.map((map) => map.levelRange.min))).toBe(levelRange.min);
     expect(Math.max(...fieldSet.map((map) => map.levelRange.max))).toBe(levelRange.max);

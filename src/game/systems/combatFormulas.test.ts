@@ -1,5 +1,5 @@
 import { describe, expect, test, vi } from "vitest";
-import { resolveAttack, type CombatStats } from "./combatFormulas";
+import { getClassAttackKind, resolveAttack, type CombatStats } from "./combatFormulas";
 
 const attacker: CombatStats = {
   attack: 6,
@@ -66,5 +66,33 @@ describe("resolveAttack", () => {
     expect(debugSpy).toHaveBeenCalledWith("combat-formula", result);
 
     debugSpy.mockRestore();
+  });
+
+  test("applies elemental weakness and class attack kinds", () => {
+    const weak = resolveAttack({
+      attacker,
+      defender,
+      attackKind: "magic",
+      weaponAttack: 2,
+      random: () => 0.5,
+      attackElement: "fire",
+      defenseElement: "plant",
+    });
+    const resisted = resolveAttack({
+      attacker,
+      defender,
+      attackKind: "magic",
+      weaponAttack: 2,
+      random: () => 0.5,
+      attackElement: "fire",
+      defenseElement: "water",
+    });
+
+    expect(weak.elementMatchup).toBe("weak");
+    expect(resisted.elementMatchup).toBe("resist");
+    expect(weak.finalDamage).toBeGreaterThan(resisted.finalDamage);
+    expect(getClassAttackKind("mage")).toBe("magic");
+    expect(getClassAttackKind("archer")).toBe("ranged");
+    expect(getClassAttackKind("swordsman")).toBe("physical");
   });
 });

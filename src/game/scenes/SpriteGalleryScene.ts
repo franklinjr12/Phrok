@@ -73,7 +73,7 @@ export class SpriteGalleryScene extends Phaser.Scene {
         group: "monsters" as const,
         id: entry.id,
         name: entry.name,
-        textureKey: getEnemyTextureKey(entry.id),
+        textureKey: getEnemyTextureKey(entry.spriteMonsterId || entry.id),
       })),
       ...dataRegistry.getNpcs().map((entry) => ({
         group: "npcs" as const,
@@ -81,12 +81,15 @@ export class SpriteGalleryScene extends Phaser.Scene {
         name: entry.name,
         textureKey: getNpcTextureKey(entry.id),
       })),
-      ...dataRegistry.getSupports().map((entry) => ({
-        group: "supports" as const,
-        id: entry.id,
-        name: entry.name,
-        textureKey: getSupportTextureKey(entry.id),
-      })),
+      ...dataRegistry.getSupports().map((entry) => {
+        const preferred = getSupportTextureKey(entry.id);
+        return {
+          group: "supports" as const,
+          id: entry.id,
+          name: entry.name,
+          textureKey: this.textures.exists(preferred) ? preferred : getSupportTextureKey("pack-sprite"),
+        };
+      }),
     ];
   }
 

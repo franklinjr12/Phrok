@@ -1,14 +1,11 @@
 import { expect, test, type Page } from "@playwright/test";
-import { startApp } from "./helpers";
+import { continueFromMainMenu, startApp } from "./helpers";
 
 test("challenge dungeon mode exposes modifier state and class trial replay state", async ({ page }) => {
   await seedChallengeSave(page);
   await startApp(page);
 
-  const canvas = page.locator("canvas");
-  await expect(canvas).toHaveAttribute("data-scene", "main-menu", { timeout: 10000 });
-  await canvas.click({ position: { x: 400, y: 204 } });
-  await expect(canvas).toHaveAttribute("data-scene", "world");
+  const canvas = await continueFromMainMenu(page);
   await expect(canvas).toHaveAttribute("data-current-map", "training-sewers");
   await expect(canvas).toHaveAttribute("data-current-dungeon", "old-sewers");
   await expect(canvas).toHaveAttribute("data-challenge-dungeon-available", "true");

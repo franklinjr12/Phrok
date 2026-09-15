@@ -52,3 +52,4 @@ One implementation task -> one epic file. Historical source: `../backlog.md`.
 | M10-E01 | Optional Systems | Existing backlog entry | [M10-E01-optional-systems.md](M10-E01-optional-systems.md) |
 | M10-E02 | Platform Expansion | Existing backlog entry | [M10-E02-platform-expansion.md](M10-E02-platform-expansion.md) |
 | M11-E01 | Draft-Inspired UX and Game Feel Refactor | In progress | [M11-E01-draft-inspired-ux-and-game-feel-refactor.md](M11-E01-draft-inspired-ux-and-game-feel-refactor.md) |
+| M12-E01 | Early Game Demo — Levels 1–20 | Implemented | [M12-E01-early-game-demo-levels-1-20.md](M12-E01-early-game-demo-levels-1-20.md) |

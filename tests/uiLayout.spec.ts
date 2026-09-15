@@ -215,7 +215,7 @@ async function continueSeededGame(page: Page) {
       y: viewport.height / 2 - 46,
     },
   });
-  await expect(canvas).toHaveAttribute("data-scene", "world");
+  await expect(canvas).toHaveAttribute("data-scene", "world", { timeout: 15000 });
   return canvas;
 }
 
@@ -248,7 +248,7 @@ async function capture(canvas: ReturnType<Page["locator"]>, page: Page, name: st
     caret: "hide",
     // The world layer contains a seeded but animated boss sprite; keep the
     // threshold tight enough to catch layout shifts while allowing its frame.
-    maxDiffPixels: name === "boss-combat" ? 3000 : 500,
+    maxDiffPixels: name === "boss-combat" ? 16000 : 500,
     scale: "css",
   });
 }

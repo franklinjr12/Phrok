@@ -1665,6 +1665,52 @@
           "width": 128,
           "x": 544,
           "y": 416
+        },
+        {
+          "height": 96,
+          "name": "OldRoadEliteBruiser",
+          "properties": [
+            {
+              "name": "monsterId",
+              "type": "string",
+              "value": "old-road-bruiser"
+            },
+            {
+              "name": "maxCount",
+              "type": "int",
+              "value": 1
+            },
+            {
+              "name": "respawnMs",
+              "type": "int",
+              "value": 45000
+            }
+          ],
+          "rotation": 0,
+          "type": "monsterSpawn",
+          "visible": true,
+          "width": 128,
+          "x": 336,
+          "y": 208,
+          "id": 12
+        },
+        {
+          "height": 20,
+          "name": "Wayside Cache",
+          "properties": [
+            {
+              "name": "lootItemId",
+              "type": "string",
+              "value": "minor-health-potion"
+            }
+          ],
+          "rotation": 0,
+          "type": "treasure",
+          "visible": true,
+          "width": 24,
+          "x": 96,
+          "y": 96,
+          "id": 14
         }
       ],
       "opacity": 1,
@@ -1675,7 +1721,7 @@
     }
   ],
   "nextlayerid": 5,
-  "nextobjectid": 11,
+  "nextobjectid": 15,
   "orientation": "orthogonal",
   "renderorder": "right-down",
   "tiledversion": "1.11.2",

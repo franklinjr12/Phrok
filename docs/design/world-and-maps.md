@@ -349,8 +349,8 @@ Each dungeon should include:
 
 | Dungeon            | Level Range | Theme                           | Boss              |
 | ------------------ | ----------: | ------------------------------- | ----------------- |
-| Old Sewers         |        5–15 | Rats, slimes, spores            | Sewer Glutton     |
-| Green Chapel Ruins |       15–25 | Plants, spirits, undead         | Thorn Priest      |
+| Old Sewers         |        8–15 | Rats, slimes, spores            | Sewer Glutton     |
+| Green Chapel Ruins |       19–25 | Plants, spirits, undead         | Thorn Priest      |
 | Tide Cave          |       25–38 | Aquatic monsters, pirates       | Sunken Corsair    |
 | Ironroot Mine      |       35–50 | Goblins, beetles, ore           | Brass Burrower    |
 | Buried Sun Tomb    |       40–55 | Desert undead, snakes           | Dune Tyrant       |

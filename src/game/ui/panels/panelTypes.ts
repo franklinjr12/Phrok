@@ -16,7 +16,9 @@ export type PanelId =
   | "huntingBoard"
   | "questLog"
   | "worldMap"
-  | "settings";
+  | "settings"
+  | "rewardChoice"
+  | "milestone";
 
 export interface WindowDescriptor {
   modal: boolean;

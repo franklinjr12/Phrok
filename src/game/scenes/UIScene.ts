@@ -19,7 +19,7 @@ import { cycleSupportAutoPickupFilter, getSupportSummary, syncEquippedSupportFro
 import { unlockRecipesForSource } from "../systems/crafting";
 import { eventBus } from "../systems/eventBus";
 import { getVisibleItemDescription, getVisibleItemName } from "../systems/market";
-import { getLearnedSkillLevel, hotbarSlotCount } from "../systems/skills";
+import { getLearnedSkillLevel, getSkillsUnlockedAtLevel, hotbarSlotCount } from "../systems/skills";
 import { advancedClassUnlockLevel, getUnlockedSkillTreeIds, isAdvancedClassServiceAvailable } from "../systems/advancedClasses";
 import { getStatusSummary } from "../systems/statusEffects";
 import { getHuntingBoardSummary, getRegionalHuntingContracts, type HuntingContractDefinition } from "../systems/huntingBoard";
@@ -38,13 +38,15 @@ import { InventoryPanel } from "../ui/panels/inventory/InventoryPanel";
 import { EquipmentPanel } from "../ui/panels/equipment/EquipmentPanel";
 import { CharacterPanel } from "../ui/panels/character/CharacterPanel";
 import { SkillsPanel } from "../ui/panels/skills/SkillsPanel";
+import { RewardChoicePanel } from "../ui/panels/rewardChoice/RewardChoicePanel";
+import { MilestonePanel } from "../ui/panels/milestone/MilestonePanel";
 import { HotbarHud } from "../ui/hud/HotbarHud";
 import { getGameInputOwnership, type GameInputOwnership } from "../ui/input/GameInputOwnership";
 import { addPanelRectangle as addPanelRectanglePrimitive, addPanelText as addPanelTextPrimitive } from "../ui/panels/panelPrimitives";
-import { isSceneTransitioning, transitionToScene } from "./sceneTransition";
+import { isSceneFadeBlockingInput, transitionToScene } from "./sceneTransition";
 import { SharedTooltip } from "../ui/tooltips/SharedTooltip";
 import { SceneKeys } from "../constants/sceneKeys";
-type PanelMode = "inventory" | "equipment" | "character" | "skills" | "bestiary" | "crafting" | "refinement" | "shop" | "appraiser" | "storage" | "huntingBoard" | "questLog" | "worldMap" | "settings";
+type PanelMode = "inventory" | "equipment" | "character" | "skills" | "bestiary" | "crafting" | "refinement" | "shop" | "appraiser" | "storage" | "huntingBoard" | "questLog" | "worldMap" | "settings" | "rewardChoice" | "milestone";
 type VisibleGameObject = Phaser.GameObjects.GameObject & {
   setVisible(visible: boolean): VisibleGameObject;
 };
@@ -96,6 +98,12 @@ export class UIScene extends Phaser.Scene {
   private unsubscribeStorageOpened?: () => void;
   private unsubscribeStorageChanged?: () => void;
   private unsubscribeSettingsChanged?: () => void;
+  private unsubscribeRewardChoiceOpened?: () => void;
+  private unsubscribeEarlyGameMilestone?: () => void;
+  private unsubscribeHintShown?: () => void;
+  private unsubscribeRegionIntroduced?: () => void;
+  private unsubscribeCombatFeedback?: () => void;
+  private unsubscribeRareSpawnNearby?: () => void;
   private readonly fieldLogEntries: string[] = [];
   private fieldLogText?: Phaser.GameObjects.Text;
   private journeyHintText?: Phaser.GameObjects.Text;
@@ -172,7 +180,7 @@ export class UIScene extends Phaser.Scene {
     this.uiDebug = new UIDebugAdapter(this.game.canvas);
     this.inputOwnership = getGameInputOwnership(this.registry);
     this.sharedTooltip = new SharedTooltip(this, () => this.state?.settings.uiScale ?? 1);
-    this.transitionInputLocked = isSceneTransitioning(this);
+    this.transitionInputLocked = isSceneFadeBlockingInput(this);
     if (this.transitionInputLocked) {
       this.input.enabled = false;
     }
@@ -248,6 +256,12 @@ export class UIScene extends Phaser.Scene {
       this.unsubscribeStorageOpened?.();
       this.unsubscribeStorageChanged?.();
       this.unsubscribeSettingsChanged?.();
+      this.unsubscribeRewardChoiceOpened?.();
+      this.unsubscribeEarlyGameMilestone?.();
+      this.unsubscribeHintShown?.();
+      this.unsubscribeRegionIntroduced?.();
+      this.unsubscribeCombatFeedback?.();
+      this.unsubscribeRareSpawnNearby?.();
       this.clearTooltip();
       this.clearActiveEffectObjects();
       this.clearLocationTitle();
@@ -263,7 +277,7 @@ export class UIScene extends Phaser.Scene {
   }
 
   update(): void {
-    if (isSceneTransitioning(this)) {
+    if (isSceneFadeBlockingInput(this)) {
       this.transitionInputLocked = true;
       this.input.enabled = false;
     } else if (this.transitionInputLocked) {
@@ -312,6 +326,8 @@ export class UIScene extends Phaser.Scene {
       ["questLog", new QuestLogPanel(context)],
       ["worldMap", new WorldMapPanel(context)],
       ["settings", new SettingsPanel(context)],
+      ["rewardChoice", new RewardChoicePanel(context)],
+      ["milestone", new MilestonePanel(context)],
     ]);
     this.panelHost = new PanelHost({
       context,
@@ -361,8 +377,13 @@ export class UIScene extends Phaser.Scene {
         this.showAdvancedClassNotification();
       }
       this.syncXpBar(state, dataRegistry);
-      this.pushFieldLog(`Level ${level} reached`);
-      this.showNotice(`Level ${level}`);
+      const newSkills = getSkillsUnlockedAtLevel(dataRegistry.getSkills(), state.character.archetype, level)
+        .map((skill) => skill.name);
+      this.uiDebug?.set("newlyAvailableSkills", newSkills.join("|"));
+      this.pushFieldLog(`Level ${level} · +${statPoints} stats · +${skillPoints} skill${newSkills.length ? ` · ${newSkills.join(", ")}` : ""}`);
+      this.showNotice(newSkills.length > 0
+        ? `Level ${level}  +${statPoints} stats  +${skillPoints} skill  ${newSkills[0]}`
+        : `Level ${level}  +${statPoints} stats  +${skillPoints} skill`);
     });
 
     this.unsubscribeAdvancedClassUnlocked = eventBus.on("advancedClassUnlocked", () => {
@@ -427,9 +448,14 @@ export class UIScene extends Phaser.Scene {
       this.uiDebug?.set("lastStatReset", `failed:${reason}:${cost}:${gold}`);
     });
 
-    this.unsubscribeLootDropped = eventBus.on("lootDropped", ({ kind, itemId, quantity }) => {
+    this.unsubscribeLootDropped = eventBus.on("lootDropped", ({ kind, itemId, quantity, rarity }) => {
       this.uiDebug?.set("lastLootDrop", kind === "gold" ? `gold:${quantity}` : `${itemId}:${quantity}`);
-      this.pushFieldLog(kind === "gold" ? `Gold found ×${quantity}` : `Loot: ${dataRegistry.getItem(itemId ?? "").name} ×${quantity}`);
+      this.uiDebug?.set("lastLootRarity", rarity ?? "");
+      const name = kind === "gold" ? `Gold ×${quantity}` : dataRegistry.getItem(itemId ?? "").name;
+      this.pushFieldLog(kind === "gold" ? `Gold found ×${quantity}` : `Loot: ${name} ×${quantity}`);
+      if (rarity === "Rare" || rarity === "Epic" || rarity === "Legendary" || rarity === "Mythic") {
+        this.showNotice(`${rarity} drop: ${name}`);
+      }
     });
 
     this.unsubscribeLootPickedUp = eventBus.on("lootPickedUp", ({ kind, itemId, quantity }) => {
@@ -439,12 +465,12 @@ export class UIScene extends Phaser.Scene {
 
     this.unsubscribeEnemyHealth = eventBus.on("enemyHealthChanged", ({ enemyId, name, hp, maxHp, level, elite, boss, phase, statusIcons }) => {
       if (this.targetHudModel.targetSnapshot?.enemyId === enemyId) {
-        this.targetHudModel.setTarget(enemyId, name, hp, maxHp, level, elite, statusIcons);
+        this.targetHudModel.setTarget(enemyId, name, hp, maxHp, level, elite, statusIcons, 126, state.playerProfile.level);
         this.setTargetFrame(this.targetHudModel.targetSnapshot);
       }
 
       if (boss) {
-        this.targetHudModel.setBoss(name, hp, maxHp, phase ?? 1, level, statusIcons);
+        this.targetHudModel.setBoss(name, hp, maxHp, phase ?? 1, level, statusIcons, 408, state.playerProfile.level);
         this.setBossFrame(this.targetHudModel.bossSnapshot);
       }
     });
@@ -458,10 +484,10 @@ export class UIScene extends Phaser.Scene {
         return;
       }
 
-      this.targetHudModel.setTarget(enemyId, name, hp, maxHp, level, elite, statusIcons);
+      this.targetHudModel.setTarget(enemyId, name, hp, maxHp, level, elite, statusIcons, 126, state.playerProfile.level);
       this.setTargetFrame(this.targetHudModel.targetSnapshot);
       if (boss) {
-        this.targetHudModel.setBoss(name, hp, maxHp, phase ?? 1, level, statusIcons);
+        this.targetHudModel.setBoss(name, hp, maxHp, phase ?? 1, level, statusIcons, 408, state.playerProfile.level);
         this.setBossFrame(this.targetHudModel.bossSnapshot);
       } else {
         this.targetHudModel.clearBoss();
@@ -553,7 +579,7 @@ export class UIScene extends Phaser.Scene {
         this.uiDebug?.set("targetEnemyStatusIcons", statuses.map((status) => dataRegistry.getStatusEffect(status.id).visualIcon).join("|"));
         const target = this.targetHudModel.targetSnapshot;
         if (target) {
-          this.targetHudModel.setTarget(target.enemyId!, target.name, target.hp, target.maxHp, target.level ?? undefined, target.elite, statuses.map((status) => dataRegistry.getStatusEffect(status.id).visualIcon));
+          this.targetHudModel.setTarget(target.enemyId!, target.name, target.hp, target.maxHp, target.level ?? undefined, target.elite, statuses.map((status) => dataRegistry.getStatusEffect(status.id).visualIcon), 126, state.playerProfile.level);
           this.setTargetFrame(this.targetHudModel.targetSnapshot);
         }
       }
@@ -638,6 +664,33 @@ export class UIScene extends Phaser.Scene {
       this.uiDebug?.set("settingsUiScale", String(settings.uiScale));
       this.uiDebug?.set("settingsVfxIntensity", settings.visualEffectsIntensity);
       this.refreshOpenPanel();
+    });
+
+    this.unsubscribeRewardChoiceOpened = eventBus.on("rewardChoiceOpened", ({ choiceId, sourceId }) => {
+      this.panelHost?.open("rewardChoice", { choiceId, sourceId });
+    });
+    this.unsubscribeEarlyGameMilestone = eventBus.on("earlyGameMilestone", () => {
+      this.panelHost?.open("milestone");
+      this.showNotice("The road continues");
+    });
+    this.unsubscribeHintShown = eventBus.on("hintShown", ({ hintId, message }) => {
+      this.uiDebug?.set("activeHint", hintId);
+      this.showNotice(message);
+    });
+    this.unsubscribeRegionIntroduced = eventBus.on("regionIntroduced", ({ regionId, regionName }) => {
+      this.uiDebug?.set("lastRegionIntro", regionId);
+      this.showNotice(regionName);
+      this.pushFieldLog(`Discovered ${regionName}`);
+    });
+    this.unsubscribeCombatFeedback = eventBus.on("combatFeedback", ({ kind, damage }) => {
+      this.uiDebug?.set("lastCombatFeedback", `${kind}:${damage}`);
+      if (kind === "critical") this.showNotice("Critical!");
+      if (kind === "weak") this.showNotice("Weakness");
+      if (kind === "resist") this.showNotice("Resisted");
+    });
+    this.unsubscribeRareSpawnNearby = eventBus.on("rareSpawnNearby", ({ variantId, name }) => {
+      this.uiDebug?.set("rareSpawnNearby", variantId);
+      this.pushFieldLog(`A pale shape moves nearby: ${name}`);
     });
   }
 
@@ -786,7 +839,8 @@ state.character.statusEffects,
 
   private updateJourneyHint(state: GameState, dataRegistry: DataRegistry): void {
     const activeQuestId = state.quests.activeQuestIds[0];
-    const quest = activeQuestId ? dataRegistry.getQuest(activeQuestId) : null;
+    const availableQuest = dataRegistry.getQuests().find((quest) => quest.type === "main" && getQuestStatus(state, quest) === "available");
+    const quest = activeQuestId ? dataRegistry.getQuest(activeQuestId) : availableQuest ?? null;
     const progress = quest ? state.quests.activeQuests.find((entry) => entry.questId === quest.id) : null;
     const objective = quest?.objectives.find((entry) => (progress?.objectiveProgress[entry.id] ?? 0) < entry.targetCount);
     const hint = objective?.description || objective?.regionHint || (quest ? quest.name : "Explore the world");
@@ -1795,10 +1849,12 @@ state.character.statusEffects,
       this.clearTargetFrame();
       return;
     }
-    const { enemyId, name, hp, maxHp, hpBarWidth: hpWidth, level, elite, boss, statusIcons } = snapshot;
+    const { enemyId, name, hp, maxHp, hpBarWidth: hpWidth, level, elite, boss, statusIcons, danger, levelDelta } = snapshot;
+    const dangerMark = danger === "severe" ? " ☠" : danger === "warning" ? " ▲" : "";
     this.targetFrame?.setVisible(true);
-    this.targetNameText?.setText(name).setVisible(true);
-    this.targetMetaText?.setText(`${boss ? "BOSS" : elite ? "ELITE" : "TARGET"}${level === null ? "" : ` · Lv ${level}`}${statusIcons.length ? ` · ${statusIcons.join(" ")}` : ""}`).setVisible(true);
+    this.targetFrame?.setStrokeStyle(2, danger === "severe" ? 0xef4444 : danger === "warning" ? 0xf59e0b : uiTheme.colors.accent, 0.95);
+    this.targetNameText?.setText(`${name}${dangerMark}`).setVisible(true);
+    this.targetMetaText?.setText(`${boss ? "BOSS" : elite ? "ELITE" : "TARGET"}${level === null ? "" : ` · Lv ${level}`}${levelDelta >= 3 ? ` (${levelDelta > 0 ? "+" : ""}${levelDelta})` : ""}${statusIcons.length ? ` · ${statusIcons.join(" ")}` : ""}`).setVisible(true);
     this.targetHpText?.setText(`HP ${hp}/${maxHp}`).setVisible(true);
     this.targetHpBarBackground?.setVisible(true);
     this.targetHpBarFill?.setDisplaySize(Math.max(0, hpWidth), 6).setVisible(true);
@@ -1813,6 +1869,8 @@ state.character.statusEffects,
     this.uiDebug?.set("targetEnemyBoss", String(boss));
     this.uiDebug?.set("targetEnemyStatusEffects", this.game.canvas.dataset.targetEnemyStatusEffects ?? "");
     this.uiDebug?.set("targetEnemyStatusIcons", statusIcons.join("|"));
+    this.uiDebug?.set("targetDanger", danger);
+    this.uiDebug?.set("targetLevelDelta", String(levelDelta));
   }
 
   private clearTargetFrame(): void {

@@ -17,6 +17,8 @@ const panelDatasetKeys: Record<PanelId, string> = {
   questLog: "questLogPanel",
   worldMap: "worldMapPanel",
   settings: "settingsPanel",
+  rewardChoice: "rewardChoicePanel",
+  milestone: "milestonePanel",
 };
 
 export interface PanelHostOptions {
@@ -42,7 +44,7 @@ const ordinaryWindow: WindowDescriptor = {
   fixed: false,
 };
 
-const modalPanelIds = new Set<PanelId>(["shop", "appraiser", "storage", "crafting", "refinement"]);
+const modalPanelIds = new Set<PanelId>(["shop", "appraiser", "storage", "crafting", "refinement", "rewardChoice", "milestone"]);
 
 /** Owns independent panel windows, their display objects, focus, drag and lifecycle. */
 export class PanelHost {

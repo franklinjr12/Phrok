@@ -4,7 +4,11 @@
     "name": "Swordsman",
     "description": "A steady frontline fighter trained with simple blades.",
     "roleSummary": "Durable melee attacker with forgiving defenses.",
-    "recommendedStats": ["HP", "Attack", "Defense"],
+    "recommendedStats": [
+      "HP",
+      "Attack",
+      "Defense"
+    ],
     "difficultyRating": "Easy",
     "baseStats": {
       "hp": 30,
@@ -19,17 +23,31 @@
       "defense": 3
     },
     "startingWeaponId": "training-sword",
-    "allowedWeaponTypes": ["sword", "greatsword"],
-    "startingSkillIds": ["power-slash"],
-    "startingItemIds": ["training-sword"],
-    "advancedClassOptions": ["Knight", "Guardian"]
+    "allowedWeaponTypes": [
+      "sword",
+      "greatsword"
+    ],
+    "startingSkillIds": [
+      "power-slash"
+    ],
+    "startingItemIds": [
+      "training-sword"
+    ],
+    "advancedClassOptions": [
+      "Knight",
+      "Guardian"
+    ]
   },
   {
     "id": "mage",
     "name": "Mage",
     "description": "A spellcaster who turns careful positioning into burst damage.",
     "roleSummary": "High SP ranged caster with fragile defenses.",
-    "recommendedStats": ["SP", "Attack", "HP"],
+    "recommendedStats": [
+      "SP",
+      "Attack",
+      "HP"
+    ],
     "difficultyRating": "Hard",
     "baseStats": {
       "hp": 22,
@@ -44,17 +62,31 @@
       "defense": 1
     },
     "startingWeaponId": "apprentice-staff",
-    "allowedWeaponTypes": ["staff", "wand"],
-    "startingSkillIds": ["fire-bolt"],
-    "startingItemIds": ["apprentice-staff"],
-    "advancedClassOptions": ["Wizard", "Sage"]
+    "allowedWeaponTypes": [
+      "staff",
+      "wand"
+    ],
+    "startingSkillIds": [
+      "fire-bolt"
+    ],
+    "startingItemIds": [
+      "apprentice-staff"
+    ],
+    "advancedClassOptions": [
+      "Wizard",
+      "Sage"
+    ]
   },
   {
     "id": "archer",
     "name": "Archer",
     "description": "A mobile marksman who wins fights before enemies close in.",
     "roleSummary": "Ranged physical attacker with balanced survival.",
-    "recommendedStats": ["Attack", "HP", "SP"],
+    "recommendedStats": [
+      "Attack",
+      "HP",
+      "SP"
+    ],
     "difficultyRating": "Normal",
     "baseStats": {
       "hp": 26,
@@ -69,17 +101,31 @@
       "defense": 2
     },
     "startingWeaponId": "shortbow",
-    "allowedWeaponTypes": ["bow", "crossbow"],
-    "startingSkillIds": ["pinning-shot"],
-    "startingItemIds": ["shortbow"],
-    "advancedClassOptions": ["Hunter", "Minstrel"]
+    "allowedWeaponTypes": [
+      "bow",
+      "crossbow"
+    ],
+    "startingSkillIds": [
+      "double-shot"
+    ],
+    "startingItemIds": [
+      "shortbow"
+    ],
+    "advancedClassOptions": [
+      "Hunter",
+      "Minstrel"
+    ]
   },
   {
     "id": "thief",
     "name": "Thief",
     "description": "A quick skirmisher built around evasive strikes and loot.",
     "roleSummary": "Fast melee opportunist with strong burst potential.",
-    "recommendedStats": ["Attack", "SP", "Defense"],
+    "recommendedStats": [
+      "Attack",
+      "SP",
+      "Defense"
+    ],
     "difficultyRating": "Normal",
     "baseStats": {
       "hp": 24,
@@ -94,9 +140,19 @@
       "defense": 2
     },
     "startingWeaponId": "practice-daggers",
-    "allowedWeaponTypes": ["dagger", "shortsword"],
-    "startingSkillIds": ["quick-stab"],
-    "startingItemIds": ["practice-daggers"],
-    "advancedClassOptions": ["Assassin", "Rogue"]
+    "allowedWeaponTypes": [
+      "dagger",
+      "shortsword"
+    ],
+    "startingSkillIds": [
+      "quick-stab"
+    ],
+    "startingItemIds": [
+      "practice-daggers"
+    ],
+    "advancedClassOptions": [
+      "Assassin",
+      "Rogue"
+    ]
   }
 ]

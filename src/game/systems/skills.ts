@@ -1,6 +1,7 @@
 import { eventBus } from "./eventBus";
 import { useConsumableItem } from "./consumables";
 import { applyStatusEffect, emitStatusEffectsChanged } from "./statusEffects";
+import { getElementMultiplier } from "./elementalMatchup";
 import type { SkillDefinition, ItemDefinition, StatusEffectDefinition } from "../types/dataDefinitions";
 import type { BaseStatKey, GameState, HotbarSlotState, StatModifier } from "../types/gameState";
 
@@ -12,6 +13,7 @@ export type SkillExecutionTarget =
     id: string;
     distance: number;
     hp: number;
+    element?: string;
     applyDamage: (damage: number) => void;
     applyStatusEffect?: (effectId: string) => void;
   }
@@ -20,7 +22,7 @@ export type SkillExecutionTarget =
     x: number;
     y: number;
     distance: number;
-    enemies: Array<{ id: string; hp: number; applyDamage: (damage: number) => void; applyStatusEffect?: (effectId: string) => void }>;
+    enemies: Array<{ id: string; hp: number; element?: string; applyDamage: (damage: number) => void; applyStatusEffect?: (effectId: string) => void }>;
   }
   | {
     kind: "self";
@@ -63,6 +65,10 @@ export function getSkillsByClass(skills: SkillDefinition[], classId: string): Sk
 
 export function getLearnedSkillLevel(state: GameState, skillId: string): number {
   return state.character.skills.learned.find((entry) => entry.id === skillId)?.level ?? 0;
+}
+
+export function getSkillsUnlockedAtLevel(skills: SkillDefinition[], classId: string, level: number): SkillDefinition[] {
+  return skills.filter((skill) => skill.classId === classId && skill.requiredLevel === level);
 }
 
 export function canLevelSkill(state: GameState, skill: SkillDefinition): boolean {
@@ -246,7 +252,7 @@ export function executeSkill(
       return failed(skill.id, "out-of-range");
     }
 
-    const damage = calculateSkillDamage(state, skill, learnedLevel);
+    const damage = Math.max(1, Math.floor(calculateSkillDamage(state, skill, learnedLevel) * getElementMultiplier(skill.element, target.element)));
     target.applyDamage(damage);
     for (const effectId of skill.statusEffects) {
       target.applyStatusEffect?.(effectId);
@@ -267,7 +273,8 @@ export function executeSkill(
   const damage = calculateSkillDamage(state, skill, learnedLevel);
   const affected = target.enemies.filter((enemy) => enemy.hp > 0);
   affected.forEach((enemy) => {
-    enemy.applyDamage(damage);
+    const scaled = Math.max(1, Math.floor(damage * getElementMultiplier(skill.element, enemy.element)));
+    enemy.applyDamage(scaled);
     for (const effectId of skill.statusEffects) {
       enemy.applyStatusEffect?.(effectId);
     }

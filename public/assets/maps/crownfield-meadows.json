@@ -1631,7 +1631,13 @@
           "height": 20,
           "id": 7,
           "name": "Old Field Cache",
-          "properties": [],
+          "properties": [
+            {
+              "name": "lootItemId",
+              "type": "string",
+              "value": "minor-health-potion"
+            }
+          ],
           "rotation": 0,
           "type": "treasure",
           "visible": true,

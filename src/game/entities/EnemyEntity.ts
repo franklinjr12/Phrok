@@ -97,7 +97,7 @@ export class EnemyEntity {
       defense: Math.ceil(monster.defense * (monster.boss ? 1.6 : monster.elite ? 1.3 : 1)),
     };
 
-    this.textureKey = this.getAvailableTextureKey(scene, monster.id);
+    this.textureKey = this.getAvailableTextureKey(scene, monster.spriteMonsterId || monster.id);
 
     this.highlight = scene.add.ellipse(position.x, position.y + 15, 56, 24, 0xfacc15, 0.22)
       .setStrokeStyle(2, 0xfef08a, 0.9)
@@ -110,6 +110,12 @@ export class EnemyEntity {
     this.sprite.setInteractive({ useHandCursor: true });
     this.sprite.body?.setSize(34, 24);
     this.sprite.body?.setOffset(7, 20);
+    if (monster.visualTint) {
+      this.sprite.setTint(monster.visualTint);
+    }
+    if (monster.visualScale && monster.visualScale !== 1) {
+      this.sprite.setScale(monster.visualScale);
+    }
     this.presentation = new EntityPresentationController(scene, this.sprite, {
       textureKey: this.textureKey,
       depthOffset: 1,
@@ -135,9 +141,9 @@ export class EnemyEntity {
       .setOrigin(0, 0.5)
       .setDepth(24)
       .setVisible(false);
-    if (monster.elite || monster.boss) {
-      this.traitMarker = scene.add.text(position.x, position.y - 52, monster.boss ? "BOSS" : "ELITE", {
-        color: monster.boss ? "#fca5a5" : "#fde68a",
+    if (monster.elite || monster.boss || monster.rareVariant) {
+      this.traitMarker = scene.add.text(position.x, position.y - 52, monster.boss ? "BOSS" : monster.rareVariant ? "RARE" : "ELITE", {
+        color: monster.boss ? "#fca5a5" : monster.rareVariant ? "#e0f2fe" : "#fde68a",
         fontFamily: "Arial, sans-serif",
         fontSize: monster.boss ? "11px" : "10px",
       })

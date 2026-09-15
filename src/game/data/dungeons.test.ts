@@ -25,8 +25,8 @@ describe("dungeon content", () => {
   const regions = readDataFile<RegionDefinition>("regions.json");
 
   const expectedDungeons = [
-    { id: "old-sewers", mapId: "training-sewers", bossId: "sewer-glutton", range: { min: 5, max: 15 } },
-    { id: "green-chapel-ruins", mapId: "green-chapel-ruins", bossId: "thorn-priest", range: { min: 15, max: 25 } },
+    { id: "old-sewers", mapId: "training-sewers", bossId: "sewer-glutton", range: { min: 8, max: 15 } },
+    { id: "green-chapel-ruins", mapId: "green-chapel-ruins", bossId: "thorn-priest", range: { min: 19, max: 25 } },
     { id: "tide-cave", mapId: "tide-cave", bossId: "sunken-corsair", range: { min: 25, max: 38 } },
     { id: "ironroot-mine", mapId: "ironroot-mine", bossId: "brass-burrower", range: { min: 35, max: 50 } },
     { id: "buried-sun-tomb", mapId: "buried-sun-tomb", bossId: "dune-tyrant", range: { min: 40, max: 55 } },

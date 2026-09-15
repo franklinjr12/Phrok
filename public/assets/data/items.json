@@ -8729,5 +8729,329 @@
     "allowedClassIds": [],
     "twoHanded": false,
     "statModifiers": {}
+  },
+  {
+    "id": "jelly-prism-charm",
+    "name": "Jelly Prism Charm",
+    "description": "A wobbling charm that steadies spellwork.",
+    "type": "accessory",
+    "level": 3,
+    "rarity": "Rare",
+    "icon": "placeholder-accessory-copperleaf-charm-1",
+    "equipmentSlot": "accessory1",
+    "validEquipmentSlots": [
+      "accessory1",
+      "accessory2"
+    ],
+    "value": 42,
+    "refinable": true,
+    "statModifiers": {
+      "derivedStats": {
+        "magicAttack": 3,
+        "maxSp": 8
+      }
+    }
+  },
+  {
+    "id": "hopper-skip-anklet",
+    "name": "Hopper Skip Anklet",
+    "description": "Insect chitin wrapped for quicker steps.",
+    "type": "armor",
+    "level": 4,
+    "rarity": "Rare",
+    "icon": "placeholder-armor-canvas-boots-1",
+    "equipmentSlot": "boots",
+    "validEquipmentSlots": [
+      "boots"
+    ],
+    "value": 48,
+    "refinable": true,
+    "statModifiers": {
+      "derivedStats": {
+        "moveSpeed": 6,
+        "dodge": 3
+      }
+    }
+  },
+  {
+    "id": "pup-pack-fang",
+    "name": "Pack Fang Pendant",
+    "description": "A meadow fang that rewards close-range hits.",
+    "type": "accessory",
+    "level": 5,
+    "rarity": "Rare",
+    "icon": "placeholder-accessory-copperleaf-ring-1",
+    "equipmentSlot": "accessory1",
+    "validEquipmentSlots": [
+      "accessory1",
+      "accessory2"
+    ],
+    "value": 52,
+    "refinable": true,
+    "statModifiers": {
+      "derivedStats": {
+        "physicalAttack": 4,
+        "maxHp": 10
+      }
+    }
+  },
+  {
+    "id": "road-cutpurse-bandana",
+    "name": "Cutpurse Bandana",
+    "description": "A thief's wrap that favors lucky strikes.",
+    "type": "armor",
+    "level": 7,
+    "rarity": "Rare",
+    "icon": "placeholder-armor-canvas-cap-1",
+    "equipmentSlot": "head",
+    "validEquipmentSlots": [
+      "head"
+    ],
+    "value": 58,
+    "refinable": true,
+    "statModifiers": {
+      "derivedStats": {
+        "crit": 4,
+        "dropChance": 3
+      }
+    }
+  },
+  {
+    "id": "bruiser-iron-knuckle",
+    "name": "Bruiser's Iron Knuckle",
+    "description": "A heavy knuckle prized by melee fighters who return for revenge.",
+    "type": "accessory",
+    "level": 10,
+    "rarity": "Rare",
+    "icon": "placeholder-accessory-copperleaf-band-1",
+    "equipmentSlot": "accessory1",
+    "validEquipmentSlots": [
+      "accessory1",
+      "accessory2"
+    ],
+    "value": 90,
+    "refinable": true,
+    "statModifiers": {
+      "derivedStats": {
+        "physicalAttack": 6,
+        "defense": 2
+      }
+    }
+  },
+  {
+    "id": "sewer-shadow-cloak",
+    "name": "Sewer Shadow Cloak",
+    "description": "Damp cloth that helps a skirmisher slip past lunges.",
+    "type": "armor",
+    "level": 10,
+    "rarity": "Rare",
+    "icon": "placeholder-armor-canvas-cloak-1",
+    "equipmentSlot": "cloak",
+    "validEquipmentSlots": [
+      "cloak"
+    ],
+    "value": 72,
+    "refinable": true,
+    "statModifiers": {
+      "derivedStats": {
+        "dodge": 5,
+        "magicDefense": 3
+      }
+    }
+  },
+  {
+    "id": "sprite-dew-focus",
+    "name": "Sprite Dew Focus",
+    "description": "Condensed moss-light that quickens casting.",
+    "type": "armor",
+    "level": 16,
+    "rarity": "Rare",
+    "icon": "placeholder-accessory-pearlmark-seal-2",
+    "equipmentSlot": "offhand",
+    "validEquipmentSlots": [
+      "offhand"
+    ],
+    "value": 88,
+    "refinable": true,
+    "statModifiers": {
+      "derivedStats": {
+        "magicAttack": 5,
+        "castSpeed": 4
+      }
+    }
+  },
+  {
+    "id": "thorn-runner-bracer",
+    "name": "Thorn Runner Bracer",
+    "description": "Vine-wrapped leather for faster, sharper motion.",
+    "type": "accessory",
+    "level": 16,
+    "rarity": "Rare",
+    "icon": "placeholder-accessory-pearlmark-pin-2",
+    "equipmentSlot": "accessory1",
+    "validEquipmentSlots": [
+      "accessory1",
+      "accessory2"
+    ],
+    "value": 84,
+    "refinable": true,
+    "statModifiers": {
+      "derivedStats": {
+        "attackSpeed": 4,
+        "rangedAttack": 3
+      }
+    }
+  },
+  {
+    "id": "silvermane-crest",
+    "name": "Silvermane Crest",
+    "description": "A pale beast crest that marks a rare hunt.",
+    "type": "accessory",
+    "level": 20,
+    "rarity": "Epic",
+    "icon": "placeholder-accessory-pearlmark-ring-2",
+    "equipmentSlot": "accessory1",
+    "validEquipmentSlots": [
+      "accessory1",
+      "accessory2"
+    ],
+    "value": 160,
+    "refinable": true,
+    "statModifiers": {
+      "derivedStats": {
+        "crit": 5,
+        "physicalAttack": 4,
+        "rangedAttack": 4,
+        "moveSpeed": 3
+      }
+    }
+  },
+  {
+    "id": "silvermane-pelt",
+    "name": "Silvermane Pelt",
+    "description": "A pale pelt used in later Mossvale crafts.",
+    "type": "material",
+    "level": 20,
+    "rarity": "Rare",
+    "icon": "placeholder-material-crownfield-thread-1",
+    "value": 36
+  },
+  {
+    "id": "cracked-sigil-momentum",
+    "name": "Cracked Sigil of Momentum",
+    "description": "A fractured sigil. Moving before an attack empowers the next hit.",
+    "type": "sigil",
+    "level": 20,
+    "rarity": "Rare",
+    "icon": "placeholder-sigil-of-the-wolf",
+    "equipmentSlot": "sigil",
+    "validEquipmentSlots": [
+      "sigil"
+    ],
+    "value": 180,
+    "effectIds": [
+      "cracked-momentum"
+    ],
+    "statModifiers": {
+      "derivedStats": {
+        "moveSpeed": 2,
+        "physicalAttack": 2,
+        "rangedAttack": 2
+      }
+    }
+  },
+  {
+    "id": "cracked-sigil-scorch",
+    "name": "Cracked Sigil of Scorch",
+    "description": "A fractured sigil. Fire attacks can leave a lingering scorch.",
+    "type": "sigil",
+    "level": 20,
+    "rarity": "Rare",
+    "icon": "placeholder-sigil-of-flame",
+    "equipmentSlot": "sigil",
+    "validEquipmentSlots": [
+      "sigil"
+    ],
+    "value": 180,
+    "effectIds": [
+      "cracked-scorch"
+    ],
+    "statModifiers": {
+      "derivedStats": {
+        "magicAttack": 3
+      },
+      "elementDamage": {
+        "fire": 4
+      }
+    }
+  },
+  {
+    "id": "cracked-sigil-followup",
+    "name": "Cracked Sigil of Follow-Through",
+    "description": "A fractured sigil. Critical hits can trigger a minor follow-up.",
+    "type": "sigil",
+    "level": 20,
+    "rarity": "Rare",
+    "icon": "placeholder-sigil-of-the-falcon",
+    "equipmentSlot": "sigil",
+    "validEquipmentSlots": [
+      "sigil"
+    ],
+    "value": 180,
+    "effectIds": [
+      "cracked-followup"
+    ],
+    "statModifiers": {
+      "derivedStats": {
+        "crit": 3,
+        "attackSpeed": 2
+      }
+    }
+  },
+  {
+    "id": "cracked-sigil-siphon",
+    "name": "Cracked Sigil of Siphon",
+    "description": "A fractured sigil. Exploiting a weakness restores a little SP.",
+    "type": "sigil",
+    "level": 20,
+    "rarity": "Rare",
+    "icon": "placeholder-sigil-of-the-sage",
+    "equipmentSlot": "sigil",
+    "validEquipmentSlots": [
+      "sigil"
+    ],
+    "value": 180,
+    "effectIds": [
+      "cracked-siphon"
+    ],
+    "statModifiers": {
+      "derivedStats": {
+        "maxSp": 8,
+        "magicAttack": 2
+      }
+    }
+  },
+  {
+    "id": "cracked-sigil-ward",
+    "name": "Cracked Sigil of Ward",
+    "description": "A fractured sigil. Dodging can grant a brief defensive ward.",
+    "type": "sigil",
+    "level": 20,
+    "rarity": "Rare",
+    "icon": "placeholder-sigil-of-the-guardian",
+    "equipmentSlot": "sigil",
+    "validEquipmentSlots": [
+      "sigil"
+    ],
+    "value": 180,
+    "effectIds": [
+      "cracked-ward"
+    ],
+    "statModifiers": {
+      "derivedStats": {
+        "dodge": 3,
+        "defense": 2
+      }
+    }
   }
 ]

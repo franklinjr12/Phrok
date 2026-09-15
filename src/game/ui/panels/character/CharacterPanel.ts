@@ -26,7 +26,7 @@ export class CharacterPanel implements UIPanel {
     model.baseStats.forEach((stat, index) => {
       const y = 192 + index * 42;
       const row = addPanelRectangle(this.context, 84, y - 8, 176, 28, 0x000000, 0.01).setOrigin(0).setInteractive({ useHandCursor: true });
-      row.on("pointerover", () => this.context.showTooltip([stat.label, `Total ${stat.total}`, `Next cost ${stat.cost}`], 320, y - 8));
+      row.on("pointerover", () => this.context.showTooltip([stat.label, `Total ${stat.total}`, `Next cost ${stat.cost}`, ...stat.preview], 320, y - 8));
       row.on("pointerout", () => this.context.clearTooltip());
       addPanelText(this.context, 92, y, stat.label, 15, uiTheme.text.muted);
       addPanelText(this.context, 152, y, String(stat.total), 15, uiTheme.text.primary);

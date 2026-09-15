@@ -1,5 +1,5 @@
 import Phaser from "phaser";
-import { getBestiaryEntry, getMonsterCombatTip, getMonsterElement, getMonsterFamily, getVisibleBestiaryDropIds, hasBestiaryMilestone } from "../../../systems/bestiary";
+import { getBestiaryDropRows, getBestiaryEntry, getMonsterCombatTip, getMonsterElement, getMonsterFamily, getVisibleBestiaryDropIds, hasBestiaryMilestone } from "../../../systems/bestiary";
 import type { DataRegistry } from "../../../data/dataRegistry";
 import type { MonsterDefinition } from "../../../types/dataDefinitions";
 import type { GameState } from "../../../types/gameState";
@@ -72,10 +72,10 @@ private renderBestiaryPanel(state: GameState, dataRegistry: DataRegistry): void 
       const name = hasBestiaryMilestone(selectedState, 1) ? selectedMonster.name : "Unknown monster";
       const levelText = hasBestiaryMilestone(selectedState, 1) ? `Lv ${selectedMonster.level}` : "Lv ?";
       const familyText = hasBestiaryMilestone(selectedState, 5) ? `${family} / ${element} / ${selectedMonster.behavior}` : "???";
-      const dropsText = selectedDropIds.length > 0
-        ? selectedDropIds.map((itemId) => dataRegistry.getItem(itemId).name).join(", ")
+      const dropsText = selectedDropTable
+        ? this.getBestiaryDropText(selectedState, selectedDropTable, dataRegistry)
         : "Undiscovered";
-      const tipText = hasBestiaryMilestone(selectedState, 50) ? getMonsterCombatTip(selectedMonster) : "???";
+      const tipText = hasBestiaryMilestone(selectedState, 30) ? getMonsterCombatTip(selectedMonster) : "???";
       const bonusText = hasBestiaryMilestone(selectedState, 100)
         ? `+${state.bestiary.familyDamageBonuses[family] ?? 0} vs ${family}`
         : "Locked";
@@ -98,8 +98,8 @@ private renderBestiaryPanel(state: GameState, dataRegistry: DataRegistry): void 
       this.context.debug?.set("selectedBestiaryElement", hasBestiaryMilestone(selectedState, 5) ? element : "");
       this.context.debug?.set("selectedBestiaryFamily", hasBestiaryMilestone(selectedState, 5) ? family : "");
       this.context.debug?.set("selectedBestiaryBehavior", hasBestiaryMilestone(selectedState, 5) ? selectedMonster.behavior : "");
-      this.context.debug?.set("selectedBestiaryDrops", selectedDropIds.join("|"));
-      this.context.debug?.set("selectedBestiaryTip", hasBestiaryMilestone(selectedState, 50) ? getMonsterCombatTip(selectedMonster) : "");
+      this.context.debug?.set("selectedBestiaryDrops", selectedDropTable ? this.getBestiaryDropDebug(selectedState, selectedDropTable) : "");
+      this.context.debug?.set("selectedBestiaryTip", hasBestiaryMilestone(selectedState, 30) ? getMonsterCombatTip(selectedMonster) : "");
       this.context.debug?.set("selectedBestiaryBonus", hasBestiaryMilestone(selectedState, 100) ? `${family}:${state.bestiary.familyDamageBonuses[family] ?? 0}` : "");
       this.context.debug?.set("selectedBestiaryMilestones", selectedState?.unlockedMilestones.join("|") ?? "");
     }
@@ -107,6 +107,27 @@ private renderBestiaryPanel(state: GameState, dataRegistry: DataRegistry): void 
     this.addPanelButton(628, 476, 86, 28, "Close", () => this.context.closePanel());
     this.context.debug?.set("bestiaryButtons", "Close");
     this.syncBestiaryDataset(state, dataRegistry);
+  }
+
+  private getBestiaryDropText(
+    entry: ReturnType<typeof getBestiaryEntry>,
+    dropTable: Parameters<typeof getBestiaryDropRows>[1],
+    dataRegistry: DataRegistry,
+  ): string {
+    const rows = getBestiaryDropRows(entry, dropTable);
+    if (rows.length === 0) {
+      return "Undiscovered";
+    }
+    return rows.map((row) => row.hidden ? "Rare Drop: ???" : dataRegistry.getItem(row.itemId!).name).join(", ");
+  }
+
+  private getBestiaryDropDebug(
+    entry: ReturnType<typeof getBestiaryEntry>,
+    dropTable: Parameters<typeof getBestiaryDropRows>[1],
+  ): string {
+    return getBestiaryDropRows(entry, dropTable)
+      .map((row) => row.hidden ? "???" : row.itemId)
+      .join("|");
   }
 
 private getVisibleBestiaryEntries(

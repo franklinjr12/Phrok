@@ -420,7 +420,7 @@ describe("skills", () => {
     ]);
     expect(archerSkills.filter((skill) => skill.targetingMode === "enemy").every((skill) => skill.range >= 172)).toBe(true);
     expect(archerSkills.every((skill) => skill.scalingStat === "dex")).toBe(true);
-    expect(archerClass.startingSkillIds).toEqual(["pinning-shot"]);
+    expect(archerClass.startingSkillIds).toEqual(["double-shot"]);
   });
 
   it("executes Archer ranged single-target, AoE, movement, and stance skills from JSON", () => {
@@ -429,11 +429,11 @@ describe("skills", () => {
     state.playerProfile.level = 10;
     state.character.stats.sp = 50;
     state.character.skills.learned.push(
-      { id: "double-shot", level: 1 },
       { id: "arrow-rain", level: 1 },
       { id: "quick-step", level: 1 },
       { id: "elemental-arrows", level: 1 },
       { id: "focus", level: 1 },
+      { id: "pinning-shot", level: 1 },
     );
     let enemyHp = 100;
     const singleTargetEffects: string[] = [];
@@ -1011,7 +1011,7 @@ const archerClass: ClassDefinition = {
   },
   startingWeaponId: "shortbow",
   allowedWeaponTypes: ["bow"],
-  startingSkillIds: ["pinning-shot"],
+  startingSkillIds: ["double-shot"],
   startingItemIds: ["shortbow"],
   advancedClassOptions: [],
 };

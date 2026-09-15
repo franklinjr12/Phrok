@@ -23,6 +23,21 @@ export type DroppedLootObject = {
   drop: LootDrop;
   marker: Phaser.GameObjects.Rectangle;
   label: Phaser.GameObjects.Text;
+  sourceMonsterId?: string;
+};
+
+export type WorldHazardObject = {
+  name: string;
+  effect: string;
+  bounds: Phaser.Geom.Rectangle;
+  lastTickAt: number;
+};
+
+export type WorldTreasureObject = {
+  name: string;
+  itemId: string;
+  bounds: Phaser.Geom.Rectangle;
+  claimed: boolean;
 };
 
 export type SpawnZoneRuntime = SpawnZoneDefinition & {

@@ -38,9 +38,16 @@ export interface GameEventMap {
   bestiaryMilestoneUnlocked: { monsterId: string; milestone: number; family: string };
   enemyHealthChanged: { enemyId: string; name: string; hp: number; maxHp: number; level?: number; elite?: boolean; boss?: boolean; phase?: number; statusIcons?: string[] };
   enemyTargetChanged: { enemyId: string | null; name: string; hp: number; maxHp: number; level?: number; elite?: boolean; boss?: boolean; phase?: number; statusIcons?: string[] };
-  lootDropped: { kind: "item" | "gold"; itemId?: string; quantity: number };
-  lootPickedUp: { kind: "item" | "gold"; itemId?: string; quantity: number };
+  lootDropped: { kind: "item" | "gold"; itemId?: string; quantity: number; rarity?: string };
+  lootPickedUp: { kind: "item" | "gold"; itemId?: string; quantity: number; rarity?: string };
   mapChanged: { mapId: string; musicKey: string };
+  regionIntroduced: { regionId: string; regionName: string };
+  rareSpawnNearby: { variantId: string; name: string };
+  rewardChoiceOpened: { choiceId: string; sourceId: string };
+  rewardChoiceClaimed: { choiceId: string; optionId: string; itemId: string };
+  earlyGameMilestone: { level: number; defeatedBossIds: string[] };
+  hintShown: { hintId: string; message: string };
+  combatFeedback: { kind: "critical" | "weak" | "resist" | "miss"; damage: number };
   saveCompleted: { saveSlot: number };
   dialogueOpened: { dialogueId: string };
   dialogueClosed: { dialogueId: string };

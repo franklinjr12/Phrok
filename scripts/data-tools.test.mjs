@@ -23,6 +23,6 @@ test("query-data supports text and field filters", () => {
 
 test("list-data returns compact selected metadata", () => {
   const result = run("scripts/list-data.mjs", ["--collection", "monsters", "--field", "level"]);
-  assert.equal(result.length, 56);
+  assert.equal(result.length, 57);
   assert.deepEqual(Object.keys(result[0]), ["id", "level"]);
 });

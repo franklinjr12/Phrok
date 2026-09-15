@@ -1,4 +1,4 @@
-import Phaser from "phaser";
+import { isDemoBlockedRegion } from "../../../systems/demoMode";
 import type { DataRegistry } from "../../../data/dataRegistry";
 import type { GameState } from "../../../types/gameState";
 import { uiTheme } from "../../uiTheme";
@@ -31,19 +31,20 @@ private renderWorldMapPanel(state: GameState, dataRegistry: DataRegistry): void 
       const isCurrent = region.id === currentRegion.id;
       const regionMaps = maps.filter((map) => map.regionId === region.id);
       const discoveredCount = regionMaps.filter((map) => discoveredMaps.some((entry) => entry.id === map.id)).length;
+      const blocked = isDemoBlockedRegion(region.id);
       const box = this.addPanelRectangle(x, y, 128, 88, isCurrent ? uiTheme.colors.selected : uiTheme.colors.inset, 0.95)
         .setOrigin(0)
-        .setStrokeStyle(2, isCurrent ? uiTheme.colors.accent : uiTheme.colors.border, 0.9)
+        .setStrokeStyle(2, isCurrent ? uiTheme.colors.accent : blocked ? 0x64748b : uiTheme.colors.border, 0.9)
         .setInteractive({ useHandCursor: true });
       box.on("pointerover", () => this.context.showTooltip(
-        [region.name, region.description, `Lv ${region.levelRange.min}-${region.levelRange.max}`, `${discoveredCount}/${regionMaps.length} maps`, ...regionMaps.slice(0, 3).map((map) => `${map.name} · ${map.type}`)],
+        [region.name, region.description, `Lv ${region.levelRange.min}-${region.levelRange.max}`, blocked ? "Available beyond the demo" : `${discoveredCount}/${regionMaps.length} maps`, ...regionMaps.slice(0, 3).map((map) => `${map.name} · ${map.type}`)],
         x + 14,
         y - 74,
       ));
       box.on("pointerout", () => this.context.clearTooltip());
       this.addPanelText(x + 12, y + 12, this.truncateText(region.name, 14), 14, uiTheme.text.primary);
       this.addPanelText(x + 12, y + 38, `Lv ${region.levelRange.min}-${region.levelRange.max}`, 12, uiTheme.text.info);
-      this.addPanelText(x + 12, y + 62, isCurrent ? "Current" : `Maps ${discoveredCount}`, 12, isCurrent ? uiTheme.text.accent : uiTheme.text.secondary);
+      this.addPanelText(x + 12, y + 62, blocked ? "Beyond demo" : isCurrent ? "Current" : discoveredCount === 0 ? "Uncharted" : `Maps ${discoveredCount}`, 12, isCurrent ? uiTheme.text.accent : uiTheme.text.secondary);
     });
 
     this.addPanelRectangle(86, 420, 400, 92, uiTheme.colors.inset, 0.95)
@@ -66,6 +67,7 @@ private renderWorldMapPanel(state: GameState, dataRegistry: DataRegistry): void 
     this.context.debug?.set("worldMapCurrentType", currentMap.type);
     this.context.debug?.set("worldMapCurrentMonsters", currentMonsters.join("|"));
     this.context.debug?.set("worldMapButtons", "Close");
+    this.context.debug?.set("worldMapDemoBlocked", dataRegistry.getRegions().filter((region) => isDemoBlockedRegion(region.id)).map((region) => region.id).join("|"));
   }
 
   private getDiscoveredMaps(state: GameState, dataRegistry: DataRegistry): ReturnType<DataRegistry["getMap"]>[] {

@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { confirmDefaultCharacter, startApp } from "./helpers";
+import { confirmDefaultCharacter, continueFromMainMenu, startApp } from "./helpers";
 
 test("town NPCs can be clicked to open blocking placeholder service dialogue", async ({ page }) => {
   await startApp(page);
@@ -63,10 +63,7 @@ test("merchant NPC opens a JSON-backed shop for buying and selling", async ({ pa
   });
   await startApp(page);
 
-  const canvas = page.locator("canvas");
-  await expect(canvas).toHaveAttribute("data-scene", "main-menu");
-  await canvas.click({ position: { x: 400, y: 204 } });
-  await expect(canvas).toHaveAttribute("data-scene", "world");
+  const canvas = await continueFromMainMenu(page);
 
   await canvas.click({ position: { x: 496, y: 336 } });
   await expect(canvas).toHaveAttribute("data-last-clicked-npc", "tessa-vale");
@@ -106,10 +103,7 @@ test("refiner NPC opens refinement UI and upgrades gear with materials", async (
   });
   await startApp(page);
 
-  const canvas = page.locator("canvas");
-  await expect(canvas).toHaveAttribute("data-scene", "main-menu");
-  await canvas.click({ position: { x: 400, y: 204 } });
-  await expect(canvas).toHaveAttribute("data-scene", "world");
+  const canvas = await continueFromMainMenu(page);
 
   await canvas.click({ position: { x: 592, y: 336 } });
   await expect(canvas).toHaveAttribute("data-last-clicked-npc", "orun-brightslag");
@@ -134,10 +128,7 @@ test("storage keeper opens shared storage with search, filters, sorting, and ite
   await seedStorageSave(page);
   await startApp(page);
 
-  const canvas = page.locator("canvas");
-  await expect(canvas).toHaveAttribute("data-scene", "main-menu");
-  await canvas.click({ position: { x: 400, y: 204 } });
-  await expect(canvas).toHaveAttribute("data-scene", "world");
+  const canvas = await continueFromMainMenu(page);
 
   await canvas.click({ position: { x: 400, y: 240 } });
   await expect(canvas).toHaveAttribute("data-last-clicked-npc", "borin-lockbar");
@@ -183,10 +174,7 @@ test("storage is available from regional hub storage keepers", async ({ page }) 
   });
   await startApp(page);
 
-  const canvas = page.locator("canvas");
-  await expect(canvas).toHaveAttribute("data-scene", "main-menu");
-  await canvas.click({ position: { x: 400, y: 204 } });
-  await expect(canvas).toHaveAttribute("data-scene", "world");
+  const canvas = await continueFromMainMenu(page);
   await expect(canvas).toHaveAttribute("data-current-map", "blueharbor-hub");
   await expect(canvas).toHaveAttribute("data-npc-names", /Sorin Quaylock/);
   await expect(canvas).toHaveAttribute("data-npc-service-types", /storage/);
@@ -209,10 +197,7 @@ test("appraiser NPC reveals unknown item details and offers improved sell value"
   });
   await startApp(page);
 
-  const canvas = page.locator("canvas");
-  await expect(canvas).toHaveAttribute("data-scene", "main-menu");
-  await canvas.click({ position: { x: 400, y: 204 } });
-  await expect(canvas).toHaveAttribute("data-scene", "world");
+  const canvas = await continueFromMainMenu(page);
   await expect(canvas).toHaveAttribute("data-current-map", "blueharbor-hub");
 
   await canvas.click({ position: { x: 256, y: 432 } });

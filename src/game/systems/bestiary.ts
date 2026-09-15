@@ -123,15 +123,63 @@ export function getVisibleBestiaryDropIds(
   entry: BestiaryMonsterState | null,
   dropTable: DropTableDefinition,
 ): string[] {
-  if (!entry || entry.kills < 15) {
+  return getBestiaryDropRows(entry, dropTable)
+    .filter((row) => row.itemId !== null)
+    .map((row) => row.itemId!);
+}
+
+export interface BestiaryDropRow {
+  itemId: string | null;
+  hidden: boolean;
+  rare: boolean;
+}
+
+export function getBestiaryDropRows(
+  entry: BestiaryMonsterState | null,
+  dropTable: DropTableDefinition,
+): BestiaryDropRow[] {
+  if (!entry || entry.kills < 1) {
     return [];
   }
 
-  return dropTable.entries
-    .filter((drop) => drop.type !== "gold" && drop.itemId)
-    .filter((drop) => entry.kills >= 30 || drop.chance >= 0.2)
-    .map((drop) => drop.itemId!)
-    .filter((itemId, index, items) => items.indexOf(itemId) === index);
+  const drops = dropTable.entries.filter((drop) => drop.type !== "gold" && drop.itemId);
+  const discovered = new Set(entry.discoveredDropIds);
+  const showCommon = entry.kills >= 15;
+  const showRare = entry.kills >= 30;
+
+  return drops.map((drop) => {
+    const rare = drop.chance < 0.2;
+    const known = discovered.has(drop.itemId!);
+    if (known) {
+      return { itemId: drop.itemId!, hidden: false, rare };
+    }
+    if (!rare && showCommon) {
+      return { itemId: drop.itemId!, hidden: false, rare };
+    }
+    if (rare && showRare) {
+      return { itemId: drop.itemId!, hidden: false, rare };
+    }
+    if (rare) {
+      return { itemId: null, hidden: true, rare: true };
+    }
+    return null;
+  }).filter((row): row is BestiaryDropRow => row !== null)
+    .filter((row, index, rows) => (
+      row.hidden
+        ? rows.findIndex((entryRow) => entryRow.hidden && entryRow.rare === row.rare) === index
+        : true
+    ));
+}
+
+export function revealBestiaryDrops(entry: BestiaryMonsterState, itemIds: string[]): string[] {
+  const revealed: string[] = [];
+  for (const itemId of itemIds) {
+    if (!entry.discoveredDropIds.includes(itemId)) {
+      entry.discoveredDropIds.push(itemId);
+      revealed.push(itemId);
+    }
+  }
+  return revealed;
 }
 
 function unlockDropKnowledge(entry: BestiaryMonsterState, dropTable: DropTableDefinition): void {

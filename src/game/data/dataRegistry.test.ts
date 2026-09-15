@@ -229,6 +229,8 @@ const validFiles: Record<string, unknown[]> = {
   ],
   "xp-tables.json": [{ id: "standard", levels: { "1": 0, "2": 100 } }],
   "difficulties.json": [{ id: "normal", name: "Normal" }],
+  "rare-variants.json": [],
+  "reward-choices.json": [],
 };
 
 describe("loadDataRegistry", () => {

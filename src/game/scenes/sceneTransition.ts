@@ -22,6 +22,10 @@ export function isSceneTransitioning(scene: Phaser.Scene): boolean {
   return state !== undefined && state !== "idle";
 }
 
+export function isSceneFadeBlockingInput(scene: Phaser.Scene): boolean {
+  return scene.game.canvas.dataset.transitionState === "fading-out";
+}
+
 export function enterScene(scene: TransitionScene, sceneName: string): void {
   const canvas = scene.game.canvas;
   canvas.dataset.scene = `${sceneName}-loading`;
@@ -31,7 +35,12 @@ export function enterScene(scene: TransitionScene, sceneName: string): void {
   canvas.dataset.transitionInput = "blocked";
   scene.input.enabled = false;
 
+  let completed = false;
   const complete = () => {
+    if (completed) {
+      return;
+    }
+    completed = true;
     canvas.dataset.scene = sceneName;
     canvas.dataset.transitionState = "idle";
     canvas.dataset.transitionPhase = "complete";
@@ -40,6 +49,8 @@ export function enterScene(scene: TransitionScene, sceneName: string): void {
   };
 
   scene.cameras.main.once(Phaser.Cameras.Scene2D.Events.FADE_IN_COMPLETE, complete);
+  const timeoutId = window.setTimeout(complete, sceneTransitionDurationMs + 120);
+  scene.events.once(Phaser.Scenes.Events.SHUTDOWN, () => window.clearTimeout(timeoutId));
   scene.cameras.main.fadeIn(sceneTransitionDurationMs, 0, 0, 0);
 }
 

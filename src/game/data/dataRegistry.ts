@@ -14,8 +14,10 @@ import type {
   MonsterDefinition,
   NpcDefinition,
   QuestDefinition,
+  RareVariantDefinition,
   RegionDefinition,
   RecipeDefinition,
+  RewardChoiceDefinition,
   ShopDefinition,
   SkillDefinition,
   StatusEffectDefinition,
@@ -196,6 +198,22 @@ export class DataRegistry {
     return this.getById("difficulties", id);
   }
 
+  getRareVariant(id: string): RareVariantDefinition {
+    return this.getById("rareVariants", id);
+  }
+
+  getRareVariants(): RareVariantDefinition[] {
+    return Array.from(this.collections.rareVariants.values());
+  }
+
+  getRewardChoice(id: string): RewardChoiceDefinition {
+    return this.getById("rewardChoices", id);
+  }
+
+  getRewardChoices(): RewardChoiceDefinition[] {
+    return Array.from(this.collections.rewardChoices.values());
+  }
+
   private getById<K extends DataCollectionKey>(collection: K, id: string): DataFileMap[K] {
     const entry = this.collections[collection].get(id);
 
@@ -282,6 +300,8 @@ function createEmptyCollections(): DataCollections {
     vfx: new Map(),
     xpTables: new Map(),
     difficulties: new Map(),
+    rareVariants: new Map(),
+    rewardChoices: new Map(),
   };
 }
 
@@ -304,6 +324,8 @@ const dataFiles = [
   { key: "vfx", fileName: "vfx.json", validate: validateVfx },
   { key: "xpTables", fileName: "xp-tables.json", validate: validateXpTable },
   { key: "difficulties", fileName: "difficulties.json", validate: validateDifficulty },
+  { key: "rareVariants", fileName: "rare-variants.json", validate: validateRareVariant },
+  { key: "rewardChoices", fileName: "reward-choices.json", validate: validateRewardChoice },
 ] satisfies DataFileDescriptor<DataCollectionKey>[];
 
 function validateClass(source: Record<string, unknown>, fileName: string): ClassDefinition {
@@ -449,6 +471,7 @@ function validateItem(source: Record<string, unknown>, fileName: string): ItemDe
     refinable: typeof source.refinable === "boolean" ? source.refinable : undefined,
     value: optionalNumber(source, "value", 0),
     supportId: optionalString(source, "supportId", "") || undefined,
+    effectIds: optionalStringArray(source, "effectIds"),
   };
 }
 
@@ -590,6 +613,10 @@ function validateMonster(source: Record<string, unknown>, fileName: string): Mon
     respawnMs: optionalNumber(source, "respawnMs", 8000),
     elite: Boolean(source.elite),
     boss: Boolean(source.boss),
+    spriteMonsterId: optionalString(source, "spriteMonsterId", "") || undefined,
+    visualTint: source.visualTint === undefined ? undefined : optionalNumber(source, "visualTint", 0),
+    visualScale: source.visualScale === undefined ? undefined : optionalNumber(source, "visualScale", 1),
+    rareVariant: Boolean(source.rareVariant),
     bossArena: validateBossArena(source.bossArena),
     bossPhases: validateBossPhases(source.bossPhases),
     mvp: validateMvp(source.mvp),
@@ -1268,6 +1295,48 @@ function validateDifficulty(source: Record<string, unknown>, fileName: string): 
     name: requireString(source, "name", fileName, id),
     enemyHpMultiplier: optionalNumber(source, "enemyHpMultiplier", 1),
     enemyDamageMultiplier: optionalNumber(source, "enemyDamageMultiplier", 1),
+  };
+}
+
+function validateRareVariant(source: Record<string, unknown>, fileName: string): RareVariantDefinition {
+  const id = readId(source, fileName);
+
+  return {
+    id,
+    baseMonsterId: requireString(source, "baseMonsterId", fileName, id),
+    variantMonsterId: requireString(source, "variantMonsterId", fileName, id),
+    displayName: optionalString(source, "displayName", id),
+    mapIds: optionalStringArray(source, "mapIds"),
+    spawnChance: optionalNumber(source, "spawnChance", 0.05),
+    maxSimultaneous: Math.max(1, optionalNumber(source, "maxSimultaneous", 1)),
+    announcementRadius: optionalNumber(source, "announcementRadius", 200),
+    elite: source.elite !== false,
+  };
+}
+
+function validateRewardChoice(source: Record<string, unknown>, fileName: string): RewardChoiceDefinition {
+  const id = readId(source, fileName);
+  const rawOptions = isRecord(source.classOptions) ? source.classOptions : {};
+  const classOptions: RewardChoiceDefinition["classOptions"] = {};
+
+  for (const [classId, options] of Object.entries(rawOptions)) {
+    if (!Array.isArray(options)) {
+      continue;
+    }
+    classOptions[classId] = options.filter(isRecord).map((option, index) => ({
+      id: optionalString(option, "id", `${id}-${classId}-${index}`),
+      itemId: requireString(option, "itemId", fileName, id),
+      label: optionalString(option, "label", option.itemId as string ?? id),
+    }));
+  }
+
+  return {
+    id,
+    sourceId: requireString(source, "sourceId", fileName, id),
+    title: optionalString(source, "title", id),
+    prompt: optionalString(source, "prompt", ""),
+    once: source.once !== false,
+    classOptions,
   };
 }
 

@@ -15,7 +15,7 @@ import {
   worldToTile,
   type GridCollisionMap,
 } from "../map/tilemapPathfinding";
-import { resolveAttack, type CombatStats } from "../systems/combatFormulas";
+import { resolveAttack, getClassAttackKind, type AttackKind, type CombatStats } from "../systems/combatFormulas";
 import { eventBus } from "../systems/eventBus";
 import { addGold, addInventoryItem } from "../systems/inventory";
 import { generateLootDrops, type LootDrop } from "../systems/lootDrops";
@@ -29,7 +29,13 @@ import {
 import { getQuestLogSummary, updateQuestObjectives } from "../systems/quests";
 import { autosaveSlot, writeAutosave, writeSaveSlot } from "../systems/autosave";
 import { audioManager } from "../systems/audioManager";
-import { recordMonsterKill } from "../systems/bestiary";
+import { applyEarlyGameScenario, readPendingEarlyGameScenario } from "../systems/earlyGameScenario";
+import { getDemoBlockedMessage, isDemoBlockedMap } from "../systems/demoMode";
+import { getRareVariantsForMap, recordRareVariantKill, rollRareSpawn } from "../systems/rareVariants";
+import { getRewardChoiceForSource, queueRewardChoice } from "../systems/rewardChoices";
+import { dismissHint, getActiveHint, type ContextualHintId } from "../systems/contextualHints";
+import { completeEarlyGameMilestone } from "../systems/earlyGameProgression";
+import { resolveItemEffects } from "../systems/itemEffects";
 import {
   beginBossArenaEncounter,
   completeBossEncounter,
@@ -59,6 +65,7 @@ import {
   startClassTrial,
 } from "../systems/challengeDungeons";
 import { getEquipmentStats, getItemRarity } from "../systems/equipment";
+import { getMonsterElement, getOrCreateBestiaryEntry, revealBestiaryDrops, recordMonsterKill } from "../systems/bestiary";
 import {
   decideEnemyAiIntent,
   getEffectiveEnemyRespawnMs,
@@ -87,12 +94,12 @@ import { calculateDerivedStats, getSpentStatPoints, resetAllocatedStats } from "
 import { difficultyPresets, getSettingsSummary } from "../systems/settings";
 import type { DataRegistry } from "../data/dataRegistry";
 import type { DialogueSceneData } from "./DialogueScene";
-import type { MapDefinition, MonsterDefinition, RegionDefinition } from "../types/dataDefinitions";
+import type { ItemRarity, MapDefinition, MonsterDefinition, RegionDefinition } from "../types/dataDefinitions";
 import type { GameState } from "../types/gameState";
 import { WorldDebugAdapter } from "../world/debug/WorldDebugAdapter";
 import { getGameInputOwnership } from "../ui/input/GameInputOwnership";
-import type { DroppedLootObject, EnemyRuntime, PortalObject, SpawnZoneRuntime, WorldSceneData } from "../world/worldTypes";
-import { enterScene, isSceneTransitioning, transitionToScene } from "./sceneTransition";
+import type { DroppedLootObject, EnemyRuntime, PortalObject, SpawnZoneRuntime, WorldHazardObject, WorldSceneData, WorldTreasureObject } from "../world/worldTypes";
+import { enterScene, isSceneFadeBlockingInput, isSceneTransitioning, transitionToScene } from "./sceneTransition";
 
 const mapKeysById: Record<string, string> = {
   "crownfield-town": "map-crownfield-town",
@@ -160,6 +167,10 @@ export class WorldScene extends Phaser.Scene {
   private lastAutosaveSlot = "";
   private lastTransition = "";
   private useSavedPosition = false;
+  private worldHazards: WorldHazardObject[] = [];
+  private worldTreasures: WorldTreasureObject[] = [];
+  private movedSinceAttack = false;
+  private collisionLayer: PrototypeTilemapLayer | null = null;
 
   constructor() {
     super(SceneKeys.World);
@@ -176,6 +187,10 @@ export class WorldScene extends Phaser.Scene {
   create(): void {
     const state = this.registry.get(RegistryKeys.GameState) as GameState;
     const dataRegistry = this.registry.get(RegistryKeys.DataRegistry) as DataRegistry;
+    const pendingScenario = readPendingEarlyGameScenario();
+    if (pendingScenario) {
+      applyEarlyGameScenario(state, dataRegistry, pendingScenario);
+    }
     this.state = state;
     this.dataRegistry = dataRegistry;
     this.worldDebug = new WorldDebugAdapter(this.game.canvas);
@@ -185,6 +200,9 @@ export class WorldScene extends Phaser.Scene {
     this.enemies = [];
     this.enemyRuntimes = [];
     this.spawnZones = [];
+    this.worldHazards = [];
+    this.worldTreasures = [];
+    this.movedSinceAttack = false;
     this.enemy = undefined;
     this.attackTarget = undefined;
     state.settings.damageNumbersEnabled = state.settings.damageNumbersEnabled !== false;
@@ -249,7 +267,10 @@ export class WorldScene extends Phaser.Scene {
     }
 
     this.spawnZones = this.createSpawnZones(tilemap, this.getMapSpawnMonsterIds(map));
+    this.collisionLayer = collisionLayer;
     this.spawnInitialEnemies(collisionLayer);
+    this.spawnRareVariants(collisionLayer);
+    this.spawnDebugMonsters(collisionLayer);
 
     this.cameras.main.startFollow(this.player.sprite, true, 0.12, 0.12);
     this.isCameraFollowingPlayer = true;
@@ -269,6 +290,7 @@ export class WorldScene extends Phaser.Scene {
     });
     this.unsubscribeStatsChanged = eventBus.on("statsChanged", () => {
       this.playerCombatStats = this.createPlayerCombatStats(state, dataRegistry);
+      this.dismissContextualHint("points");
     });
     this.unsubscribeStatResetRequested = eventBus.on("statResetRequested", ({ cost }) => {
       if (state.inventory.gold < cost) {
@@ -489,6 +511,9 @@ tiledLayerNames.objects,
     this.scene.launch(SceneKeys.UI);
     eventBus.emit("mapChanged", { mapId: state.currentMapId, musicKey: map.musicKey });
     this.recordQuestEvent("visitMap", state.currentMapId);
+    this.introduceRegion(region);
+    this.prepareSewerHint(map);
+    this.syncContextualHint();
   }
 
   update(_time: number, delta: number): void {
@@ -511,6 +536,8 @@ tiledLayerNames.objects,
     this.renderAssistDebugOverlay();
     this.updateSpawnZones(delta);
     this.updateEnemyStatusEffects();
+    this.updateHazards();
+    this.updateRareSpawnProximity();
     this.updateMapTransitions();
     this.syncPlayerDataset();
     this.syncEnemyDataset();
@@ -528,6 +555,10 @@ tiledLayerNames.objects,
     }
 
     if (this.collectClickedLoot(pointer.worldX, pointer.worldY)) {
+      return;
+    }
+
+    if (this.collectClickedTreasure(pointer.worldX, pointer.worldY)) {
       return;
     }
 
@@ -550,6 +581,7 @@ tiledLayerNames.objects,
       this.worldDebug?.set("pendingPortalInteraction", "");
       this.selectEnemy(clickedEnemy);
       this.moveIntoAttackRange(clickedEnemy);
+      this.dismissContextualHint("attack");
       return;
     }
 
@@ -588,6 +620,8 @@ tiledLayerNames.objects,
     this.player.setPath(path);
     this.pendingNpcInteraction = undefined;
     this.pendingPortalInteraction = undefined;
+    this.movedSinceAttack = true;
+    this.dismissContextualHint("move");
     this.worldDebug?.set("pendingNpcInteraction", "");
     this.worldDebug?.set("pendingPortalInteraction", "");
     this.clearTarget();
@@ -1020,21 +1054,66 @@ tiledLayerNames.objects,
     }
 
     audioManager.playSfx("attack");
+    const monster = this.dataRegistry?.getMonster(enemy.id);
+    const attackKind = getClassAttackKind(this.state?.character.archetype ?? "swordsman");
+    const attackElement = this.getPlayerAttackElement(attackKind);
+    const defenseElement = monster ? getMonsterElement(monster) : "neutral";
     const result = resolveAttack({
       attacker: this.playerCombatStats,
       defender: this.createEnemyCombatStats(enemy),
-      attackKind: "physical",
+      attackKind,
       weaponAttack: this.weaponAttack,
       debug: import.meta.env.DEV,
+      attackElement,
+      defenseElement,
     });
+    const itemEffects = this.state && this.dataRegistry
+      ? resolveItemEffects(this.state, (id) => this.dataRegistry!.getItem(id), {
+        movedSinceAttack: this.movedSinceAttack,
+        critical: result.critical,
+        elementMatchup: result.elementMatchup,
+        dodged: !result.hit,
+        attackElement,
+      })
+      : { damageMultiplier: 1, bonusDamage: 0, restoreSp: 0, applyScorch: false, applyWard: false };
+    this.movedSinceAttack = false;
+    const finalDamage = result.hit
+      ? Math.max(1, Math.floor(result.finalDamage * itemEffects.damageMultiplier) + itemEffects.bonusDamage)
+      : 0;
 
     if (this.player) {
       this.player.playAttack();
       this.playMeleeLunge(this.player.sprite, enemy.sprite, `player:${enemy.id}`);
     }
-    this.damageEnemy(enemy, result.finalDamage);
-    this.spawnHitVfx(enemy, result.finalDamage, result.hit, result.critical);
-    this.syncCombatFormulaDataset(result.finalDamage, result.hit, result.critical);
+    this.damageEnemy(enemy, finalDamage);
+    if (itemEffects.applyScorch) {
+      this.applyStatusEffectToEnemy(enemy, "burn");
+    }
+    if (itemEffects.applyWard && this.state && this.dataRegistry) {
+      applyStatusEffect(this.state.character.statusEffects, this.dataRegistry.getStatusEffect("guarded"), "cracked-ward");
+      emitStatusEffectsChanged("player", this.state.character.id, this.state.character.statusEffects);
+    }
+    if (itemEffects.restoreSp > 0 && this.state) {
+      this.state.character.stats.sp = Math.min(
+        this.state.character.stats.maxSp,
+        this.state.character.stats.sp + itemEffects.restoreSp,
+      );
+      eventBus.emit("playerSpChanged", {
+        sp: this.state.character.stats.sp,
+        maxSp: this.state.character.stats.maxSp,
+      });
+    }
+    this.spawnHitVfx(enemy, finalDamage, result.hit, result.critical);
+    this.syncCombatFormulaDataset(finalDamage, result.hit, result.critical, attackKind, result.elementMatchup);
+    if (result.critical) {
+      eventBus.emit("combatFeedback", { kind: "critical", damage: finalDamage });
+    } else if (result.elementMatchup === "weak") {
+      eventBus.emit("combatFeedback", { kind: "weak", damage: finalDamage });
+    } else if (result.elementMatchup === "resist") {
+      eventBus.emit("combatFeedback", { kind: "resist", damage: finalDamage });
+    } else if (!result.hit) {
+      eventBus.emit("combatFeedback", { kind: "miss", damage: 0 });
+    }
     eventBus.emit("enemyHealthChanged", {
       enemyId: enemy.id,
       name: enemy.name,
@@ -1063,7 +1142,7 @@ tiledLayerNames.objects,
 
   private useHotbarSlot(slot: number): void {
     if (
-      isSceneTransitioning(this)
+      isSceneFadeBlockingInput(this)
       || !this.state
       || !this.dataRegistry
       || this.isDialogueOpen
@@ -1097,6 +1176,7 @@ tiledLayerNames.objects,
     if (result.success) {
       eventBus.emit("skillUsed", { skillId: result.skillId, actorId: this.state.character.id });
       this.spawnSkillVfx(result.damage);
+      this.dismissContextualHint("skill");
     }
     this.worldDebug?.set("skillCooldowns", Object.entries(this.state.character.skills.cooldowns)
 .map(([skillId, readyAt]) => `${skillId}:${readyAt}`)
@@ -1238,6 +1318,7 @@ tiledLayerNames.objects,
         enemy.sprite.y,
       ),
       hp: enemy.hp,
+      element: this.dataRegistry ? getMonsterElement(this.dataRegistry.getMonster(enemy.id)) : undefined,
       applyDamage: (damage: number) => this.damageEnemy(enemy, damage),
       applyStatusEffect: (effectId: string) => {
         const applied = this.applyStatusEffectToEnemy(enemy, effectId);
@@ -1597,12 +1678,24 @@ phase.attackIds.join(","),
     if (bossRewards.length > 0) {
       this.worldDebug?.set("lastMvpReward", `${enemy.id}:${bossRewards.join(",")}`);
     }
+    if (monster.rareVariant) {
+      recordRareVariantKill(state, monster.id);
+      this.worldDebug?.set("lastRareKill", monster.id);
+    }
+    if (enemy.boss) {
+      const choice = getRewardChoiceForSource(dataRegistry, enemy.id);
+      const queued = choice ? queueRewardChoice(state, choice) : false;
+      if (!queued) {
+        completeEarlyGameMilestone(state);
+      }
+    }
     this.completeActiveChallengeForBoss(enemy.id);
     this.syncBossEncounterDataset();
     const support = state.support.equippedSupportId ? dataRegistry.getSupport(state.support.equippedSupportId) : null;
     grantSupportAffinity(state, support, Math.max(1, Math.ceil(monster.xpReward / 2)));
     this.syncSupportDataset();
-    drops.forEach((drop, index) => this.spawnLootDrop(drop, enemy.sprite.x + index * 28, enemy.sprite.y + 18));
+    drops.forEach((drop, index) => this.spawnLootDrop(drop, enemy.sprite.x + index * 28, enemy.sprite.y + 18, enemy.id));
+    this.revealDroppedBestiaryItems(enemy.id, drops);
 
     if (enemy.boss && refreshHuntingBoard(state, "boss-kill")) {
       this.syncHuntingBoardDataset();
@@ -1670,17 +1763,20 @@ phase.attackIds.join(","),
     this.worldDebug?.set("lastSupportAction", `${support.id}:material-ping:success:${materialEntry.itemId}`);
   }
 
-  private spawnLootDrop(drop: LootDrop, x: number, y: number): void {
+  private spawnLootDrop(drop: LootDrop, x: number, y: number, sourceMonsterId?: string): void {
     const id = `loot-${Date.now()}-${this.droppedLoot.length}`;
-    const markerColor = drop.kind === "gold" ? 0xfacc15 : 0x38bdf8;
-    const marker = this.add.rectangle(x, y, 22, 18, markerColor, 0.9)
-      .setStrokeStyle(2, 0xf8fafc, 0.9)
+    const rarity = drop.kind === "item" ? getItemRarity(this.dataRegistry!.getItem(drop.itemId)) : "Common";
+    const markerColor = drop.kind === "gold" ? 0xfacc15 : this.getRarityColor(rarity);
+    const isRarePlus = drop.kind === "item" && this.isRarePlus(rarity);
+    const marker = this.add.rectangle(x, y, 22, 18, markerColor, isRarePlus ? 1 : 0.9)
+      .setStrokeStyle(isRarePlus ? 3 : 2, isRarePlus ? 0xfef08a : 0xf8fafc, 0.95)
       .setDepth(16)
       .setInteractive({ useHandCursor: true });
     const label = this.add.text(x, y - 24, this.getLootLabel(drop), {
-      color: "#f8fafc",
+      color: drop.kind === "gold" ? "#fef08a" : this.getRarityTextColor(rarity),
       fontFamily: "Arial, sans-serif",
-      fontSize: "12px",
+      fontSize: isRarePlus ? "13px" : "12px",
+      fontStyle: isRarePlus ? "bold" : "normal",
     })
       .setOrigin(0.5)
       .setDepth(17);
@@ -1690,16 +1786,19 @@ phase.attackIds.join(","),
       label.setColor("#fef08a");
     });
     marker.on(Phaser.Input.Events.POINTER_OUT, () => {
-      marker.setScale(1).setStrokeStyle(2, 0xf8fafc, 0.9);
-      label.setColor("#f8fafc");
+      marker.setScale(1).setStrokeStyle(isRarePlus ? 3 : 2, isRarePlus ? 0xfef08a : 0xf8fafc, 0.95);
+      label.setColor(drop.kind === "gold" ? "#fef08a" : this.getRarityTextColor(rarity));
     });
 
     if (drop.kind === "item") {
-      const rarity = getItemRarity(this.dataRegistry!.getItem(drop.itemId));
       this.vfxManager?.spawnLootBeam(rarity, x, y);
+      if (isRarePlus) {
+        audioManager.playSfx("rare-drop");
+        this.vfxManager?.spawn("rare-loot-beam", x, y);
+      }
     }
 
-    this.droppedLoot.push({ id, drop, marker, label });
+    this.droppedLoot.push({ id, drop, marker, label, sourceMonsterId });
     this.worldDebug?.set("lastLootDrop", this.getLootDatasetValue(drop));
     this.worldDebug?.set("pendingLootCount", String(this.droppedLoot.length));
     this.worldDebug?.set("lootPosition", `${Math.round(x)},${Math.round(y)}`);
@@ -1723,6 +1822,9 @@ phase.attackIds.join(","),
     } else {
       addInventoryItem(this.state.inventory, this.dataRegistry.getItem(loot.drop.itemId), loot.drop.quantity);
       this.recordQuestEvent("collectItem", loot.drop.itemId, loot.drop.quantity);
+      if (loot.sourceMonsterId) {
+        this.revealDroppedBestiaryItems(loot.sourceMonsterId, [loot.drop]);
+      }
     }
 
     loot.marker.destroy();
@@ -1735,6 +1837,7 @@ phase.attackIds.join(","),
     this.worldDebug?.set("inventoryStackCount", String(this.state.inventory.items.length));
     this.worldDebug?.set("equipmentInstanceCount", String(this.state.inventory.equipmentInstances.length));
     eventBus.emit("lootPickedUp", this.getLootEventPayload(loot.drop));
+    this.dismissContextualHint("loot");
 
     return true;
   }
@@ -1781,10 +1884,16 @@ phase.attackIds.join(","),
     return drop.kind === "gold" ? `gold:${drop.quantity}` : `${drop.itemId}:${drop.quantity}`;
   }
 
-  private getLootEventPayload(drop: LootDrop): { kind: "item" | "gold"; itemId?: string; quantity: number } {
-    return drop.kind === "gold"
-      ? { kind: "gold", quantity: drop.quantity }
-      : { kind: "item", itemId: drop.itemId, quantity: drop.quantity };
+  private getLootEventPayload(drop: LootDrop): { kind: "item" | "gold"; itemId?: string; quantity: number; rarity?: string } {
+    if (drop.kind === "gold") {
+      return { kind: "gold", quantity: drop.quantity };
+    }
+    return {
+      kind: "item",
+      itemId: drop.itemId,
+      quantity: drop.quantity,
+      rarity: getItemRarity(this.dataRegistry!.getItem(drop.itemId)),
+    };
   }
 
   private enemyAttack(enemy: EnemyEntity): void {
@@ -1850,6 +1959,9 @@ phase.attackIds.join(","),
     this.worldDebug?.set("lastDeathSource", source);
     this.worldDebug?.set("respawnTargetMap", this.getRespawnTownId());
     this.worldDebug?.set("respawnTargetName", this.getRespawnTownName());
+    if (source === "sewer-glutton") {
+      this.prepareSewerHint(this.dataRegistry?.getMap(this.state.currentMapId));
+    }
     this.player?.clearDestination();
     this.player?.playDeath();
     this.attackTarget = undefined;
@@ -2457,14 +2569,21 @@ phase.attackIds.join(","),
     }
   }
 
-  private syncCombatFormulaDataset(damage: number, hit: boolean, critical: boolean): void {
+  private syncCombatFormulaDataset(
+    damage: number,
+    hit: boolean,
+    critical: boolean,
+    attackKind: AttackKind = "physical",
+    elementMatchup = "normal",
+  ): void {
     this.worldDebug?.set("lastCombatFormula", [
-"kind=physical",
-`weapon=${this.weaponAttack}`,
-`hit=${hit}`,
-`crit=${critical}`,
-`damage=${damage}`,
-].join("|"));
+      `kind=${attackKind}`,
+      `weapon=${this.weaponAttack}`,
+      `hit=${hit}`,
+      `crit=${critical}`,
+      `damage=${damage}`,
+      `element=${elementMatchup}`,
+    ].join("|"));
   }
 
   private updateMapTransitions(): void {
@@ -2485,7 +2604,14 @@ phase.attackIds.join(","),
   }
 
   private transitionThroughPortal(portal: PortalObject): void {
-    if (!this.player || !this.state || this.isTransitioning) {
+    if (!this.player || !this.state || !this.dataRegistry || this.isTransitioning) {
+      return;
+    }
+
+    const destination = this.dataRegistry.getMap(portal.targetMapId);
+    if (isDemoBlockedMap(destination, (id) => this.dataRegistry!.getRegion(id))) {
+      this.worldDebug?.set("demoTravelBlocked", portal.targetMapId);
+      eventBus.emit("hintShown", { hintId: "demo-block", message: getDemoBlockedMessage(destination.name) });
       return;
     }
 
@@ -2534,9 +2660,10 @@ phase.attackIds.join(","),
       (id) => dataRegistry.getStatusEffect(id),
       (id) => dataRegistry.getSupport(id),
     );
+    const kind = getClassAttackKind(state.character.archetype);
 
     return {
-      attack: derivedStats.physicalAttack,
+      attack: kind === "magic" ? derivedStats.magicAttack : kind === "ranged" ? derivedStats.rangedAttack : derivedStats.physicalAttack,
       defense: derivedStats.defense,
       hitChance: derivedStats.hit / 100,
       dodgeChance: derivedStats.dodge / 100,
@@ -2807,24 +2934,27 @@ phase.attackIds.join(","),
     if (!this.dataRegistry) {
       return;
     }
-
     const monster = this.getChallengeScaledMonster(this.dataRegistry.getMonster(zone.monsterId));
-    const respawnMs = getEffectiveEnemyRespawnMs(zone.respawnMs, monster);
-    const spawnPoint = this.getWalkableSpawnPoint(zone);
-    const enemy = new EnemyEntity(this, {
-      ...monster,
-      respawnMs,
-    }, spawnPoint);
-    enemy.playSpawn();
+    this.spawnEnemyFromMonster(monster, this.getWalkableSpawnPoint(zone), collisionLayer, zone.id, zone.respawnMs);
+  }
 
+  private spawnEnemyFromMonster(
+    monster: MonsterDefinition,
+    spawnPoint: Phaser.Math.Vector2,
+    collisionLayer: PrototypeTilemapLayer | null,
+    zoneId: string,
+    respawnOverrideMs?: number,
+  ): void {
+    const respawnMs = getEffectiveEnemyRespawnMs(respawnOverrideMs ?? 8000, monster);
+    const enemy = new EnemyEntity(this, { ...monster, respawnMs }, spawnPoint);
+    enemy.playSpawn();
     if (collisionLayer) {
       this.physics.add.collider(enemy.sprite, collisionLayer);
     }
-
     this.enemies.push(enemy);
     this.enemyRuntimes.push({
       enemy,
-      zoneId: zone.id,
+      zoneId,
       home: spawnPoint.clone(),
       damagedByPlayer: false,
       assistedByAlly: false,
@@ -2902,6 +3032,11 @@ phase.attackIds.join(","),
         this.createPortalMarker(object);
       } else if (object.type === "gathering" || object.type === "treasure") {
         this.createSpotMarker(object);
+        if (object.type === "treasure") {
+          this.registerTreasure(object);
+        }
+      } else if (object.type === "hazard") {
+        this.registerHazard(object);
       }
     }
   }
@@ -3018,5 +3153,233 @@ phase.attackIds.join(","),
       && candidate.y < tilemap.heightInPixels
       && this.isWalkable(candidate.x, candidate.y)
     )) ?? new Phaser.Math.Vector2(tilemap.widthInPixels / 2, tilemap.heightInPixels / 2);
+  }
+
+  private spawnRareVariants(collisionLayer: PrototypeTilemapLayer | null): void {
+    if (!this.state || !this.dataRegistry) {
+      return;
+    }
+    const active: string[] = [];
+    for (const variant of getRareVariantsForMap(this.dataRegistry, this.state.currentMapId)) {
+      const roll = rollRareSpawn(this.state, variant);
+      if (!roll.spawned) {
+        continue;
+      }
+      const monster = this.dataRegistry.getMonster(variant.variantMonsterId);
+      const zone = this.spawnZones[0];
+      const point = zone
+        ? this.getWalkableSpawnPoint(zone)
+        : new Phaser.Math.Vector2((this.player?.sprite.x ?? 200) + 80, this.player?.sprite.y ?? 200);
+      this.spawnEnemyFromMonster(monster, point, collisionLayer, `rare:${variant.id}`);
+      active.push(variant.id);
+      eventBus.emit("rareSpawnNearby", { variantId: variant.id, name: variant.displayName });
+    }
+    this.worldDebug?.set("rareSpawnActive", active.join("|"));
+  }
+
+  private spawnDebugMonsters(collisionLayer: PrototypeTilemapLayer | null): void {
+    if (!this.state || !this.dataRegistry || !this.player) {
+      return;
+    }
+    const raw = this.state.worldFlags["debug:spawn-monsters"];
+    if (typeof raw !== "string" || raw.length === 0) {
+      return;
+    }
+    delete this.state.worldFlags["debug:spawn-monsters"];
+    const ids = raw.split("|").filter((monsterId) => monsterId.length > 0);
+    ids.forEach((monsterId, index) => {
+      const monster = this.dataRegistry!.getMonster(monsterId);
+      const point = new Phaser.Math.Vector2(this.player!.sprite.x + 48 + index * 40, this.player!.sprite.y);
+      this.spawnEnemyFromMonster(monster, point, collisionLayer, "debug-spawn");
+    });
+    if (ids.length > 0) {
+      const spawnedEnemies = this.enemies.splice(this.enemies.length - ids.length, ids.length);
+      const spawnedRuntimes = this.enemyRuntimes.splice(this.enemyRuntimes.length - ids.length, ids.length);
+      this.enemies.unshift(...spawnedEnemies);
+      this.enemyRuntimes.unshift(...spawnedRuntimes);
+      this.refreshPrimaryEnemy();
+      this.syncEnemyDataset();
+    }
+    this.worldDebug?.set("debugSpawnedMonsters", raw);
+  }
+
+  private introduceRegion(region: RegionDefinition): void {
+    if (!this.state) {
+      return;
+    }
+    const flag = `region-intro:${region.id}`;
+    if (this.state.worldFlags[flag] === true) {
+      return;
+    }
+    this.state.worldFlags[flag] = true;
+    eventBus.emit("regionIntroduced", { regionId: region.id, regionName: region.name });
+    this.worldDebug?.set("lastRegionIntro", region.id);
+  }
+
+  private prepareSewerHint(map?: MapDefinition): void {
+    if (!this.state || !map) {
+      return;
+    }
+    if (map.id === "training-sewers" || map.id === "training-sewers-entrance") {
+      this.state.worldFlags["hint-ready:sewer-prep"] = true;
+      this.syncContextualHint();
+    }
+  }
+
+  private dismissContextualHint(id: ContextualHintId): void {
+    if (!this.state || !dismissHint(this.state, id)) {
+      return;
+    }
+    this.syncContextualHint();
+  }
+
+  private syncContextualHint(): void {
+    if (!this.state) {
+      return;
+    }
+    const hint = getActiveHint(this.state, {});
+    this.worldDebug?.set("activeHint", hint?.id ?? "");
+    if (hint) {
+      eventBus.emit("hintShown", { hintId: hint.id, message: hint.message });
+    }
+  }
+
+  private getPlayerAttackElement(attackKind: AttackKind): string {
+    if (attackKind === "magic") {
+      return "fire";
+    }
+    const weaponId = this.state?.equipment.weapon;
+    if (weaponId && this.dataRegistry) {
+      const elements = this.dataRegistry.getItem(weaponId).statModifiers?.elementDamage;
+      const elemental = elements ? Object.keys(elements)[0] : undefined;
+      if (elemental) {
+        return elemental;
+      }
+    }
+    return "neutral";
+  }
+
+  private revealDroppedBestiaryItems(monsterId: string, drops: LootDrop[]): void {
+    if (!this.state) {
+      return;
+    }
+    const itemIds = drops.filter((drop) => drop.kind === "item").map((drop) => drop.itemId);
+    if (itemIds.length === 0) {
+      return;
+    }
+    revealBestiaryDrops(getOrCreateBestiaryEntry(this.state, monsterId), itemIds);
+  }
+
+  private registerHazard(object: Phaser.Types.Tilemaps.TiledObject): void {
+    this.worldHazards.push({
+      name: object.name,
+      effect: this.getObjectStringProperty(object, "effect", "slow"),
+      bounds: new Phaser.Geom.Rectangle(object.x ?? 0, object.y ?? 0, object.width ?? 32, object.height ?? 32),
+      lastTickAt: 0,
+    });
+    this.worldDebug?.set("hazardCount", String(this.worldHazards.length));
+  }
+
+  private registerTreasure(object: Phaser.Types.Tilemaps.TiledObject): void {
+    if (!this.state) {
+      return;
+    }
+    const itemId = this.getObjectStringProperty(object, "lootItemId");
+    if (!itemId) {
+      return;
+    }
+    const claimed = this.state.worldFlags[this.treasureFlag(object.name)] === true;
+    this.worldTreasures.push({
+      name: object.name,
+      itemId,
+      bounds: new Phaser.Geom.Rectangle((object.x ?? 0) - 8, (object.y ?? 0) - 8, 32, 32),
+      claimed,
+    });
+  }
+
+  private collectClickedTreasure(x: number, y: number): boolean {
+    if (!this.state || !this.dataRegistry) {
+      return false;
+    }
+    const treasure = this.worldTreasures.find((entry) => !entry.claimed && entry.bounds.contains(x, y));
+    if (!treasure) {
+      return false;
+    }
+    treasure.claimed = true;
+    this.state.worldFlags[this.treasureFlag(treasure.name)] = true;
+    const item = this.dataRegistry.getItem(treasure.itemId);
+    addInventoryItem(this.state.inventory, item, 1);
+    this.recordQuestEvent("collectItem", treasure.itemId, 1);
+    this.worldDebug?.set("lastTreasureLoot", `${treasure.name}:${treasure.itemId}`);
+    eventBus.emit("lootPickedUp", { kind: "item", itemId: treasure.itemId, quantity: 1, rarity: getItemRarity(item) });
+    this.dismissContextualHint("loot");
+    return true;
+  }
+
+  private treasureFlag(name: string): string {
+    return `treasure:${this.state?.currentMapId ?? ""}:${name}`;
+  }
+
+  private updateHazards(): void {
+    if (!this.player || !this.state || !this.dataRegistry || this.state.character.stats.hp <= 0) {
+      return;
+    }
+    const now = this.time.now;
+    for (const hazard of this.worldHazards) {
+      if (!hazard.bounds.contains(this.player.sprite.x, this.player.sprite.y) || now - hazard.lastTickAt < 800) {
+        continue;
+      }
+      hazard.lastTickAt = now;
+      if (hazard.effect === "damage") {
+        this.state.character.stats.hp = Math.max(0, this.state.character.stats.hp - 2);
+        eventBus.emit("playerHealthChanged", {
+          hp: this.state.character.stats.hp,
+          maxHp: this.state.character.stats.maxHp,
+        });
+        if (this.state.character.stats.hp === 0) {
+          this.handlePlayerDeath(hazard.name);
+        }
+      } else if (hazard.effect === "slow" || hazard.effect === "silence") {
+        const effectId = hazard.effect === "silence" ? "silence" : "slow";
+        applyStatusEffect(this.state.character.statusEffects, this.dataRegistry.getStatusEffect(effectId), "hazard");
+        emitStatusEffectsChanged("player", this.state.character.id, this.state.character.statusEffects);
+      }
+      this.worldDebug?.set("lastHazard", `${hazard.name}:${hazard.effect}`);
+    }
+  }
+
+  private updateRareSpawnProximity(): void {
+    if (!this.player || !this.state || !this.dataRegistry) {
+      return;
+    }
+    const nearby = this.enemies.find((enemy) => {
+      if (!enemy.isAlive || !this.dataRegistry!.getMonster(enemy.id).rareVariant) {
+        return false;
+      }
+      return Phaser.Math.Distance.Between(this.player!.sprite.x, this.player!.sprite.y, enemy.sprite.x, enemy.sprite.y) < 220;
+    });
+    this.worldDebug?.set("rareSpawnNearby", nearby?.id ?? "");
+  }
+
+  private getRarityColor(rarity: ItemRarity): number {
+    if (rarity === "Mythic") return 0xfb7185;
+    if (rarity === "Legendary") return 0xfbbf24;
+    if (rarity === "Epic") return 0xc084fc;
+    if (rarity === "Rare") return 0x38bdf8;
+    if (rarity === "Uncommon") return 0x4ade80;
+    return 0xcbd5e1;
+  }
+
+  private getRarityTextColor(rarity: ItemRarity): string {
+    if (rarity === "Mythic") return "#fb7185";
+    if (rarity === "Legendary") return "#fbbf24";
+    if (rarity === "Epic") return "#e9d5ff";
+    if (rarity === "Rare") return "#7dd3fc";
+    if (rarity === "Uncommon") return "#86efac";
+    return "#e2e8f0";
+  }
+
+  private isRarePlus(rarity: ItemRarity): boolean {
+    return rarity === "Rare" || rarity === "Epic" || rarity === "Legendary" || rarity === "Mythic";
   }
 }

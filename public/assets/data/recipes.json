@@ -10193,5 +10193,117 @@
       "stabilizer"
     ],
     "resultItemId": "rune-ore"
+  },
+  {
+    "id": "recipe-meadow-canvas-vest",
+    "name": "Meadow Canvas Vest",
+    "outputItemId": "armor-canvas-vest-1",
+    "outputQuantity": 1,
+    "requiredMaterials": [
+      {
+        "itemId": "jelly-gel",
+        "quantity": 4
+      },
+      {
+        "itemId": "soft-hide",
+        "quantity": 2
+      }
+    ],
+    "requiredGold": 12,
+    "requiredLevel": 3,
+    "requiredRegionId": "crownfield",
+    "requiredNpcId": "nima-threadwell",
+    "unlockCondition": {
+      "type": "default"
+    },
+    "ingredientItemIds": [
+      "jelly-gel",
+      "soft-hide"
+    ],
+    "resultItemId": "armor-canvas-vest-1"
+  },
+  {
+    "id": "recipe-hopper-skip-salve",
+    "name": "Hopper Skip Draught",
+    "outputItemId": "consumable-common-health-draught-1",
+    "outputQuantity": 3,
+    "requiredMaterials": [
+      {
+        "itemId": "hopper-leg",
+        "quantity": 2
+      },
+      {
+        "itemId": "jelly-gel",
+        "quantity": 1
+      }
+    ],
+    "requiredGold": 6,
+    "requiredLevel": 2,
+    "requiredRegionId": "crownfield",
+    "requiredNpcId": "nima-threadwell",
+    "unlockCondition": {
+      "type": "default"
+    },
+    "ingredientItemIds": [
+      "hopper-leg",
+      "jelly-gel"
+    ],
+    "resultItemId": "consumable-common-health-draught-1"
+  },
+  {
+    "id": "recipe-road-canvas-guard",
+    "name": "Road Canvas Guard",
+    "outputItemId": "armor-canvas-guard-1",
+    "outputQuantity": 1,
+    "requiredMaterials": [
+      {
+        "itemId": "road-token",
+        "quantity": 3
+      },
+      {
+        "itemId": "soft-hide",
+        "quantity": 2
+      }
+    ],
+    "requiredGold": 18,
+    "requiredLevel": 6,
+    "requiredRegionId": "crownfield",
+    "requiredNpcId": "nima-threadwell",
+    "unlockCondition": {
+      "type": "default"
+    },
+    "ingredientItemIds": [
+      "road-token",
+      "soft-hide"
+    ],
+    "resultItemId": "armor-canvas-guard-1"
+  },
+  {
+    "id": "recipe-sewer-moss-cloak",
+    "name": "Sewer Moss Cloak",
+    "outputItemId": "armor-mossguard-cloak-2",
+    "outputQuantity": 1,
+    "requiredMaterials": [
+      {
+        "itemId": "sewer-moss",
+        "quantity": 4
+      },
+      {
+        "itemId": "hopper-leg",
+        "quantity": 2
+      }
+    ],
+    "requiredGold": 24,
+    "requiredLevel": 8,
+    "requiredRegionId": "crownfield",
+    "requiredNpcId": "nima-threadwell",
+    "unlockCondition": {
+      "type": "default"
+    },
+    "ingredientItemIds": [
+      "sewer-moss",
+      "hopper-leg"
+    ],
+    "resultItemId": "armor-mossguard-cloak-2"
   }
 ]

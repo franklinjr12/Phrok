@@ -1,0 +1,15 @@
+[
+  {
+    "id": "silvermane-stalker",
+    "baseMonsterId": "grove-stalker",
+    "variantMonsterId": "silvermane-stalker",
+    "displayName": "Silvermane Stalker",
+    "mapIds": [
+      "deep-mossvale"
+    ],
+    "spawnChance": 0.08,
+    "maxSimultaneous": 1,
+    "announcementRadius": 220,
+    "elite": true
+  }
+]

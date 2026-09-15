@@ -1,0 +1,115 @@
+[
+  {
+    "id": "sewer-glutton-first-clear",
+    "sourceId": "sewer-glutton",
+    "title": "Glutton's Cache",
+    "prompt": "Choose one reward from the Glutton's hoard.",
+    "once": true,
+    "classOptions": {
+      "swordsman": [
+        {
+          "id": "glutton-sword",
+          "itemId": "weapon-riverglass-sword-2",
+          "label": "Offensive blade"
+        },
+        {
+          "id": "glutton-guard",
+          "itemId": "armor-mossguard-guard-2",
+          "label": "Defensive offhand"
+        },
+        {
+          "id": "glutton-charm",
+          "itemId": "accessory-pearlmark-pin-2",
+          "label": "Utility accessory"
+        }
+      ],
+      "mage": [
+        {
+          "id": "glutton-staff",
+          "itemId": "weapon-riverglass-staff-2",
+          "label": "Spell-power staff"
+        },
+        {
+          "id": "glutton-focus",
+          "itemId": "accessory-pearlmark-charm-2",
+          "label": "Cast and SP focus"
+        },
+        {
+          "id": "glutton-ward",
+          "itemId": "armor-mossguard-cap-2",
+          "label": "Defensive focus"
+        }
+      ],
+      "archer": [
+        {
+          "id": "glutton-bow",
+          "itemId": "weapon-riverglass-bow-2",
+          "label": "Raw ranged bow"
+        },
+        {
+          "id": "glutton-speed",
+          "itemId": "accessory-pearlmark-pin-2",
+          "label": "Precision cadence"
+        },
+        {
+          "id": "glutton-boots",
+          "itemId": "armor-mossguard-boots-2",
+          "label": "Mobility boots"
+        }
+      ],
+      "thief": [
+        {
+          "id": "glutton-dagger",
+          "itemId": "weapon-riverglass-dagger-2",
+          "label": "Burst dagger"
+        },
+        {
+          "id": "glutton-cloak",
+          "itemId": "armor-mossguard-cloak-2",
+          "label": "Evasion cloak"
+        },
+        {
+          "id": "glutton-luck",
+          "itemId": "accessory-pearlmark-ring-2",
+          "label": "Crit and fortune"
+        }
+      ]
+    }
+  },
+  {
+    "id": "thorn-priest-first-clear",
+    "sourceId": "thorn-priest",
+    "title": "Cracked Sigil",
+    "prompt": "A cracked sigil answers your victory. Choose how your build will grow.",
+    "once": true,
+    "classOptions": {
+      "any": [
+        {
+          "id": "sigil-momentum",
+          "itemId": "cracked-sigil-momentum",
+          "label": "Momentum"
+        },
+        {
+          "id": "sigil-scorch",
+          "itemId": "cracked-sigil-scorch",
+          "label": "Scorch"
+        },
+        {
+          "id": "sigil-followup",
+          "itemId": "cracked-sigil-followup",
+          "label": "Follow-through"
+        },
+        {
+          "id": "sigil-siphon",
+          "itemId": "cracked-sigil-siphon",
+          "label": "Siphon"
+        },
+        {
+          "id": "sigil-ward",
+          "itemId": "cracked-sigil-ward",
+          "label": "Ward"
+        }
+      ]
+    }
+  }
+]

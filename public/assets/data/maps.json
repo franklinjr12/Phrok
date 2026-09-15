@@ -138,12 +138,20 @@
           "meadow-pup"
         ],
         "maxCount": 3
+      },
+      {
+        "id": "old-road-elite",
+        "monsterIds": [
+          "old-road-bruiser"
+        ],
+        "maxCount": 1
       }
     ],
     "monsterIds": [
       "field-hopper",
       "meadow-pup",
-      "road-thief"
+      "road-thief",
+      "old-road-bruiser"
     ],
     "npcIds": [],
     "musicKey": "music-crownfield-field",
@@ -154,7 +162,8 @@
     "dropHighlights": [
       "road-token",
       "practice-daggers",
-      "soft-hide"
+      "soft-hide",
+      "bruiser-iron-knuckle"
     ],
     "tilemapKey": "map-crownfield-old-road"
   },
@@ -223,8 +232,8 @@
     "description": "A lantern-lit forest hub built around a mossy hunting board, root bridges, and rain-dark service stalls.",
     "regionId": "mossvale",
     "levelRange": {
-      "min": 10,
-      "max": 16
+      "min": 15,
+      "max": 20
     },
     "type": "town",
     "portals": [
@@ -273,8 +282,8 @@
     "description": "The first green border of Mossvale, mixing plant casters and assist beasts for players moving beyond Crownfield.",
     "regionId": "mossvale",
     "levelRange": {
-      "min": 10,
-      "max": 16
+      "min": 15,
+      "max": 18
     },
     "type": "field",
     "portals": [
@@ -320,7 +329,8 @@
     "dropHighlights": [
       "moss-fiber",
       "thorny-vine",
-      "mosswood-bowgrip"
+      "mosswood-bowgrip",
+      "sprite-dew-focus"
     ],
     "tilemapKey": "map-mossvale-edge"
   },
@@ -368,7 +378,8 @@
     "monsterIds": [
       "moss-sprite",
       "thorn-runner",
-      "grove-stalker"
+      "grove-stalker",
+      "silvermane-stalker"
     ],
     "npcIds": [],
     "musicKey": "music-mossvale-field",
@@ -379,7 +390,8 @@
     "dropHighlights": [
       "shadowleaf-wraps",
       "mosswood-bowgrip",
-      "moss-fiber"
+      "moss-fiber",
+      "silvermane-pelt"
     ],
     "tilemapKey": "map-deep-mossvale"
   },
@@ -389,7 +401,7 @@
     "description": "A moss-choked shrine road with plant beasts, an elite rootguard, and the surface entrance to Green Chapel Ruins.",
     "regionId": "mossvale",
     "levelRange": {
-      "min": 24,
+      "min": 19,
       "max": 30
     },
     "type": "field",
@@ -1524,7 +1536,7 @@
     "description": "A replayable beginner dungeon of split sluice rooms, dense rat packs, sludge hazards, and the Sewer Glutton boss.",
     "regionId": "crownfield",
     "levelRange": {
-      "min": 5,
+      "min": 8,
       "max": 15
     },
     "type": "dungeon",
@@ -1592,7 +1604,7 @@
     "description": "A ruined chapel dungeon with plant spirits, thorn hazards, a shortcut nave, and the Thorn Priest boss.",
     "regionId": "mossvale",
     "levelRange": {
-      "min": 15,
+      "min": 19,
       "max": 25
     },
     "type": "dungeon",

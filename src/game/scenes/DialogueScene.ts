@@ -283,7 +283,7 @@ export class DialogueScene extends Phaser.Scene {
       padding: { x: 10, y: 6 },
     })
       .setScrollFactor(0)
-      .setDepth(201)
+      .setDepth(211)
       .setVisible(false)
       .setInteractive({ useHandCursor: true })
       .on(Phaser.Input.Events.POINTER_DOWN, () => this.confirmAdvancedClassChoice());
